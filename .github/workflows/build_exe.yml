@@ -27,7 +27,7 @@ jobs:
         path: ./
         
     - name : Zip release file
-      run: zip -rj ./fosslight_dependency.zip dist/windows/fosslight_dependency.exe ./NOTICE ./LICENSE 
+      run: zip -rj ./fosslight_dependency_windows.zip dist/windows/fosslight_dependency.exe ./NOTICE ./LICENSE
                 
     - name: Upload release file
       uses: actions/upload-release-asset@v1.0.1
@@ -35,6 +35,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./fosslight_dependency.zip
-        asset_name: fosslight_dependency.zip
+        asset_path: ./fosslight_dependency_windows.zip
+        asset_name: fosslight_dependency_windows.zip
         asset_content_type: application/zip
