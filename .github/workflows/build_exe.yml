@@ -27,7 +27,7 @@ jobs:
         path: ./
         
     - name : Zip release file
-      run: zip -rj ./fosslight_dependency_windows.zip dist/windows/fosslight_dependency.exe ./NOTICE ./LICENSE
+      run: zip -rj ./fosslight_dependency_windows.zip dist/windows/fosslight_dependency.exe ./LICENSES/3rd_party_licenses.txt ./LICENSE
                 
     - name: Upload release file
       uses: actions/upload-release-asset@v1.0.1
