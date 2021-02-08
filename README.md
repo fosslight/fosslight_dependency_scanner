@@ -9,7 +9,7 @@ Currently, it supports the following package managers.
 * [Maven](http://maven.apache.org/) (Java)
 * [NPM](https://www.npmjs.com/) (Node.js)
 * [PIP](https://pip.pypa.io/) (Python)
-* [Pub](https://pub.dev/) (Dart / Flutter)
+* [Pub](https://pub.dev/) (Flutter)
 
 
 ## User Guide
