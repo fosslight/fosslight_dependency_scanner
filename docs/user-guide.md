@@ -1,7 +1,7 @@
 # User Guide 
 <br>
 
-## 1. How to set up
+## 1. Prerequisite
 ### How to analyze the dependencies
 FOSSLight dependency utilizes the open source software for analyzing each package manager dependencies. We choose the open source software for each package manager that shows not only the direct dependencies but also the transitive dependencies including the information of dependencies such as oss name, oss version and license name.
 
@@ -88,8 +88,8 @@ $ pip install -r requirements.txt
 $ mvn license:aggregate-download-licenses
 ```
 
-### Flutter
-1. Run the flutter_oss_licenses. (required)
+### Pub (required)
+1. Run the flutter_oss_licenses.
 ```
 $ flutter pub get
 $ flutter pub global activate flutter_oss_licenses
