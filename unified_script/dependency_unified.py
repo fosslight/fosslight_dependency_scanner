@@ -874,7 +874,7 @@ def preprocess_pub_result(input_file):
 
 
 def parse_and_generate_output_pub(tmp_file_name):
-    global license_scanner_bin, tmp_license_txt_file_name
+    global license_scanner_bin, tmp_license_txt_file_name 
 
     json_txt = preprocess_pub_result(tmp_file_name)
     json_data = json.loads(json_txt)
@@ -887,9 +887,11 @@ def parse_and_generate_output_pub(tmp_file_name):
     idx = 1
     for key in json_data:
         oss_name = json_data[key]['name']
+        oss_name = "pub:" + oss_name
         oss_version = json_data[key]['version']
         homepage = json_data[key]['homepage']
-        dn_loc = homepage
+        # dn_loc = homepage
+        dn_loc = dn_url + oss_name + "/versions/" + oss_version
         license_txt = json_data[key]['license']
 
         tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
@@ -905,7 +907,7 @@ def parse_and_generate_output_pub(tmp_file_name):
             license_name = ''
 
         insert_oss_report(wb.active,
-                          [str(idx), 'pub', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
+                          [str(idx), 'pubspec.yaml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
         idx += 1
 
     save_oss_report(wb)
@@ -1029,6 +1031,7 @@ def main():
         output_file_name = "gradle_dependency_output.xlsx"
 
     elif PACKAGE == "pub":
+        dn_url = "https://pub.dev/packages/"
         input_file_name = "lib/oss_licenses.dart"
         output_file_name = "pub_dependency_output.xlsx"
         license_scanner_first_flag = True
