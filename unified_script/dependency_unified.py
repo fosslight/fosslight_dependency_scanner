@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup
 import logging
 import requests
 
-VERSION = "3.0.0"
+VERSION = "3.0.1"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],

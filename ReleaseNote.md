@@ -1,5 +1,8 @@
 # ReleaseNote
 
+### V3.0.1 (2021.02.23)
+ - Change the result report format for pub package manager.
+
 ### V3.0.0 (2021.01.21)
  - Create fossology_dependency github repository and upload the source codes.
  
