@@ -25,13 +25,16 @@ jobs:
       uses: JackMcKew/pyinstaller-action-windows@main
       with:
         path: ./
+        
+    - name : Zip release file
+      run: zip -rj ./fosslight_dependency_windows.zip dist/windows/fosslight_dependency.exe ./LICENSES/3rd_party_licenses.txt ./LICENSE
                 
-    - name: Upload release binary
+    - name: Upload release file
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: dist/windows/fosslight_dependency.exe
-        asset_name: fosslight_dependency.exe
+        asset_path: ./fosslight_dependency_windows.zip
+        asset_name: fosslight_dependency_windows.zip
         asset_content_type: application/zip
