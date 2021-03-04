@@ -13,7 +13,7 @@ Currently, it supports the following package managers.
 
 
 ## User Guide
-Please see the [docs/](https://github.com/LGE-OSS/fosslight_dependency/tree/main/docs) for more information on how to run each package manager.
+Please see the [User Guide](/docs/user-guide.md) for more information on how to run each package manager.
 
 ## License
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
