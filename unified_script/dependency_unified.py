@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup
 import logging
 import requests
 
-VERSION = "3.0.1"
+VERSION = "3.0.2"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
@@ -731,9 +731,9 @@ def parse_and_generate_output_npm(tmp_file_name):
             oss_name = "npm:" + oss_init_name
 
             if d['licenses']:
-                license_name = d['licenses']
+                licenses = d['licenses']
             else:
-                license_name = ''
+                licenses = ''
 
             if d['repository']:
                 dn_loc = d['repository']
@@ -748,23 +748,20 @@ def parse_and_generate_output_npm(tmp_file_name):
             else:
                 copyright_text = ''
 
-            multi_license = check_multi_license(license_name)
+            multi_license = check_multi_license(licenses)
 
             if multi_license == 1:
-                for l_idx in range(0, len(license_name)):
-                    license_name = license_name[l_idx].replace(",", "")
-
-                    insert_oss_report(wb.active,
-                                      [str(idx), 'package.json', oss_name, oss_version, license_name, dn_loc,
-                                       homepage, copyright_text, '', '', ''])
-                    idx += 1
+                license_list = []
+                for l_idx in licenses:
+                    license_list.append(l_idx.replace(",", ""))
+                license_name = ', '.join(license_list)
             else:
                 license_name = license_name.replace(",", "")
 
-                insert_oss_report(wb.active,
-                                  [str(idx), 'package.json', oss_name, oss_version, license_name, dn_loc, homepage,
-                                   copyright_text, '', '', ''])
-                idx += 1
+            insert_oss_report(wb.active,
+                            [str(idx), 'package.json', oss_name, oss_version, license_name, dn_loc, homepage,
+                            copyright_text, '', '', ''])
+            idx += 1
 
         save_oss_report(wb)
 
@@ -786,33 +783,25 @@ def parse_and_generate_output_maven(input_fp):
 
         oss_name = groupid + ":" + artifactid
 
-        license_num = 1
         licenses = d.find("licenses")
         if len(licenses):
+            license_list = []
             for key_license in licenses.iter("license"):
-                license_name = key_license.findtext("name")
-                dn_loc = dn_url + groupid + "/" + artifactid + "/" + version
-                homepage = dn_url + groupid + "/" + artifactid
+                license_name_i = key_license.findtext("name")
+                license_list.append(license_name_i.replace(",", ""))
 
-                license_name = license_name.replace(",", "")
-
-                insert_oss_report(wb.active,
-                                  [str(idx), 'pom.xml', oss_name, oss_version, license_name, dn_loc, homepage, '', '',
-                                   '', ''])
-
-                license_num += 1
-                idx += 1
+            license_name = ', '.join(license_list)
         else:
             # Case that doesn't include License tag value.
             license_name = ''
-            dn_loc = dn_url + groupid + "/" + artifactid + "/" + version
-            homepage = dn_url + groupid + "/" + artifactid
+        
+        dn_loc = dn_url + groupid + "/" + artifactid + "/" + version
+        homepage = dn_url + groupid + "/" + artifactid
 
-            insert_oss_report(wb.active,
-                              [str(idx), 'pom.xml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '',
-                               ''])
+        insert_oss_report(wb.active,
+                        [str(idx), 'pom.xml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
 
-            idx += 1
+        idx += 1
 
     save_oss_report(wb)
 
