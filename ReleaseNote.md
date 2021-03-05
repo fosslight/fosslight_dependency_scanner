@@ -1,5 +1,8 @@
 # ReleaseNote
 
+### V3.0.2 (2021.03.05)
+ - Modify to generate a single oss for multiple license names for npm,maven.
+
 ### V3.0.1 (2021.02.23)
  - Change the result report format for pub package manager.
 
