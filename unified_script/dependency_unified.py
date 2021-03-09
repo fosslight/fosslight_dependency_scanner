@@ -18,6 +18,7 @@ from xml.etree.ElementTree import parse
 from bs4 import BeautifulSoup
 import logging
 import requests
+import pkg_resources
 
 VERSION = "3.0.2"
 
@@ -26,9 +27,9 @@ manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven"
                   ["gradle", "build.gradle"], ["pub", "pubspec.yaml"]]
 
 # binary url to check license text
-license_scanner_url_linux = "https://github.com/LGE-OSS/fosslight_dependency/raw/main/third_party/nomos/nomossa"
-license_scanner_url_macos = "https://github.com/LGE-OSS/fosslight_dependency/raw/main/third_party/askalono/askalono_macos"
-license_scanner_url_windows = "https://github.com/LGE-OSS/fosslight_dependency/raw/main/third_party/askalono/askalono.exe"
+license_scanner_url_linux = "third_party/nomos/nomossa"
+license_scanner_url_macos = "third_party/askalono/askalono_macos"
+license_scanner_url_windows = "third_party/askalono/askalono.exe"
 
 
 class HelpStop(Exception):
@@ -509,45 +510,23 @@ def check_license_scanner(os_name):
         logging.info("Not supported OS to analyze license text with binary.")
         return
 
-    license_scanner_bin = os.path.basename(license_scanner_url)
-
-
-def check_to_exist_license_scanner():
-    global license_scanner_bin, license_scanner_url
-
-    fileobject = requests.get(license_scanner_url)
-    if fileobject.status_code != 200:
-        logging.error("### Error Message ###")
-        logging.error("Downloading " + license_scanner_bin + " is failed.")
-        return False
-    else:
-        with open(license_scanner_bin, 'wb') as f:
-            f.write(fileobject.content)
-    
-    if os.path.isfile(license_scanner_bin) == 1:
-        os.chmod(license_scanner_bin,0o755)
-        return True
-    else:
-        return False
+    data_path = os.path.join(os.path.dirname(__file__),license_scanner_url)
+    license_scanner_bin = data_path
 
 
 def check_and_run_license_scanner(file_dir, os_name):
-    global license_scanner_first_flag, is_license_scanner, license_scanner_bin
+    global license_scanner_bin
 
-    if license_scanner_first_flag:
-        is_license_scanner = check_to_exist_license_scanner()
-        license_scanner_first_flag = False
-
-    if is_license_scanner:
+    try:
         tmp_output_file_name = "tmp_license_scanner_output.txt"
 
         if file_dir == "UNKNOWN":
             license_name = ""
         else:
             if os_name == 'Linux':
-                run_license_scanner = "./" + license_scanner_bin + " " + file_dir + " > " + tmp_output_file_name
+                run_license_scanner = license_scanner_bin + " " + file_dir + " > " + tmp_output_file_name
             elif os_name == 'Darwin':
-                run_license_scanner = "./" + license_scanner_bin + " identify " + file_dir + " > " + tmp_output_file_name
+                run_license_scanner = license_scanner_bin + " identify " + file_dir + " > " + tmp_output_file_name
             elif os_name == 'Windows':
                 run_license_scanner = license_scanner_bin + " identify " + file_dir + " > " + tmp_output_file_name
             else:
@@ -578,7 +557,9 @@ def check_and_run_license_scanner(file_dir, os_name):
             else:
                 license_name = ""
 
-    else:
+    except Exception as ex:
+        logging.info("There are some errors for the license scanner binary")
+        logging.info("Error:"+ str(ex))
         license_name = ""
 
     return license_name
@@ -706,10 +687,6 @@ def parse_and_generate_output_pip(tmp_file_name):
 
     except Exception as ex:
         logging.info("Error:"+ str(ex))
-
-    if os_name == 'Linux':
-        if is_license_scanner:
-            os.remove(license_scanner_bin)
 
     if os.path.isdir(venv_tmp_dir):
         shutil.rmtree(venv_tmp_dir)
@@ -912,10 +889,6 @@ def parse_and_generate_output_pub(tmp_file_name):
 
     save_oss_report(wb)
 
-    if os_name != 'Windows':
-        if is_license_scanner:
-            os.remove(license_scanner_bin)
-
     os.remove(tmp_license_txt_file_name)
 
 
@@ -992,7 +965,7 @@ def main_pub():
 def main():
     # Global variables
     global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE
-    global license_scanner_first_flag, is_license_scanner, license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name
+    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name
 
     # Init logging
     logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -1011,8 +984,6 @@ def main():
         dn_url = "https://pypi.org/project/"
         output_file_name = "pip_dependency_output.xlsx"
         venv_tmp_dir = "venv_osc_dep_tmp"
-        license_scanner_first_flag = True
-        is_license_scanner = False
 
     elif PACKAGE == "npm":
         dn_url = "https://www.npmjs.com/package/"
@@ -1034,8 +1005,6 @@ def main():
         dn_url = "https://pub.dev/packages/"
         input_file_name = "lib/oss_licenses.dart"
         output_file_name = "pub_dependency_output.xlsx"
-        license_scanner_first_flag = True
-        is_license_scanner = False
         tmp_license_txt_file_name = "tmp_license.txt"
 
     else:

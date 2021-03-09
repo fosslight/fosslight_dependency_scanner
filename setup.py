@@ -24,6 +24,8 @@ if __name__ == "__main__":
         classifiers      = ['Programming Language :: Python :: 3.6',
                             'License :: OSI Approved :: Apache Software License'],
         install_requires = required,
+        package_data = {'unified_script':['third_party/nomos/nomossa','third_party/askalono/askalono.exe','third_party/askalono/askalono_macos']},
+        include_package_data = True,
         entry_points = {
             "console_scripts": [
                 "fosslight_dependency=unified_script.dependency_unified:main"
