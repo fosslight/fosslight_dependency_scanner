@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 if __name__ == "__main__":
     setup(
         name             = 'fosslight_dependency',
-        version          = '3.0.2',
+        version          = '3.0.3',
         packages         = find_packages(),
         description      = 'FOSSLight Dependency',
         long_description = 'It is a script file to scan dependencies through package manager file and generate a result report.',
@@ -24,6 +24,8 @@ if __name__ == "__main__":
         classifiers      = ['Programming Language :: Python :: 3.6',
                             'License :: OSI Approved :: Apache Software License'],
         install_requires = required,
+        package_data = {'unified_script':['third_party/nomos/nomossa','third_party/askalono/askalono.exe','third_party/askalono/askalono_macos']},
+        include_package_data = True,
         entry_points = {
             "console_scripts": [
                 "fosslight_dependency=unified_script.dependency_unified:main"
