@@ -20,7 +20,7 @@ import logging
 import requests
 import pkg_resources
 
-VERSION = "3.0.2"
+VERSION = "3.0.3"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
@@ -29,7 +29,7 @@ manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven"
 # binary url to check license text
 license_scanner_url_linux = "third_party/nomos/nomossa"
 license_scanner_url_macos = "third_party/askalono/askalono_macos"
-license_scanner_url_windows = "third_party/askalono/askalono.exe"
+license_scanner_url_windows = "third_party\\askalono\\askalono.exe"
 
 
 class HelpStop(Exception):
@@ -510,7 +510,12 @@ def check_license_scanner(os_name):
         logging.info("Not supported OS to analyze license text with binary.")
         return
 
-    data_path = os.path.join(os.path.dirname(__file__),license_scanner_url)
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(__file__)
+
+    data_path = os.path.join(base_path, license_scanner_url)
     license_scanner_bin = data_path
 
 
