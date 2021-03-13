@@ -1,5 +1,8 @@
 # ReleaseNote
 
+### V3.0.4 (2021.03.13)
+ - Modify to include binaries that analyze license text.
+
 ### V3.0.2 (2021.03.05)
  - Modify to generate a single oss for multiple license names for npm,maven.
 

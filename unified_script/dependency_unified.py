@@ -20,7 +20,7 @@ import logging
 import requests
 import pkg_resources
 
-VERSION = "3.0.3"
+VERSION = "3.0.4"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
