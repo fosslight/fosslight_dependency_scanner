@@ -10,6 +10,7 @@ Currently, it supports the following package managers.
 * [NPM](https://www.npmjs.com/) (Node.js)
 * [PIP](https://pip.pypa.io/) (Python)
 * [Pub](https://pub.dev/) (Dart with flutter)
+* [Cocoapods](https://cocoapods.org/) (Swift/Obj-C)
 
 
 ## User Guide

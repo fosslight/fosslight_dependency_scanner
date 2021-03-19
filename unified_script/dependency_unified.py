@@ -21,7 +21,7 @@ import requests
 import pkg_resources
 import yaml
 
-VERSION = "3.0.4"
+VERSION = "3.0.5"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],

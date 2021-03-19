@@ -96,6 +96,13 @@ $ flutter pub global activate flutter_oss_licenses
 $ flutter pub global run flutter_oss_licenses:generate.dart
 ```
 
+
+### Cocoapods (required)
+1. Install the pod package through Podfile.
+```
+$ pod install
+```
+
 <br>
 
 ## 2. How to install
@@ -124,7 +131,7 @@ $ fosslight_dependency
 ```
 | Options | Description | Value |
 | --------- | ------------- | ------- |
-| -m | (optional) <br> package manager for your project | npm, maven, gradle, pip, pub |
+| -m | (optional) <br> package manager for your project | npm, maven, gradle, pip, pub, cocoapods |
 | -p | (optional) <br> input directory | (path) |
 | -o | (optional) <br> output file directory | (path) |
 | -a | (pypi only required) <br> virtual environment activate command | conda example: 'conda activate (venv name)' |
@@ -145,6 +152,7 @@ FOSSLight dependency creates the result file that has xlsx extension (Microsoft 
 
 It prints the OSS information based on manifest file(package.json, pom.xml) of dependencies (including transitive dependenices).
 For a unique OSS name, OSS name is printed such as (package_manager):(oss name) or (group id):(artifact id).
+(The oss name of cocoapods is printed just oss name of pod spec information. Because cocoapods doesn't manage the source code of packages itself.)
 
 | Package manager | OSS Name           | Download Location | Homepage |
 | --------------- | ------------------ | ----------------- | -------- |
@@ -152,4 +160,5 @@ For a unique OSS name, OSS name is printed such as (package_manager):(oss name) 
 | Pip             | pypi:(oss name)    | https://pypi.org/project/(oss_name)/(version) | homepage in (pip show) information |
 | Maven (Gradle) | (group_id):(artifact_id) | https://mvnrepository.com/artifact/(group_id)/(artifact_id)/(version) | https://mvnrepository.com/artifact/(group_id)/(artifact_id) |
 | Pub             | pub:(oss name)         | https://pub.dev/packages/(oss_name)/versions/(version) | homepage in (pub information) |
+| Cocoapods       | oss name         | source in (pod spec information)  | homepage in (pod spec information) |
 
