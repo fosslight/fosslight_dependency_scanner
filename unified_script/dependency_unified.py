@@ -19,12 +19,13 @@ from bs4 import BeautifulSoup
 import logging
 import requests
 import pkg_resources
+import yaml
 
 VERSION = "3.0.4"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
-                  ["gradle", "build.gradle"], ["pub", "pubspec.yaml"]]
+                  ["gradle", "build.gradle"], ["pub", "pubspec.yaml"], ["cocoapods", "Podfile.lock"]]
 
 # binary url to check license text
 license_scanner_url_linux = "third_party/nomos/nomossa"
@@ -897,6 +898,80 @@ def parse_and_generate_output_pub(tmp_file_name):
     os.remove(tmp_license_txt_file_name)
 
 
+def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list):
+    pods_item_re = re.findall(r'(\S*)\s{1}\((.*)\)', pods_item)
+
+    oss_name = pods_item_re[0][0]
+    oss_version = pods_item_re[0][1]
+
+    oss_info = []
+    if oss_name in spec_repo_list:
+        oss_info.append(oss_name)
+        oss_info.append(oss_version)
+        pod_in_sepc_list.append(oss_info)
+
+    return pod_in_sepc_list
+
+
+def parse_and_generate_output_cocoapods(input_fp):
+    global source_type
+
+    pod_in_sepc_list = []
+    spec_repo_list = []
+    podfile_yaml = yaml.load(input_fp, Loader=yaml.FullLoader)
+
+    for spec_item_key in podfile_yaml['SPEC REPOS']:
+        for spec_item in podfile_yaml['SPEC REPOS'][spec_item_key]:
+            spec_repo_list.append(spec_item)
+
+    for pods_list in podfile_yaml['PODS']:
+        if not isinstance(pods_list, str):
+            for pods_list_key, pods_list_item in pods_list.items():
+                pod_in_sepc_list = compile_pods_item(pods_list_key, spec_repo_list, pod_in_sepc_list)
+        else:
+            pod_in_sepc_list = compile_pods_item(pods_list, spec_repo_list, pod_in_sepc_list)
+
+    wb = generate_oss_report()
+
+    idx = 1
+    for pod_oss in pod_in_sepc_list:
+        tmp_file_name = 'tmp_spec.json'
+
+        command = 'pod spec cat ' + pod_oss[0] + ' > ' + tmp_file_name
+        command_ret = subprocess.call(command, shell=True)
+        if command_ret != 0:
+            logging.error("### Error Message ###")
+            logging.error("This command(" + command + ") returns an error")
+            sys.exit(1)
+
+        with open(tmp_file_name, 'r', encoding='utf8') as json_file:
+            json_data = json.load(json_file)
+
+            keys = [key for key in json_data]
+
+            oss_name = json_data['name']
+            oss_version = json_data['version']
+            homepage = json_data['homepage']
+
+            if not isinstance(json_data['license'], str):
+                if 'type' in json_data['license']:
+                    license_name = json_data['license']['type']
+            else:
+                license_name = json_data['license']
+
+            source_keys = [key for key in json_data['source']]
+            for src_type_i in source_type:
+                if src_type_i in source_keys:
+                    dn_loc = json_data['source'][src_type_i]
+
+            insert_oss_report(wb.active,
+                              [str(idx), 'Podfile.lock', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
+            idx += 1
+
+            save_oss_report(wb)
+
+
+
 ###########################################
 # Main functions for each package manager  #
 ###########################################
@@ -967,10 +1042,20 @@ def main_pub():
     close_input_file(input_fp)
 
 
+def main_cocoapods():
+    
+    # open Podfile.lock
+    input_fp = open_input_file()
+
+    parse_and_generate_output_cocoapods(input_fp)
+
+    close_input_file(input_fp)
+
+
 def main():
     # Global variables
     global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE
-    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name
+    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name, source_type
 
     # Init logging
     logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -1012,10 +1097,16 @@ def main():
         output_file_name = "pub_dependency_output.xlsx"
         tmp_license_txt_file_name = "tmp_license.txt"
 
+    elif PACKAGE == "cocoapods":
+        dn_url = "https://cocoapods/org/"
+        input_file_name = "Podfile.lock"
+        output_file_name = "cocoapods_dependency_output.xlsx"
+        source_type = ['git', 'http', 'svn', 'hg']
+    
     else:
         logging.error("### Error Message ###")
         logging.error("You enter the wrong first argument.")
-        logging.error("Please enter the package manager into (pip, npm, maven, gradle)")
+        logging.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
         sys.exit(1)
 
     if PACKAGE == "pip":
@@ -1028,6 +1119,13 @@ def main():
         main_gradle()
     elif PACKAGE == "pub":
         main_pub()
+    elif PACKAGE == "cocoapods":
+        main_cocoapods()
+    else:
+        logging.error("### Error Message ###")
+        logging.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
+        sys.exit(1)
+
 
     logging.info("### FINISH!! ###")
 
