@@ -1,5 +1,8 @@
 # ReleaseNote
 
+### V3.0.5 (2021.03.19)
+ - Support the cocoapods package manager.
+
 ### V3.0.4 (2021.03.13)
  - Modify to include binaries that analyze license text.
 
