@@ -1,5 +1,5 @@
 # FOSSLight Dependency
-![FOSSLight](https://user-images.githubusercontent.com/50347670/107185103-23aff380-6a25-11eb-95cc-50c98642704c.png)
+![FOSSLight](https://user-images.githubusercontent.com/50347670/112098530-4c5f0780-8be5-11eb-91af-6e13c86ef339.jpg)
 
 ## Introduction
 This is the tool that supports the analysis of dependencies for multiple package managers. It detects the manifest file of package managers automatically and analyzes the dependencies with using open source tools. Then, it generates the report file that contains OSS information of dependencies.
