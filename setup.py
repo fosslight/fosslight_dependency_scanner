@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 if __name__ == "__main__":
     setup(
         name             = 'fosslight_dependency',
-        version          = '3.0.5',
+        version          = '3.0.6',
         packages         = find_packages(),
         description      = 'FOSSLight Dependency',
         long_description = 'It is a script file to scan dependencies through package manager file and generate a result report.',
