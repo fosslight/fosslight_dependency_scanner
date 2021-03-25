@@ -21,7 +21,7 @@ import requests
 import pkg_resources
 import yaml
 
-VERSION = "3.0.5"
+VERSION = "3.0.6"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
@@ -898,25 +898,30 @@ def parse_and_generate_output_pub(tmp_file_name):
     os.remove(tmp_license_txt_file_name)
 
 
-def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list):
+def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list):
     pods_item_re = re.findall(r'(\S*)\s{1}\((.*)\)', pods_item)
 
     oss_name = pods_item_re[0][0]
     oss_version = pods_item_re[0][1]
 
     oss_info = []
+    oss_info.append(oss_name)
+    oss_info.append(oss_version)
+    
     if oss_name in spec_repo_list:
-        oss_info.append(oss_name)
-        oss_info.append(oss_version)
         pod_in_sepc_list.append(oss_info)
+        spec_repo_list.remove(oss_name)
+    else:
+        pod_not_in_spec_list.append(oss_info)
 
-    return pod_in_sepc_list
+    return pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list
 
 
 def parse_and_generate_output_cocoapods(input_fp):
     global source_type
 
     pod_in_sepc_list = []
+    pod_not_in_spec_list = []
     spec_repo_list = []
     podfile_yaml = yaml.load(input_fp, Loader=yaml.FullLoader)
 
@@ -927,24 +932,45 @@ def parse_and_generate_output_cocoapods(input_fp):
     for pods_list in podfile_yaml['PODS']:
         if not isinstance(pods_list, str):
             for pods_list_key, pods_list_item in pods_list.items():
-                pod_in_sepc_list = compile_pods_item(pods_list_key, spec_repo_list, pod_in_sepc_list)
+                pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = compile_pods_item(pods_list_key, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
         else:
-            pod_in_sepc_list = compile_pods_item(pods_list, spec_repo_list, pod_in_sepc_list)
+            pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = compile_pods_item(pods_list, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
+
+    if len(spec_repo_list) != 0:
+        for spec_in_item in spec_repo_list:
+            spec_oss_name_adding_core = spec_in_item + "/Core"
+            for pod_not_item in pod_not_in_spec_list:
+                if spec_oss_name_adding_core == pod_not_item[0]:
+                    pod_in_sepc_list.append([spec_in_item, pod_not_item[1]])
+    
 
     wb = generate_oss_report()
 
     idx = 1
     for pod_oss in pod_in_sepc_list:
-        tmp_file_name = 'tmp_spec.json'
 
-        command = 'pod spec cat ' + pod_oss[0] + ' > ' + tmp_file_name
-        command_ret = subprocess.call(command, shell=True)
-        if command_ret != 0:
+        search_oss_name = ""
+        for alphabet_oss in pod_oss[0]:
+            if not alphabet_oss.isalnum():
+                search_oss_name += "\\\\" + alphabet_oss
+            else:
+                search_oss_name += alphabet_oss
+
+        command = 'pod spec which --regex ' + '^' +search_oss_name + '$'
+        spec_which = os.popen(command).readline()
+        if spec_which.startswith('[!]'):
             logging.error("### Error Message ###")
             logging.error("This command(" + command + ") returns an error")
             sys.exit(1)
 
-        with open(tmp_file_name, 'r', encoding='utf8') as json_file:
+        file_path = spec_which.rstrip().split(os.path.sep)
+        if file_path[0] == '':
+            file_path_without_version = os.path.join(os.sep,*file_path[:-2])
+        else:
+            file_path_without_version = os.path.join(*file_path[:-2])
+        spec_file_path = os.path.join(file_path_without_version,pod_oss[1],file_path[-1])
+
+        with open(spec_file_path, 'r', encoding='utf8') as json_file:
             json_data = json.load(json_file)
 
             keys = [key for key in json_data]
@@ -958,6 +984,8 @@ def parse_and_generate_output_cocoapods(input_fp):
                     license_name = json_data['license']['type']
             else:
                 license_name = json_data['license']
+
+            license_name = license_name.replace(",", "")
 
             source_keys = [key for key in json_data['source']]
             for src_type_i in source_type:
