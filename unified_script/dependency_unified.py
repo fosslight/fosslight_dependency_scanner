@@ -976,6 +976,7 @@ def parse_and_generate_output_cocoapods(input_fp):
             keys = [key for key in json_data]
 
             oss_name = json_data['name']
+            oss_name = "cocoapods:" + oss_name
             oss_version = json_data['version']
             homepage = json_data['homepage']
 
