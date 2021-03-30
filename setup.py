@@ -10,14 +10,17 @@ from setuptools import setup, find_packages
 with open('requirements.txt') as f:
     required = f.read()
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 if __name__ == "__main__":
     setup(
         name             = 'fosslight_dependency',
         version          = '3.0.6',
         packages         = find_packages(),
         description      = 'FOSSLight Dependency',
-        long_description = 'It is a script file to scan dependencies through package manager file and generate a result report.',
-        long_description_content_type = 'text/plain',
+        long_description = long_description,
+        long_description_content_type = 'text/markdown',
         license          = 'Apache-2.0',
         author           = 'LG Electronics',
         url              = 'https://github.com/LGE-OSS/fosslight_dependency',
