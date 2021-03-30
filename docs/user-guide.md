@@ -152,7 +152,6 @@ FOSSLight dependency creates the result file that has xlsx extension (Microsoft 
 
 It prints the OSS information based on manifest file(package.json, pom.xml) of dependencies (including transitive dependenices).
 For a unique OSS name, OSS name is printed such as (package_manager):(oss name) or (group id):(artifact id).
-(The oss name of cocoapods is printed just oss name of pod spec information. Because cocoapods doesn't manage the source code of packages itself.)
 
 | Package manager | OSS Name           | Download Location | Homepage |
 | --------------- | ------------------ | ----------------- | -------- |
@@ -160,5 +159,5 @@ For a unique OSS name, OSS name is printed such as (package_manager):(oss name) 
 | Pip             | pypi:(oss name)    | https://pypi.org/project/(oss_name)/(version) | homepage in (pip show) information |
 | Maven (Gradle) | (group_id):(artifact_id) | https://mvnrepository.com/artifact/(group_id)/(artifact_id)/(version) | https://mvnrepository.com/artifact/(group_id)/(artifact_id) |
 | Pub             | pub:(oss name)         | https://pub.dev/packages/(oss_name)/versions/(version) | homepage in (pub information) |
-| Cocoapods       | oss name         | source in (pod spec information)  | homepage in (pod spec information) |
+| Cocoapods       | cocoapods:(oss name)         | source in (pod spec information)  | https://cocoapods.org/(oss name) |
 
