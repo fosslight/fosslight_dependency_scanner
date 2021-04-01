@@ -16,6 +16,11 @@ Currently, it supports the following package managers.
 ## User Guide
 Please see the [User Guide](/docs/user-guide.md) for more information on how to run each package manager.
 
+
+## Contributing Guide
+We always welcome your contributions.
+Please see the [CONTRIBUTING guide](/CONTRIBUTING.md) for how to contribute.
+
 ## License
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
 
