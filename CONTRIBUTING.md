@@ -30,7 +30,7 @@ To contribute to this project, you must agree to the Developer Certificate of Or
 See the [DCO](https://developercertificate.org/) for the full text of what you must agree to and how it works here. To signify that you agree to the DCO for contributions, you simply add a line to each of your git commit messages:
 
 ```
-Signed-off-by: Jane Smith <your-id@your-email-domain.com>
+Signed-off-by: Your name <your-id@your-email-domain.com>
 ```
 
 #### DCO Sign-Off Methods
