@@ -155,7 +155,7 @@ For a unique OSS name, OSS name is printed such as (package_manager):(oss name) 
 
 | Package manager | OSS Name           | Download Location | Homepage |
 | --------------- | ------------------ | ----------------- | -------- |
-| Npm             | npm:(oss name)     | Priority1. repository in package.json <br> Priority2. www.npmjs.com/package/(oss_name) | www.npmjs.com/package/(oss_name) |
+| Npm             | npm:(oss name)     | Priority1. repository in package.json <br> Priority2. www.npmjs.com/package/(oss_name)/v/(oss_version) | www.npmjs.com/package/(oss_name) |
 | Pip             | pypi:(oss name)    | https://pypi.org/project/(oss_name)/(version) | homepage in (pip show) information |
 | Maven (Gradle) | (group_id):(artifact_id) | https://mvnrepository.com/artifact/(group_id)/(artifact_id)/(version) | https://mvnrepository.com/artifact/(group_id)/(artifact_id) |
 | Pub             | pub:(oss name)         | https://pub.dev/packages/(oss_name)/versions/(version) | homepage in (pub information) |

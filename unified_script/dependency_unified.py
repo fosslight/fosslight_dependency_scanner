@@ -66,7 +66,7 @@ def help_print():
     logging.info(" -h : print usage message")
     logging.info(" -v : print the version of the script")
     logging.info(" -m : enter the package manager")
-    logging.info("      ex) pip, npm, maven, gradle, pub")
+    logging.info("      ex) pip, npm, maven, gradle, pub, cocoapods")
     logging.info(" -c : enter the customized build output directory of maven, gradle")
     logging.info("      ** The default build output directory of maven is 'target', and which of gradle is 'build'.")
     logging.info("        If you use the customized build output directory, then use this option with your output directory name.")
@@ -159,7 +159,7 @@ def configure_package():
         if ret != 0:
             logging.error("### Error Message ###")
             logging.error("Please enter the package manager with -m option.")
-            logging.error("Choose your package manager. [npm, pip, maven, gradle]")
+            logging.error("Choose your package manager. [npm, pip, maven, gradle, pub, cocoapods]")
             logging.error(">>Command Example")
             logging.error("  python dependency_unified.py -m npm")
             sys.exit(1)
@@ -718,13 +718,14 @@ def parse_and_generate_output_npm(tmp_file_name):
             else:
                 license_name = ''
 
+            oss_version = d['version']
+            
             if d['repository']:
                 dn_loc = d['repository']
             else:
-                dn_loc = dn_url + oss_init_name
+                dn_loc = dn_url + oss_init_name + '/v/' + oss_version
 
             homepage = dn_url + oss_init_name
-            oss_version = d['version']
 
             if d['copyright']:
                 copyright_text = d['copyright']
