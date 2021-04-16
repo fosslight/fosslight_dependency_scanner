@@ -23,7 +23,7 @@ if __name__ == "__main__":
         long_description_content_type = 'text/markdown',
         license          = 'Apache-2.0',
         author           = 'LG Electronics',
-        url              = 'https://github.com/LGE-OSS/fosslight_dependency',
+        url              = 'https://github.com/fosslight/fosslight_dependency',
         classifiers      = ['Programming Language :: Python :: 3.6',
                             'License :: OSI Approved :: Apache Software License'],
         install_requires = required,
