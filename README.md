@@ -1,6 +1,8 @@
 # FOSSLight Dependency
-![FOSSLight](https://user-images.githubusercontent.com/50347670/112098530-4c5f0780-8be5-11eb-91af-6e13c86ef339.jpg)
 
+<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="FOSSLight Dependency is released under the Apache-2.0 License." /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" />
+
+---
 ## Introduction
 This is the tool that supports the analysis of dependencies for multiple package managers. It detects the manifest file of package managers automatically and analyzes the dependencies with using open source tools. Then, it generates the report file that contains OSS information of dependencies.
 
@@ -22,8 +24,6 @@ We always welcome your contributions.
 Please see the [CONTRIBUTING guide](/CONTRIBUTING.md) for how to contribute.
 
 ## License
-[![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg)](https://opensource.org/licenses/Apache-2.0)
-
 Unless otherwise specified, all content, including all source code files and documentation files in this repository are:
 
 Copyright (c) 2020 LG Electronics, Inc.
