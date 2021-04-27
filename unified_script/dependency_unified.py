@@ -20,6 +20,7 @@ import logging
 import requests
 import pkg_resources
 import yaml
+from lastversion import lastversion
 
 VERSION = "3.0.6"
 
@@ -1089,6 +1090,12 @@ def main():
 
     # Init logging
     logging.basicConfig(level=logging.INFO, format='%(message)s')
+
+    # Check the latest version
+    latest_version = lastversion.has_update(repo="fosslight_dependency", at='pip', current_version=VERSION)
+    if latest_version:
+        logging.info('### Version Info ###')
+        logging.info('Newer version is available:{}'.format(str(latest_version)))
 
     # Configure global variables according to package manager.
     try:
