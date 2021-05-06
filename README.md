@@ -16,14 +16,14 @@ Currently, it supports the following package managers.
 
 
 ## 📖 User Guide
-Please see the [User Guide](https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide.md) for more information on how to run each package manager.
+Please see the [**User Guide**](https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide.md) for more information on how to install and run it.
 
 
 ## 👏 Contributing Guide
-We always welcome your contributions.
+We always welcome your contributions.  
 Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency/blob/main/CONTRIBUTING.md) for how to contribute.
 
 ## 📄 License
 
-Copyright (c) 2020 LG Electronics, Inc.
+Copyright (c) 2020 LG Electronics, Inc.  
 FOSSLight Dependency is licensed under Apache-2.0, as found in the [LICENSE](https://github.com/fosslight/fosslight_dependency/blob/main/LICENSE) file.
