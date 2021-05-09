@@ -20,7 +20,7 @@
 <br>
 
 ## 🧐 How to analyze the dependencies
-FOSSLight Dependency는 다른 오픈소스 소프트웨어를 이용하여 여러 패키지 매니저들의 dependency 분석을 수행하고 있습니다. 여러 dependency 분석 오픈소스 소프트웨어 중 다음 기준에 따라 오픈소스 소프트웨어를 선택하여 이용하고 있습니다.
+FOSSLight Dependency는 다른 오픈소스 소프트웨어를 이용하여 여러 패키지 매니저들의 dependency 분석을 수행하고 있습니다. 그 중 다음 기준에 따라 오픈소스 소프트웨어를 선택하고 있습니다.
 1. Direct dependency뿐만 아니라 transitive dependency까지 추출 가능
 2. 오픈소스 이름, 버전, License명 추출 가능
 
@@ -51,7 +51,7 @@ $ npm install
 <br>
 
 ### Gradle
-1. 'build.gradle'파일에 License Gradle Plugin을 추가합니다.
+1. 'build.gradle' 파일에 License Gradle Plugin을 추가합니다.
 ```
 plugins {
     id 'com.github.hierynomus.license' version '0.15.0'
@@ -92,8 +92,8 @@ $ pip install -r requirements.txt
 <br>
 
 ### Maven (optional)
-> - Maven의 경우, input directory에 pom.xml파일이 존재하는 경우, plugin 추가 및 실행을 FOSSLight dependency 내부에서 자동으로 수행하므로 하기 전제조건은 skip하셔도 됩니다.
-1. pom.xml파일에 license-maven-plugin을 추가합니다.
+> - Maven의 경우, input directory에 pom.xml 파일이 존재하는 경우, plugin 추가 및 실행을 FOSSLight dependency 내부에서 자동으로 수행하므로 다음은 skip하셔도 됩니다.
+1. pom.xml 파일에 license-maven-plugin을 추가합니다.
 ```
 <project>
   ...
