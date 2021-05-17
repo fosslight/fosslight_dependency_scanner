@@ -2,5 +2,6 @@ openpyxl
 beautifulsoup4
 lxml
 virtualenv
-requests
 pyyaml
+lastversion
+fosslight_util

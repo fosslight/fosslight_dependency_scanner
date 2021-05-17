@@ -7,31 +7,35 @@
 from codecs import open
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
+with open('requirements.txt', 'r') as f:
     required = f.read()
 
-with open("README.md", "r") as fh:
+with open('README.md', 'r') as fh:
     long_description = fh.read()
+
+exec(open("src/fosslight_dependency/_version.py").read())
 
 if __name__ == "__main__":
     setup(
         name             = 'fosslight_dependency',
-        version          = '3.0.6',
-        packages         = find_packages(),
+        version          = __version__,
+        package_dir     = {"": "src"},
+        packages         = find_packages(where='src'),
         description      = 'FOSSLight Dependency',
         long_description = long_description,
         long_description_content_type = 'text/markdown',
         license          = 'Apache-2.0',
         author           = 'LG Electronics',
         url              = 'https://github.com/fosslight/fosslight_dependency',
+        download_url     = 'https://github.com/fosslight/fosslight_dependency',
         classifiers      = ['Programming Language :: Python :: 3.6',
                             'License :: OSI Approved :: Apache Software License'],
         install_requires = required,
-        package_data = {'unified_script':['third_party/nomos/nomossa','third_party/askalono/askalono.exe','third_party/askalono/askalono_macos']},
+        package_data = {'fosslight_dependency':['third_party/nomos/nomossa','third_party/askalono/askalono.exe','third_party/askalono/askalono_macos']},
         include_package_data = True,
         entry_points = {
             "console_scripts": [
-                "fosslight_dependency=unified_script.dependency_unified:main"
+                "fosslight_dependency = fosslight_dependency.analyze_dependency:main"
                 ]
             }
     )

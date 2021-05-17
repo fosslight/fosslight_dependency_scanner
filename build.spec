@@ -3,9 +3,9 @@
 block_cipher = None
 
 
-a = Analysis(['unified_script\\dependency_unified.py'],
+a = Analysis(['src\\fosslight_dependency\\analyze_dependency.py'],
              pathex=['C:\\Users\\dd-jy\\pythonProject\\fosslight_dependency'],
-             binaries=[('unified_script\\third_party\\askalono\\askalono.exe', 'third_party\\askalono')],
+             binaries=[('src\\fosslight_dependency\\third_party\\askalono\\askalono.exe', 'third_party\\askalono')],
              datas=[],
              hiddenimports=[],
              hookspath=[],

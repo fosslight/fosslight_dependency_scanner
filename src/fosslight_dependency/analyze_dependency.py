@@ -16,13 +16,14 @@ import json
 import re
 from xml.etree.ElementTree import parse
 from bs4 import BeautifulSoup
-import logging
-import requests
 import pkg_resources
 import yaml
 from lastversion import lastversion
+from fosslight_util.set_log import init_log
+from datetime import datetime
+from . import __version__
+from fosslight_util.write_excel import write_excel_and_csv
 
-VERSION = "3.0.6"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
@@ -33,9 +34,6 @@ license_scanner_url_linux = "third_party/nomos/nomossa"
 license_scanner_url_macos = "third_party/askalono/askalono_macos"
 license_scanner_url_windows = "third_party\\askalono\\askalono.exe"
 
-
-class HelpStop(Exception):
-    pass
 
 
 def check_valid_manifest_file():
@@ -52,9 +50,9 @@ def check_valid_manifest_file():
 
     if len(found_idx) == 1:
         PACKAGE = manifest_array[int(found_idx[0])][0]
-        logging.info("### Info Message ###")
-        logging.info("Found the manifest file(" + manifest_array[int(found_idx[0])][1] + ")automatically.")
-        logging.info("Set PACKAGE =" + PACKAGE)
+        logger.info("### Info Message ###")
+        logger.info("Found the manifest file(" + manifest_array[int(found_idx[0])][1] + ")automatically.")
+        logger.warn("Set PACKAGE =" + PACKAGE)
         ret = 0
     else:
         ret = 1
@@ -63,26 +61,29 @@ def check_valid_manifest_file():
 
 
 def help_print():
-    logging.info("### Option Usage ###")
-    logging.info(" -h : print usage message")
-    logging.info(" -v : print the version of the script")
-    logging.info(" -m : enter the package manager")
-    logging.info("      ex) pip, npm, maven, gradle, pub, cocoapods")
-    logging.info(" -c : enter the customized build output directory of maven, gradle")
-    logging.info("      ** The default build output directory of maven is 'target', and which of gradle is 'build'.")
-    logging.info("        If you use the customized build output directory, then use this option with your output directory name.")
-    logging.info(" -p : enter the path where the script will be run.")
-    logging.info(" -o : enter the path where the result file will be generated.")
+    print("### Option Usage ###")
+    print(" -v : version")
+    print(" -m : package manager")
+    print("      ex) pip, npm, maven, gradle, pub, cocoapods")
+    print(" -p : input directory where the script will be run.")
+    print(" -o : output directory where the result file will be generated.")
+    print("# pypi only options")
+    print(" -a : virtual environment activate command")
+    print(" -d : virtual environment deactivate command")
+    print("# maven, gradle only option")
+    print(" -c : customized build output directory")
 
 
 def parse_option():
     global MANUAL_DETECT, PIP_ACTIVATE, PIP_DEACTIVATE, PACKAGE, OUTPUT_CUSTOM_DIR, CUR_PATH, OUTPUT_RESULT_DIR
 
+    default_unspecified = "UNSPECIFIED"
+
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-h', '--help', action='store_true', required=False)
-    parser.add_argument('-m', '--manager', nargs=1, type=str, default="UNSPECIFIED", required=False)
-    parser.add_argument('-a', '--activate', nargs=1, type=str, default="UNSPECIFIED", required=False)
-    parser.add_argument('-d', '--deactivate', nargs=1, type=str, default="UNSPECIFIED", required=False)
+    parser.add_argument('-m', '--manager', nargs=1, type=str, default=default_unspecified, required=False)
+    parser.add_argument('-a', '--activate', nargs=1, type=str, default=default_unspecified, required=False)
+    parser.add_argument('-d', '--deactivate', nargs=1, type=str, default=default_unspecified, required=False)
     parser.add_argument('-c', '--customized', nargs=1, type=str, required=False)
     parser.add_argument('-p', '--path', nargs=1, type=str, required=False)
     parser.add_argument('-v', '--version', action='store_true', required=False)
@@ -93,17 +94,16 @@ def parse_option():
     # -h option
     if args.help:
         help_print()
-        raise HelpStop
+        sys.exit(0)
 
     # -v option
     if args.version:
-        logging.info(VERSION)
-        raise HelpStop
+        print(__version__)
+        sys.exit(0)
 
     # -m option
-    if args.manager == "UNSPECIFIED":
-        MANUAL_DETECT = 0
-        # It will be detected the package manager automatically with manifest file.
+    if args.manager == default_unspecified:
+        MANUAL_DETECT = 0   # It will be detected the package manager automatically with manifest file.
     else:
         MANUAL_DETECT = 1
         PACKAGE = "".join(args.manager)
@@ -131,7 +131,7 @@ def parse_option():
             try:
                 os.mkdir(OUTPUT_RESULT_DIR)
             except:
-                logging.error("You entered wrong output path(" + OUTPUT_RESULT_DIR + ") to generate output file.")
+                print("You entered wrong output path(" + OUTPUT_RESULT_DIR + ") to generate output file.")
                 sys.exit(1)
             OUTPUT_RESULT_DIR = os.path.abspath(OUTPUT_RESULT_DIR)
     else:
@@ -144,38 +144,21 @@ def parse_option():
             os.chdir(CUR_PATH)
             CUR_PATH = os.getcwd()
         else:
-            logging.error("You entered wrong path(" + CUR_PATH + ") to run the script.")
+            print("You entered wrong path(" + CUR_PATH + ") to run the script.")
             sys.exit(1)
     else:
         CUR_PATH = os.getcwd()
         os.chdir(CUR_PATH)
 
-    logging.info("This script is from the path(" + CUR_PATH + ")")
-
 
 def configure_package():
-    parse_option()
     if MANUAL_DETECT == 0:
         ret = check_valid_manifest_file()
         if ret != 0:
-            logging.error("### Error Message ###")
-            logging.error("Please enter the package manager with -m option.")
-            logging.error("Choose your package manager. [npm, pip, maven, gradle, pub, cocoapods]")
-            logging.error(">>Command Example")
-            logging.error("  python dependency_unified.py -m npm")
+            logger.error("### Error Message ###")
+            logger.error("Please enter the package manager with -m option.")
+            logger.error("You can see the '-m' option with help messages('-h')")
             sys.exit(1)
-
-
-# Common variables for OSS report
-OSS_report_1st_row = ['ID', 'Source Name or Path', 'OSS Name', 'OSS Version', 'License', 'Download Location',
-                      'Homepage', 'Copyright Text', 'License Text', 'Exclude', 'Comment']
-OSS_report_2nd_row = ['-', '[Name of the Source File or Path]', '[Name of the OSS used in the Source Code]',
-                      '[Version Number of the OSS]',
-                      '[License of the OSS. Use SPDX Identifier : https://spdx.org/licenses/]',
-                      '[Download URL or a specific location within a VCS for the OSS]',
-                      '[Web site that serves as the OSS\'s home page]', '[The copyright holders of the OSS]',
-                      '[License Text of the License. This field can be skipped if the License is in SPDX.]',
-                      '[If this OSS is not included in the final version, Exclude]']
 
 
 ####################
@@ -187,7 +170,7 @@ def check_python_version():
         python_version = 2
     else:
         python_version = 3
-    logging.info("python_version = " + str(python_version))
+    logger.info("python_version = " + str(python_version))
     return python_version
 
 
@@ -198,13 +181,11 @@ def check_virtualenv_arg():
         is_requirements_file = os.path.isfile("requirements.txt")
 
         if is_requirements_file != 1:
-            logging.error("### Error Message ###")
-            logging.error("Cannot find the virtualenv directory:" + PIP_ACTIVATE)
-            logging.error("Also it cannot find 'requirements.txt' file and install pip package.")
-            logging.error("Please check the '-a' option argument.")
+            logger.error("### Error Message ###")
+            logger.error("Cannot find the virtualenv directory:" + PIP_ACTIVATE)
+            logger.error("Also it cannot find 'requirements.txt' file and install pip package.")
+            logger.error("Please check the '-a' option argument.")
             sys.exit(1)
-
-
 
         python_version = check_python_version()
 
@@ -226,8 +207,8 @@ def check_virtualenv_arg():
         deactivate_command = "deactivate"
         PIP_DEACTIVATE = deactivate_command
 
-        logging.info("You didn't enter the '-a' option.")
-        logging.info("It makes virtualenv tmp dir(" + venv_path + ") to install pip package with requirements.txt.")
+        logger.info("You didn't enter the '-a' option.")
+        logger.info("It makes virtualenv tmp dir(" + venv_path + ") to install pip package with requirements.txt.")
 
         if check_os() == "Windows":
             command_separator = "&"
@@ -237,30 +218,10 @@ def check_virtualenv_arg():
         command = command_separator.join(command_list)
         command_ret = subprocess.call(command, shell=True)
         if command_ret != 0:
-            logging.error("### Error Message ###")
-            logging.error("This command(" + command + ") returns an error")
-            logging.error("Please check if you installed virtualenv.")
+            logger.error("### Error Message ###")
+            logger.error("This command(" + command + ") returns an error")
+            logger.error("Please check if you installed virtualenv.")
             sys.exit(1)
-
-
-def install_pip_package(package):
-    pip_install_command = 'pip install ' + package
-    ret = os.system(pip_install_command)
-
-    if ret == 0:
-        return True
-    else:
-        return False
-
-
-def uninstall_pip_package(package):
-    pip_uninstall_command = 'pip uninstall ' + package
-    ret = os.system(pip_uninstall_command)
-
-    if ret == 0:
-        return True
-    else:
-        return False
 
 
 def add_plugin_in_pom():
@@ -269,7 +230,7 @@ def add_plugin_in_pom():
     is_append = False
 
     if os.path.isfile(manifest_array[2][1]) != 1:
-        logging.error(manifest_array[2][1] + " is not existed in this directory.")
+        logger.error(manifest_array[2][1] + " is not existed in this directory.")
         sys.exit(1)
 
     shutil.move(manifest_array[2][1], pom_backup)
@@ -330,7 +291,7 @@ def clean_run_maven_plugin_output():
     if os.path.isdir(licenses_path) == 1:
         shutil.rmtree(licenses_path)
         os.remove(directory_name + '/licenses.xml')
-        logging.info('remove temporary directory: ' + licenses_path)
+        logger.info('remove temporary directory: ' + licenses_path)
 
     if len(os.listdir(directory_name)) == 0:
         shutil.rmtree(directory_name)
@@ -339,14 +300,14 @@ def clean_run_maven_plugin_output():
 
 
 def run_maven_plugin():
-    logging.info('run maven license scanning plugin with temporary pom.xml')
+    logger.info('run maven license scanning plugin with temporary pom.xml')
     command = "mvn license:aggregate-download-licenses"
 
     ret = subprocess.call(command, shell=True)
 
     if ret != 0:
-        logging.error("### Error Message ###")
-        logging.error("This command(" + command + ") returns an error.")
+        logger.error("### Error Message ###")
+        logger.error("This command(" + command + ") returns an error.")
 
         clean_run_maven_plugin_output()
         sys.exit(1)
@@ -364,8 +325,8 @@ def open_input_file():
         input_file_name = str(OUTPUT_CUSTOM_DIR) + str(input_rest_tmp)
 
     if os.path.isfile(input_file_name) != 1:
-        logging.error("### Error Message ###")
-        logging.error(input_file_name + " doesn't exist in this directory.")
+        logger.error("### Error Message ###")
+        logger.error(input_file_name + " doesn't exist in this directory.")
 
         if PACKAGE == "maven":
             global is_maven_first_try
@@ -380,13 +341,10 @@ def open_input_file():
                 else:
                     clean_run_maven_plugin_output()
 
-        logging.error("Please check the below thing first.")
-        logging.error("  1.Did you run the OSS that scanning license of dependencies? If you didn't, then please refer the collab(http://collab.lge.com/main/x/MivvN) and try it.")
-        logging.error("  2.Or if your project has the customized build output directory, then use '-o' option with your customized build output directory name")
-        logging.error("     The default build output directory of maven is 'target', and which of gradle is 'build'.")
-        logging.error("     For example, if your customized build output directory name is 'output', then run the below command.")
-        logging.error("     >> $ python dependency_unified.py -o output")
-        logging.error("  3.If you already checked 1st step and also it didn't work, then please request this issue through OSC CLM(http://clm.lge.com/issue/browse/OSC).")
+        logger.error("Please check the below thing first.")
+        logger.error("  1.Did you run the license-maven-plugin?")
+        logger.error("  2.Or if your project has the customized build output directory, then use '-c' option with your customized build output directory name")
+        logger.error("    $ fosslight_dependency -c output")
         sys.exit(1)
 
     input_fp = open(input_file_name, 'r', encoding='utf8')
@@ -419,20 +377,20 @@ def start_license_checker():
     ret = os.system(test_command)
     os.remove("test.tmp")
     if ret != 0:
-        logging.error("### Error Message ###")
-        logging.error("Running license-checker returns error. Please check if the license-checker is installed.")
-        logging.error(">>Command for installing license-checker (Root permission is required to run this command.)")
-        logging.error("  sudo npm install -g license-checker")
+        logger.error("### Error Message ###")
+        logger.error("Running license-checker returns error. Please check if the license-checker is installed.")
+        logger.error(">>Command for installing license-checker (Root permission is required to run this command.)")
+        logger.error("  sudo npm install -g license-checker")
         sys.exit(1)
 
     if os.path.isdir("node_modules") != 1:
-        logging.info("node_modules directory is not existed.it executes 'npm install'.")
+        logger.info("node_modules directory is not existed.it executes 'npm install'.")
         flag_tmp_node_modules = True
         command = 'npm install'
         command_ret = subprocess.call(command, shell=True)
         if command_ret != 0:
-            logging.error("### Error Message ###")
-            logging.error("This command(" + command + ") returns an error")
+            logger.error("### Error Message ###")
+            logger.error("This command(" + command + ") returns an error")
             sys.exit(1)
 
     # customized json file for obtaining specific items with license-checker
@@ -484,8 +442,8 @@ def start_pip_licenses():
     if ret == 0:
         return tmp_file_name
     else:
-        logging.error("### Error Message ###")
-        logging.error("This command(" + command + ") returns an error.")
+        logger.error("### Error Message ###")
+        logger.error("This command(" + command + ") returns an error.")
         sys.exit(1)
 
 
@@ -509,7 +467,7 @@ def check_license_scanner(os_name):
     elif os_name == 'Windows':
         license_scanner_url = license_scanner_url_windows
     else:
-        logging.info("Not supported OS to analyze license text with binary.")
+        logger.info("Not supported OS to analyze license text with binary.")
         return
 
     try:
@@ -565,8 +523,8 @@ def check_and_run_license_scanner(file_dir, os_name):
                 license_name = ""
 
     except Exception as ex:
-        logging.info("There are some errors for the license scanner binary")
-        logging.info("Error:"+ str(ex))
+        logger.info("There are some errors for the license scanner binary")
+        logger.info("Error:"+ str(ex))
         license_name = ""
 
     return license_name
@@ -601,51 +559,15 @@ def parse_oss_name_version_in_artifactid(name):
     return group_id, artifact_id, oss_version
 
 
-def version_refine(version):
-    version_cmp = version.upper()
+def version_refine(oss_version):
+    version_cmp = oss_version.upper()
 
     if version_cmp.find(".RELEASE") != -1:
-        version = version_cmp.rstrip(".RELEASE")
+        oss_version = version_cmp.rstrip(".RELEASE")
     elif version_cmp.find(".FINAL") != -1:
-        version = version_cmp.rstrip(".FINAL")
+        oss_version = version_cmp.rstrip(".FINAL")
 
-    return version
-
-
-#################################################
-# Functions for generating OSS report xlsx file #
-#################################################
-
-def generate_oss_report():
-    wb = Workbook()
-    ws = wb.active
-
-    ws.append(OSS_report_1st_row)
-    ws.append(OSS_report_2nd_row)
-
-    return wb
-
-
-def save_oss_report(wb):
-    wb.save(output_file_name)
-
-
-def insert_oss_report(ws, data):
-    # data format
-    # [idx,package,oss_name,oss_version,license_name,dn_loc,homepage,copyright_text,license_text,exclude,comment]
-    ws.append(data)
-
-
-def load_oss_report_sheet():
-    if os.path.isfile(output_file_name) != 1:
-        logging.error("### Error Message ###")
-        logging.error(output_file_name + " doesn't exist in this directory.")
-        exit(1)
-
-    wb = load_workbook(output_file_name, data_only=True)
-    ws = wb.get_sheet_by_name('Sheet')
-
-    return wb, ws
+    return oss_version
 
 
 #################################################################################################################################
@@ -665,13 +587,14 @@ def parse_and_generate_output_pip(tmp_file_name):
     os_name = check_os()
     check_license_scanner(os_name)
 
+    sheet_list = {}
+
     try:
       with open(tmp_file_name, 'r', encoding='utf-8') as json_file:
         json_data = json.load(json_file)
 
-        wb = generate_oss_report()
+        sheet_list["SRC"] = []
 
-        idx = 1
         for d in json_data:
             oss_init_name = d['Name']
             oss_name = "pypi:" + oss_init_name
@@ -686,29 +609,27 @@ def parse_and_generate_output_pip(tmp_file_name):
             if license_name_with_license_scanner != "":
                 license_name = license_name_with_license_scanner
 
-            insert_oss_report(wb.active,
-                              [str(idx), 'pip', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
-            idx += 1
-
-        save_oss_report(wb)
+            sheet_list["SRC"].append(['pip', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
     except Exception as ex:
-        logging.info("Error:"+ str(ex))
+        logger.error("Error:"+ str(ex))
 
     if os.path.isdir(venv_tmp_dir):
         shutil.rmtree(venv_tmp_dir)
-        logging.info("remove tmp directory: " + venv_tmp_dir)
+        logger.info("remove tmp directory: " + venv_tmp_dir)
+
+    return sheet_list
 
 
 def parse_and_generate_output_npm(tmp_file_name):
     with open(tmp_file_name, 'r', encoding='utf8') as json_file:
         json_data = json.load(json_file)
-
-        wb = generate_oss_report()
+        
+        sheet_list = {}
+        sheet_list["SRC"] = []
 
         keys = [key for key in json_data]
 
-        idx = 1
         for i in range(0, len(keys)):
             d = json_data.get(keys[i - 1])
             oss_init_name = d['name']
@@ -739,19 +660,13 @@ def parse_and_generate_output_npm(tmp_file_name):
                 for l_idx in range(0, len(license_name)):
                     license_name = license_name[l_idx].replace(",", "")
 
-                    insert_oss_report(wb.active,
-                                      [str(idx), 'package.json', oss_name, oss_version, license_name, dn_loc,
-                                       homepage, copyright_text, '', '', ''])
-                    idx += 1
+                    sheet_list["SRC"].append(['package.json', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
             else:
                 license_name = license_name.replace(",", "")
 
-                insert_oss_report(wb.active,
-                                  [str(idx), 'package.json', oss_name, oss_version, license_name, dn_loc, homepage,
-                                   copyright_text, '', '', ''])
-                idx += 1
-
-        save_oss_report(wb)
+                sheet_list["SRC"].append(['package.json', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+        
+        return sheet_list
 
 
 def parse_and_generate_output_maven(input_fp):
@@ -760,8 +675,8 @@ def parse_and_generate_output_maven(input_fp):
     root = tree.getroot()
     dependencies = root.find("dependencies")
 
-    wb = generate_oss_report()
-    idx = 1
+    sheet_list = {}
+    sheet_list["SRC"] = []
 
     for d in dependencies.iter("dependency"):
         groupid = d.findtext("groupId")
@@ -770,43 +685,29 @@ def parse_and_generate_output_maven(input_fp):
         oss_version = version_refine(version)
 
         oss_name = groupid + ":" + artifactid
+        dn_loc = dn_url + groupid + "/" + artifactid + "/" + version
+        homepage = dn_url + groupid + "/" + artifactid
 
-        license_num = 1
         licenses = d.find("licenses")
         if len(licenses):
+            license_names = []
             for key_license in licenses.iter("license"):
-                license_name = key_license.findtext("name")
-                dn_loc = dn_url + groupid + "/" + artifactid + "/" + version
-                homepage = dn_url + groupid + "/" + artifactid
-
-                license_name = license_name.replace(",", "")
-
-                insert_oss_report(wb.active,
-                                  [str(idx), 'pom.xml', oss_name, oss_version, license_name, dn_loc, homepage, '', '',
-                                   '', ''])
-
-                license_num += 1
-                idx += 1
+                license_names.append(key_license.findtext("name").replace(",", ""))
+            license_name = ', '.join(license_names)
         else:
             # Case that doesn't include License tag value.
             license_name = ''
-            dn_loc = dn_url + groupid + "/" + artifactid + "/" + version
-            homepage = dn_url + groupid + "/" + artifactid
 
-            insert_oss_report(wb.active,
-                              [str(idx), 'pom.xml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '',
-                               ''])
+        sheet_list["SRC"].append(['pom.xml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
-            idx += 1
-
-    save_oss_report(wb)
+    return sheet_list
 
 
 def parse_and_generate_output_gradle(input_fp):
     json_data = json.load(input_fp)
 
-    wb = generate_oss_report()
-    idx = 1
+    sheet_list = {}
+    sheet_list["SRC"] = []
 
     for d in json_data['dependencies']:
 
@@ -826,25 +727,22 @@ def parse_and_generate_output_gradle(input_fp):
 
         oss_version = version_refine(oss_ini_version)
 
+        license_names = []
         for licenses in d['licenses']:
-            license_name = licenses['name']
+            license_names.append(licenses['name'].replace(",", ""))
+        license_name = ', '.join(license_names)
 
-            license_name = license_name.replace(",", "")
+        if used_filename == "true" or group_id == "":
+            dn_loc = 'Unknown'
+            homepage = ''
 
-            if used_filename == "true" or group_id == "":
-                dn_loc = 'Unknown'
-                homepage = ''
+        else:
+            dn_loc = dn_url + group_id + "/" + artifact_id + "/" + oss_ini_version
+            homepage = dn_url + group_id + "/" + artifact_id
 
-            else:
-                dn_loc = dn_url + group_id + "/" + artifact_id + "/" + oss_ini_version
-                homepage = dn_url + group_id + "/" + artifact_id
+        sheet_list["SRC"].append(['build.gradle', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
-            insert_oss_report(wb.active,
-                              [str(idx), 'build.gradle', oss_name, oss_version, license_name, dn_loc, homepage, '', '',
-                               '', ''])
-            idx += 1
-
-    save_oss_report(wb)
+    return sheet_list
 
 
 def preprocess_pub_result(input_file):
@@ -853,8 +751,8 @@ def preprocess_pub_result(input_file):
     if matched_json[0] is not None:
         return matched_json[0]
     else:
-        logging.error("### Error Message ###")
-        logging.error("Cannot parse the result json from pub input file.")
+        logger.error("### Error Message ###")
+        logger.error("Cannot parse the result json from pub input file.")
         exit(1)
 
 
@@ -864,19 +762,20 @@ def parse_and_generate_output_pub(tmp_file_name):
     json_txt = preprocess_pub_result(tmp_file_name)
     json_data = json.loads(json_txt)
 
-    wb = generate_oss_report()
+    sheet_list = {}
+    sheet_list["SRC"] = []
 
     os_name = check_os()
     check_license_scanner(os_name)
 
     idx = 1
     for key in json_data:
-        oss_name = json_data[key]['name']
-        oss_name = "pub:" + oss_name
+        oss_origin_name = json_data[key]['name']
+        oss_name = "pub:" + oss_origin_name
         oss_version = json_data[key]['version']
         homepage = json_data[key]['homepage']
         # dn_loc = homepage
-        dn_loc = dn_url + oss_name + "/versions/" + oss_version
+        dn_loc = dn_url + oss_origin_name + "/versions/" + oss_version
         license_txt = json_data[key]['license']
 
         tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
@@ -891,13 +790,11 @@ def parse_and_generate_output_pub(tmp_file_name):
         else:
             license_name = ''
 
-        insert_oss_report(wb.active,
-                          [str(idx), 'pubspec.yaml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
-        idx += 1
-
-    save_oss_report(wb)
+        sheet_list["SRC"].append(['pubspec.yaml', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
     os.remove(tmp_license_txt_file_name)
+
+    return sheet_list
 
 
 def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list):
@@ -946,7 +843,8 @@ def parse_and_generate_output_cocoapods(input_fp):
                     pod_in_sepc_list.append([spec_in_item, pod_not_item[1]])
     
 
-    wb = generate_oss_report()
+    sheet_list = {}
+    sheet_list["SRC"] = []
 
     idx = 1
     for pod_oss in pod_in_sepc_list:
@@ -961,8 +859,8 @@ def parse_and_generate_output_cocoapods(input_fp):
         command = 'pod spec which --regex ' + '^' +search_oss_name + '$'
         spec_which = os.popen(command).readline()
         if spec_which.startswith('[!]'):
-            logging.error("### Error Message ###")
-            logging.error("This command(" + command + ") returns an error")
+            logger.error("### Error Message ###")
+            logger.error("This command(" + command + ") returns an error")
             sys.exit(1)
 
         file_path = spec_which.rstrip().split(os.path.sep)
@@ -977,10 +875,10 @@ def parse_and_generate_output_cocoapods(input_fp):
 
             keys = [key for key in json_data]
 
-            oss_name = json_data['name']
-            oss_name = "cocoapods:" + oss_name
+            oss_origin_name = json_data['name']
+            oss_name = "cocoapods:" + oss_origin_name
             oss_version = json_data['version']
-            homepage = json_data['homepage']
+            homepage = dn_url + 'pods/' + oss_origin_name
 
             if not isinstance(json_data['license'], str):
                 if 'type' in json_data['license']:
@@ -994,13 +892,12 @@ def parse_and_generate_output_cocoapods(input_fp):
             for src_type_i in source_type:
                 if src_type_i in source_keys:
                     dn_loc = json_data['source'][src_type_i]
+                    if dn_loc.endswith('.git'):
+                        dn_loc = dn_loc[:-4]
 
-            insert_oss_report(wb.active,
-                              [str(idx), 'Podfile.lock', oss_name, oss_version, license_name, dn_loc, homepage, '', '', '', ''])
-            idx += 1
+            sheet_list["SRC"].append(['Podfile.lock', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
-            save_oss_report(wb)
-
+    return sheet_list
 
 
 ###########################################
@@ -1015,11 +912,13 @@ def main_pip():
     tmp_file_name = start_pip_licenses()
 
     # Make output file for OSS report using temporary output file for pip-licenses.
-    parse_and_generate_output_pip(tmp_file_name)
+    sheet_list = parse_and_generate_output_pip(tmp_file_name)
 
     # Remove temporary output file.
     if os.path.isfile(tmp_file_name):
         os.remove(tmp_file_name)
+    
+    return sheet_list
 
 
 def main_npm():
@@ -1030,10 +929,12 @@ def main_npm():
     tmp_file_name = start_license_checker()
 
     # Make output file for OSS report using temporary output file for license-checker.
-    parse_and_generate_output_npm(tmp_file_name)
+    sheet_list = parse_and_generate_output_npm(tmp_file_name)
 
     # Remove temporary output file.
     os.remove(tmp_file_name)
+
+    return sheet_list
 
 
 def main_maven():
@@ -1043,13 +944,15 @@ def main_maven():
     input_fp = open_input_file()
 
     # Make output file for OSS report using temporary output file for maven-license-plugin.
-    parse_and_generate_output_maven(input_fp)
+    sheet_list = parse_and_generate_output_maven(input_fp)
 
     # close licenses.xml
     close_input_file(input_fp)
 
     if not is_maven_first_try:
         clean_run_maven_plugin_output()
+    
+    return sheet_list
 
 
 def main_gradle():
@@ -1059,18 +962,22 @@ def main_gradle():
     input_fp = open_input_file()
 
     # Make output file for OSS report using temporary output file for License Gradle Plugin.
-    parse_and_generate_output_gradle(input_fp)
+    sheet_list = parse_and_generate_output_gradle(input_fp)
 
     # close dependency-license.json
     close_input_file(input_fp)
+
+    return sheet_list
 
 
 def main_pub():
     input_fp = open_input_file()
 
-    parse_and_generate_output_pub(input_fp)
+    sheet_list = parse_and_generate_output_pub(input_fp)
 
     close_input_file(input_fp)
+
+    return sheet_list
 
 
 def main_cocoapods():
@@ -1078,99 +985,103 @@ def main_cocoapods():
     # open Podfile.lock
     input_fp = open_input_file()
 
-    parse_and_generate_output_cocoapods(input_fp)
+    sheet_list = parse_and_generate_output_cocoapods(input_fp)
 
     close_input_file(input_fp)
 
+    return sheet_list
+
 
 def main():
-    # Global variables
+    
     global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE
-    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name, source_type
+    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name, source_type, logger
 
-    # Init logging
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+    parse_option()
+    logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_"+start_time+".txt"), True, 20, 10)
 
     # Check the latest version
-    latest_version = lastversion.has_update(repo="fosslight_dependency", at='pip', current_version=VERSION)
+    latest_version = lastversion.has_update(repo="fosslight_dependency", at='pip', current_version=__version__)
     if latest_version:
-        logging.info('### Version Info ###')
-        logging.info('Newer version is available:{}'.format(str(latest_version)))
+        logger.info('### Version Info ###')
+        logger.info('Newer version is available:{}'.format(str(latest_version)))
+        logger.info('You can update it with command (\'pip install fosslight_dependency --upgrade\')')
 
     # Configure global variables according to package manager.
     try:
         configure_package()
-    except HelpStop:
-        sys.exit(0)
     except:
-        logging.error("### Error Message ###")
-        help_print()
+        logger.error("Error : Failed to configure package.")
         sys.exit(1)
 
     if PACKAGE == "pip":
         dn_url = "https://pypi.org/project/"
-        output_file_name = "pip_dependency_output.xlsx"
+        output_file_name = "pip_dependency_output"
         venv_tmp_dir = "venv_osc_dep_tmp"
 
     elif PACKAGE == "npm":
         dn_url = "https://www.npmjs.com/package/"
-        output_file_name = "npm_dependency_output.xlsx"
+        output_file_name = "npm_dependency_output"
 
     elif PACKAGE == "maven":
         dn_url = "https://mvnrepository.com/artifact/"
         input_file_name = "target/generated-resources/licenses.xml"
-        output_file_name = "maven_dependency_output.xlsx"
+        output_file_name = "maven_dependency_output"
         pom_backup = "pom.xml_backup"
         is_maven_first_try = True
 
     elif PACKAGE == "gradle":
         dn_url = "https://mvnrepository.com/artifact/"
         input_file_name = "build/reports/license/dependency-license.json"
-        output_file_name = "gradle_dependency_output.xlsx"
+        output_file_name = "gradle_dependency_output"
 
     elif PACKAGE == "pub":
         dn_url = "https://pub.dev/packages/"
         input_file_name = "lib/oss_licenses.dart"
-        output_file_name = "pub_dependency_output.xlsx"
+        output_file_name = "pub_dependency_output"
         tmp_license_txt_file_name = "tmp_license.txt"
 
     elif PACKAGE == "cocoapods":
-        dn_url = "https://cocoapods/org/"
+        dn_url = "https://cocoapods.org/"
         input_file_name = "Podfile.lock"
-        output_file_name = "cocoapods_dependency_output.xlsx"
+        output_file_name = "cocoapods_dependency_output"
         source_type = ['git', 'http', 'svn', 'hg']
     
     else:
-        logging.error("### Error Message ###")
-        logging.error("You enter the wrong first argument.")
-        logging.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
+        logger.error("### Error Message ###")
+        logger.error("You enter the wrong first argument.")
+        logger.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
         sys.exit(1)
 
     if PACKAGE == "pip":
-        main_pip()
+        sheet_list = main_pip()
     elif PACKAGE == "npm":
-        main_npm()
+        sheet_list = main_npm()
     elif PACKAGE == "maven":
-        main_maven()
+        sheet_list = main_maven()
     elif PACKAGE == "gradle":
-        main_gradle()
+        sheet_list = main_gradle()
     elif PACKAGE == "pub":
-        main_pub()
+        sheet_list = main_pub()
     elif PACKAGE == "cocoapods":
-        main_cocoapods()
+        sheet_list = main_cocoapods()
     else:
-        logging.error("### Error Message ###")
-        logging.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
+        logger.error("### Error Message ###")
+        logger.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
         sys.exit(1)
 
-
-    logging.info("### FINISH!! ###")
-
-    if os.path.isfile(output_file_name):
-        shutil.move(output_file_name, OUTPUT_RESULT_DIR + "/" + output_file_name)
-        logging.info("Generated " + output_file_name + " in " + OUTPUT_RESULT_DIR + "!")
+    if sheet_list is not None:
+        success, msg = write_excel_and_csv(os.path.join(OUTPUT_RESULT_DIR, output_file_name), sheet_list)
+        if success:
+            logger.info("Generated {0}.xlsx and {0}.csv into {1}!".format(output_file_name, OUTPUT_RESULT_DIR))
+        else:
+            logger.error("Fail to generate result file. msg:()", msg)
     else:
-        logging.info("No file was created due to an error.")
+        logger.error("Fail to analyze dependency.")
+
+    logger.info("### FINISH!! ###")
 
     sys.exit(0)
 
