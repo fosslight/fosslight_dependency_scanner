@@ -1,5 +1,20 @@
 # Changelog
 
+## v3.0.7 (17/05/2021)
+## Changes
+## 🔧 Maintenance
+
+- Refactoring code and use fosslight_util @dd-jy (#15)
+- Update user-guide.md @dd-jy (#14)
+- Update contributing guide about DCO @dd-jy (#13)
+- Update the pypi description to README.md @dd-jy (#12)
+- Add 'cocoapods:' to oss name for cocoapods package @dd-jy (#11)
+- Change oss name for cocoapods package manager @dd-jy (#10)
+- Create CODE_OF_CONDUCT.md @dd-jy (#9)
+- Add CONTRIBUTING.md @dd-jy (#8)
+
+---
+
 ## v3.0.6 (25/03/2021)
 ## Changes
 ## 🐛 Hotfixes
@@ -13,25 +28,41 @@
 ---
 
 ## v3.0.5 (19/03/2021)
-Support cocoapods package manager
+## Changes
+## 🚀 Features
+- Support cocoapods package manager
+
+
 ---
 
 ## v3.0.4 (13/03/2021)
-Add license file to wheel
+## Changes
+## 🔧 Maintenance
+- Add license file to wheel
 ---
 
 ## v3.0.3 (12/03/2021)
-Changes
+## Changes
+## 🔧 Maintenance
 - Modify to include binaries that analyze license text.
 ---
 
 ## v3.0.2 (05/03/2021)
-Release v3.0.2
+## Changes
+## 🐛 Hotfixes
+- Fix to generate a single oss for multiple license names for npm, maven
 ---
 
 ## v3.0.1 (26/02/2021)
-Release v3.0.1
+## Changes
+## 🚀 Features
+- Add prefix 'pub:' to oss name in result file for pub package manager
+## 🔧 Maintenance
+- Update 3rd party License text
+- Update documents (README, user-guide)
 ---
 
 ## v3.0.0 (27/01/2021)
-FOSSLight dependency initial release
+## Changes
+## 🚀 Features
+- FOSSLight dependency initial release
