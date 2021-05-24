@@ -23,7 +23,7 @@ from fosslight_util.set_log import init_log
 from datetime import datetime
 from . import __version__
 from fosslight_util.write_excel import write_excel_and_csv
-
+from ._help import print_help_msg
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
@@ -33,7 +33,6 @@ manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven"
 license_scanner_url_linux = "third_party/nomos/nomossa"
 license_scanner_url_macos = "third_party/askalono/askalono_macos"
 license_scanner_url_windows = "third_party\\askalono\\askalono.exe"
-
 
 
 def check_valid_manifest_file():
@@ -60,20 +59,6 @@ def check_valid_manifest_file():
     return ret
 
 
-def help_print():
-    print("### Option Usage ###")
-    print(" -v : version")
-    print(" -m : package manager")
-    print("      ex) pip, npm, maven, gradle, pub, cocoapods")
-    print(" -p : input directory where the script will be run.")
-    print(" -o : output directory where the result file will be generated.")
-    print("# pypi only options")
-    print(" -a : virtual environment activate command")
-    print(" -d : virtual environment deactivate command")
-    print("# maven, gradle only option")
-    print(" -c : customized build output directory")
-
-
 def parse_option():
     global MANUAL_DETECT, PIP_ACTIVATE, PIP_DEACTIVATE, PACKAGE, OUTPUT_CUSTOM_DIR, CUR_PATH, OUTPUT_RESULT_DIR
 
@@ -93,8 +78,7 @@ def parse_option():
 
     # -h option
     if args.help:
-        help_print()
-        sys.exit(0)
+        print_help_msg()
 
     # -v option
     if args.version:
