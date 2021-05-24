@@ -7,11 +7,11 @@
 from codecs import open
 from setuptools import setup, find_packages
 
-with open('requirements.txt', 'r') as f:
-    required = f.read()
+with open('README.md', 'r', 'utf-8') as f:
+    reamdme = f.read()
 
-with open('README.md', 'r') as fh:
-    long_description = fh.read()
+with open('requirements.txt', 'r', 'utf-8') as f:
+    required = f.read().splitlines()
 
 exec(open("src/fosslight_dependency/_version.py").read())
 
@@ -22,7 +22,7 @@ if __name__ == "__main__":
         package_dir     = {"": "src"},
         packages         = find_packages(where='src'),
         description      = 'FOSSLight Dependency',
-        long_description = long_description,
+        long_description = reamdme,
         long_description_content_type = 'text/markdown',
         license          = 'Apache-2.0',
         author           = 'LG Electronics',
