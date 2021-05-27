@@ -8,7 +8,6 @@ from io import open
 import os
 import sys
 import argparse
-from openpyxl import load_workbook, Workbook
 import platform
 import shutil
 import subprocess
@@ -16,12 +15,11 @@ import json
 import re
 from xml.etree.ElementTree import parse
 from bs4 import BeautifulSoup
-import pkg_resources
 import yaml
 from lastversion import lastversion
 from fosslight_util.set_log import init_log
 from datetime import datetime
-from . import __version__
+from ._version import __version__
 from fosslight_util.write_excel import write_excel_and_csv
 from ._help import print_help_msg
 
@@ -173,7 +171,7 @@ def check_virtualenv_arg():
 
         python_version = check_python_version()
 
-        venv_path = os.path.join(CUR_PATH,venv_tmp_dir)
+        venv_path = os.path.join(CUR_PATH, venv_tmp_dir)
 
         if python_version == 2:
             create_venv_command = "virtualenv -p python " + venv_tmp_dir
@@ -327,7 +325,8 @@ def open_input_file():
 
         logger.error("Please check the below thing first.")
         logger.error("  1.Did you run the license-maven-plugin?")
-        logger.error("  2.Or if your project has the customized build output directory, then use '-c' option with your customized build output directory name")
+        logger.error("  2.Or if your project has the customized build output directory, \
+                    then use '-c' option with your customized build output directory name")
         logger.error("    $ fosslight_dependency -c output")
         sys.exit(1)
 
@@ -343,8 +342,8 @@ def close_input_file(input_fp):
 def make_custom_json(tmp_custom_json):
     with open(tmp_custom_json, 'w', encoding='utf8') as custom:
         custom.write(
-            "{\n\t\"name\": \"\",\n\t\"version\": \"\",\n\t\"licenses\": \"\",\n\t\"repository\": \"\",\n\t\"url\": \"\",\n\t\"copyright\": \"\",\n\t\"licenseText\": \"\"\n}\n".encode().decode(
-                "utf-8"))
+            "{\n\t\"name\": \"\",\n\t\"version\": \"\",\n\t\"licenses\": \"\",\n\t\"repository\": \
+            \"\",\n\t\"url\": \"\",\n\t\"copyright\": \"\",\n\t\"licenseText\": \"\"\n}\n".encode().decode("utf-8"))
 
 
 def start_license_checker():
@@ -443,7 +442,7 @@ def resource_path(relative_path):
 
 def check_license_scanner(os_name):
     global license_scanner_url, license_scanner_bin
-    
+
     if os_name == 'Linux':
         license_scanner_url = license_scanner_url_linux
     elif os_name == 'Darwin':
@@ -508,7 +507,7 @@ def check_and_run_license_scanner(file_dir, os_name):
 
     except Exception as ex:
         logger.info("There are some errors for the license scanner binary")
-        logger.info("Error:"+ str(ex))
+        logger.info("Error:" + str(ex))
         license_name = ""
 
     return license_name
@@ -574,8 +573,8 @@ def parse_and_generate_output_pip(tmp_file_name):
     sheet_list = {}
 
     try:
-      with open(tmp_file_name, 'r', encoding='utf-8') as json_file:
-        json_data = json.load(json_file)
+        with open(tmp_file_name, 'r', encoding='utf-8') as json_file:
+            json_data = json.load(json_file)
 
         sheet_list["SRC"] = []
 
@@ -596,7 +595,7 @@ def parse_and_generate_output_pip(tmp_file_name):
             sheet_list["SRC"].append(['pip', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
     except Exception as ex:
-        logger.error("Error:"+ str(ex))
+        logger.error("Error:" + str(ex))
 
     if os.path.isdir(venv_tmp_dir):
         shutil.rmtree(venv_tmp_dir)
@@ -608,7 +607,7 @@ def parse_and_generate_output_pip(tmp_file_name):
 def parse_and_generate_output_npm(tmp_file_name):
     with open(tmp_file_name, 'r', encoding='utf8') as json_file:
         json_data = json.load(json_file)
-        
+
         sheet_list = {}
         sheet_list["SRC"] = []
 
@@ -625,18 +624,13 @@ def parse_and_generate_output_npm(tmp_file_name):
                 license_name = ''
 
             oss_version = d['version']
-            
+
             if d['repository']:
                 dn_loc = d['repository']
             else:
                 dn_loc = dn_url + oss_init_name + '/v/' + oss_version
 
             homepage = dn_url + oss_init_name
-
-            if d['copyright']:
-                copyright_text = d['copyright']
-            else:
-                copyright_text = ''
 
             multi_license = check_multi_license(license_name)
 
@@ -649,7 +643,7 @@ def parse_and_generate_output_npm(tmp_file_name):
                 license_name = license_name.replace(",", "")
 
                 sheet_list["SRC"].append(['package.json', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
-        
+
         return sheet_list
 
 
@@ -741,7 +735,7 @@ def preprocess_pub_result(input_file):
 
 
 def parse_and_generate_output_pub(tmp_file_name):
-    global license_scanner_bin, tmp_license_txt_file_name 
+    global license_scanner_bin, tmp_license_txt_file_name
 
     json_txt = preprocess_pub_result(tmp_file_name)
     json_data = json.loads(json_txt)
@@ -752,7 +746,6 @@ def parse_and_generate_output_pub(tmp_file_name):
     os_name = check_os()
     check_license_scanner(os_name)
 
-    idx = 1
     for key in json_data:
         oss_origin_name = json_data[key]['name']
         oss_name = "pub:" + oss_origin_name
@@ -790,7 +783,7 @@ def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list, pod_not_in_sp
     oss_info = []
     oss_info.append(oss_name)
     oss_info.append(oss_version)
-    
+
     if oss_name in spec_repo_list:
         pod_in_sepc_list.append(oss_info)
         spec_repo_list.remove(oss_name)
@@ -815,9 +808,11 @@ def parse_and_generate_output_cocoapods(input_fp):
     for pods_list in podfile_yaml['PODS']:
         if not isinstance(pods_list, str):
             for pods_list_key, pods_list_item in pods_list.items():
-                pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = compile_pods_item(pods_list_key, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
+                pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = \
+                    compile_pods_item(pods_list_key, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
         else:
-            pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = compile_pods_item(pods_list, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
+            pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = \
+                compile_pods_item(pods_list, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
 
     if len(spec_repo_list) != 0:
         for spec_in_item in spec_repo_list:
@@ -825,12 +820,10 @@ def parse_and_generate_output_cocoapods(input_fp):
             for pod_not_item in pod_not_in_spec_list:
                 if spec_oss_name_adding_core == pod_not_item[0]:
                     pod_in_sepc_list.append([spec_in_item, pod_not_item[1]])
-    
 
     sheet_list = {}
     sheet_list["SRC"] = []
 
-    idx = 1
     for pod_oss in pod_in_sepc_list:
 
         search_oss_name = ""
@@ -840,7 +833,7 @@ def parse_and_generate_output_cocoapods(input_fp):
             else:
                 search_oss_name += alphabet_oss
 
-        command = 'pod spec which --regex ' + '^' +search_oss_name + '$'
+        command = 'pod spec which --regex ' + '^' + search_oss_name + '$'
         spec_which = os.popen(command).readline()
         if spec_which.startswith('[!]'):
             logger.error("### Error Message ###")
@@ -849,15 +842,13 @@ def parse_and_generate_output_cocoapods(input_fp):
 
         file_path = spec_which.rstrip().split(os.path.sep)
         if file_path[0] == '':
-            file_path_without_version = os.path.join(os.sep,*file_path[:-2])
+            file_path_without_version = os.path.join(os.sep, *file_path[:-2])
         else:
             file_path_without_version = os.path.join(*file_path[:-2])
-        spec_file_path = os.path.join(file_path_without_version,pod_oss[1],file_path[-1])
+        spec_file_path = os.path.join(file_path_without_version, pod_oss[1], file_path[-1])
 
         with open(spec_file_path, 'r', encoding='utf8') as json_file:
             json_data = json.load(json_file)
-
-            keys = [key for key in json_data]
 
             oss_origin_name = json_data['name']
             oss_name = "cocoapods:" + oss_origin_name
@@ -901,7 +892,7 @@ def main_pip():
     # Remove temporary output file.
     if os.path.isfile(tmp_file_name):
         os.remove(tmp_file_name)
-    
+
     return sheet_list
 
 
@@ -935,7 +926,7 @@ def main_maven():
 
     if not is_maven_first_try:
         clean_run_maven_plugin_output()
-    
+
     return sheet_list
 
 
@@ -965,7 +956,7 @@ def main_pub():
 
 
 def main_cocoapods():
-    
+
     # open Podfile.lock
     input_fp = open_input_file()
 
@@ -977,14 +968,16 @@ def main_cocoapods():
 
 
 def main():
-    
-    global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE
-    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, is_maven_first_try, tmp_license_txt_file_name, source_type, logger
+
+    global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, \
+        MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE
+    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, \
+        is_maven_first_try, tmp_license_txt_file_name, source_type, logger
 
     start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     parse_option()
-    logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_"+start_time+".txt"), True, 20, 10)
+    logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_" + start_time + ".txt"), True, 20, 10)
 
     # Check the latest version
     latest_version = lastversion.has_update(repo="fosslight_dependency", at='pip', current_version=__version__)
@@ -1032,7 +1025,7 @@ def main():
         input_file_name = "Podfile.lock"
         output_file_name = "cocoapods_dependency_output"
         source_type = ['git', 'http', 'svn', 'hg']
-    
+
     else:
         logger.error("### Error Message ###")
         logger.error("You enter the wrong first argument.")
