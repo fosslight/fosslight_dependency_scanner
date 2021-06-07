@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+# Copyright (c) 2021 LG Electronics
+# SPDX-License-Identifier: Apache-2.0
 
 block_cipher = None
 

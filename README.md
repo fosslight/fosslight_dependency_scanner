@@ -1,4 +1,8 @@
-# FOSSLight Dependency
+<!--
+Copyright (c) 2021 LG Electronics
+SPDX-License-Identifier: Apache-2.0
+ -->
+ # FOSSLight Dependency
 
 <img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" />
 </p>
