@@ -1,0 +1,5 @@
+pyinstaller
+tox
+pytest
+pytest-cov
+pytest-flake8
