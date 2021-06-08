@@ -1,0 +1,35 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: FOSSLight Util
+Source: https://github.com/fosslight/fosslight_dependency
+
+Files: *.md
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: .github/*
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: MANIFEST.in
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: requirements*.txt
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: setup.cfg
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: .gitignore
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: src/fosslight_dependency/third_party/askalono/*
+Copyright: 2018 Amazon.com, Inc. or its affiliates.
+License: Apache-2.0
+
+Files: src/fosslight_dependency/third_party/nomos/*
+Copyright: 2006-2009 Hewlett-Packard Development Company, L.P.
+License: GPL-2.0-only
