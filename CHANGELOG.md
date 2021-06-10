@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.1.0 (10/06/2021)
+## Changes
+## 🐛 Hotfixes
+
+- fix the executable file import error @dd-jy (#20)
+
+## 🔧 Maintenance
+
+- Add files for reuse compliance. @soimkim (#19)
+- Update only CHANGELOG.md when releasing @soimkim (#18)
+- Apply Tox Configuration & Change help message @bjk7119 (#17)
+
+---
+
 ## v3.0.7 (17/05/2021)
 ## Changes
 ## 🔧 Maintenance
