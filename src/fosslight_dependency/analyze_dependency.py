@@ -19,9 +19,10 @@ import yaml
 from lastversion import lastversion
 from fosslight_util.set_log import init_log
 from datetime import datetime
-from ._version import __version__
 from fosslight_util.write_excel import write_excel_and_csv
-from ._help import print_help_msg
+from fosslight_dependency._version import __version__
+from fosslight_dependency._help import print_help_msg
+
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
