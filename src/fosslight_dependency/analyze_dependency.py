@@ -26,7 +26,8 @@ from fosslight_dependency._help import print_help_msg
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
-                  ["gradle", "build.gradle"], ["pub", "pubspec.yaml"], ["cocoapods", "Podfile.lock"]]
+                  ["gradle", "build.gradle"], ["pub", "pubspec.yaml"], ["cocoapods", "Podfile.lock"],
+                  ["android", "gradlew"]]
 
 # binary url to check license text
 license_scanner_url_linux = "third_party/nomos/nomossa"
@@ -59,7 +60,7 @@ def check_valid_manifest_file():
 
 
 def parse_option():
-    global MANUAL_DETECT, PIP_ACTIVATE, PIP_DEACTIVATE, PACKAGE, OUTPUT_CUSTOM_DIR, CUR_PATH, OUTPUT_RESULT_DIR
+    global MANUAL_DETECT, PIP_ACTIVATE, PIP_DEACTIVATE, PACKAGE, OUTPUT_CUSTOM_DIR, CUR_PATH, OUTPUT_RESULT_DIR, APPNAME
 
     default_unspecified = "UNSPECIFIED"
 
@@ -72,6 +73,7 @@ def parse_option():
     parser.add_argument('-p', '--path', nargs=1, type=str, required=False)
     parser.add_argument('-v', '--version', action='store_true', required=False)
     parser.add_argument('-o', '--output', nargs=1, type=str, required=False)
+    parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
 
     args = parser.parse_args()
 
@@ -132,6 +134,11 @@ def parse_option():
     else:
         CUR_PATH = os.getcwd()
         os.chdir(CUR_PATH)
+
+    if args.appname:
+        APPNAME = "".join(args.appname)
+    else:
+        APPNAME = "app"
 
 
 def configure_package():
@@ -876,10 +883,29 @@ def parse_and_generate_output_cocoapods(input_fp):
     return sheet_list
 
 
+def parse_and_generate_output_android(input_fp):
+    sheet_list = {}
+    sheet_list["SRC"] = []
+
+    for i, line in enumerate(input_fp.readlines()):
+        split_str = line.strip().split("\t")
+        if i < 2:
+            continue
+
+        if len(split_str) == 9:
+            idx, manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, NA, NA = split_str
+        elif len(split_str) == 7:
+            idx, manifest_file, oss_name, oss_version, license_name, dn_loc, homepage = split_str
+        else:
+            continue
+        sheet_list["SRC"].append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+
+    return sheet_list
+
+
 ###########################################
 # Main functions for each package manager  #
 ###########################################
-
 def main_pip():
     # It needs the virtualenv path that pip packages are installed.
     check_virtualenv_arg()
@@ -968,10 +994,21 @@ def main_cocoapods():
     return sheet_list
 
 
+def main_android():
+
+    input_fp = open_input_file()
+
+    sheet_list = parse_and_generate_output_android(input_fp)
+
+    close_input_file(input_fp)
+
+    return sheet_list
+
+
 def main():
 
     global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, \
-        MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE
+        MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE, APPNAME
     global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, \
         is_maven_first_try, tmp_license_txt_file_name, source_type, logger
 
@@ -1027,6 +1064,10 @@ def main():
         output_file_name = "cocoapods_dependency_output"
         source_type = ['git', 'http', 'svn', 'hg']
 
+    elif PACKAGE == "android":
+        input_file_name = os.path.join(APPNAME, "android_dependency_output.txt")
+        output_file_name = "android_dependency_output"
+
     else:
         logger.error("### Error Message ###")
         logger.error("You enter the wrong first argument.")
@@ -1045,6 +1086,8 @@ def main():
         sheet_list = main_pub()
     elif PACKAGE == "cocoapods":
         sheet_list = main_cocoapods()
+    elif PACKAGE == "android":
+        sheet_list = main_android()
     else:
         logger.error("### Error Message ###")
         logger.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
