@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.2.0 (11/06/2021)
+## Changes
+## 🚀 Features
+
+- add android dependency scanning @dd-jy (#21)
+
+## 🔧 Maintenance
+
+- change user guide @dd-jy (#22)
+
+---
+
 ## v3.1.0 (10/06/2021)
 ## Changes
 ## 🐛 Hotfixes
