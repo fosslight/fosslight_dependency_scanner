@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 - [Prerequisite](#-prerequisite)
   - [NPM](#npm)
   - [Gradle](#gradle)
-  - [Gradle - Android](#Android)
+  - [Gradle - Android](#android-gradle)
   - [Pypi](#pypi)
   - [Maven](#maven-optional)
   - [Pub](#pub)
@@ -216,7 +216,7 @@ $ pip install fosslight-dependency
 ```
 $ git clone https://github.com/fosslight/fosslight_dependency.git
 $ cd fosslight_dependency
-$ python setup.py install
+$ pip install .
 ```
 
 <br>
