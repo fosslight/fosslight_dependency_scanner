@@ -3,7 +3,7 @@ Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
 <p align='right'>
-  <a href="https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide_Kor.md">[Kor]</a>
+  <a href="https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide_Kor.md">[Korean]</a>
 </p>
 
 # User Guide
