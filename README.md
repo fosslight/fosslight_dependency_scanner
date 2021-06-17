@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # FOSSLight Dependency Scanner
 
-<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency)
+<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
 
 ## 💡 Introduction
 
@@ -22,14 +22,14 @@ Currently, it supports the following package managers.
 
 ## 📖 User Guide
 
-Please see the [**User Guide**](https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide.md) for more information on how to install and run it.
+Please see the [**User Guide**](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/docs/user-guide.md) for more information on how to install and run it.
 
 ## 👏 Contributing Guide
 
 We always welcome your contributions.  
-Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency/blob/main/CONTRIBUTING.md) for how to contribute.
+Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/CONTRIBUTING.md) for how to contribute.
 
 ## 📄 License
 
 Copyright (c) 2020 LG Electronics, Inc.  
-FOSSLight Dependency Scanner is licensed under Apache-2.0, as found in the [LICENSE](https://github.com/fosslight/fosslight_dependency/blob/main/LICENSE) file.
+FOSSLight Dependency Scanner is licensed under Apache-2.0, as found in the [LICENSE](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/LICENSE) file.

@@ -3,7 +3,7 @@ Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
 <p align='right'>
-  <a href="https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide_Kor.md">[Korean]</a>
+  <a href="https://github.com/fosslight/fosslight_dependency_scanner/blob/main/docs/user-guide_Kor.md">[Korean]</a>
 </p>
 
 # User Guide
@@ -27,7 +27,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 🧐 How to analyze the dependencies
 
-FOSSLight Dependency utilizes the open source software for analyzing each package manager dependencies. We choose the open source software for each package manager that shows not only the direct dependencies but also the transitive dependencies including the information of dependencies such as oss name, oss version and license name.
+FOSSLight Dependency Scanner utilizes the open source software for analyzing each package manager dependencies. We choose the open source software for each package manager that shows not only the direct dependencies but also the transitive dependencies including the information of dependencies such as oss name, oss version and license name.
 
 Each package manager uses the results of the following software:
 
@@ -57,8 +57,8 @@ $ npm install -g license-checker
 $ npm install
 ```
 
-> - If the 'package.json' file exists in the input directory, it will be executed automatically by FOSSLight Dependency. So you can skip it.
-> - If the 'node_modules' directory already exists, you can run FOSSLight dependency by setting the input directory to the path where node_modules is located.
+> - If the 'package.json' file exists in the input directory, it will be executed automatically by FOSSLight Dependency Scanner. So you can skip it.
+> - If the 'node_modules' directory already exists, you can run FOSSLight Dependency Scanner by setting the input directory to the path where node_modules is located.
 
 <br>
 
@@ -140,7 +140,7 @@ $ pip install -r requirements.txt
 
 ### Maven (optional)
 
-> - If the 'pom.xml' is located in the input directory, FOSSLight dependency will automatically add and execute the license-maven-plugin. So you can skip the prerequisites below.
+> - If the 'pom.xml' is located in the input directory, FOSSLight Dependency Scanner will automatically add and execute the license-maven-plugin. So you can skip the prerequisites below.
 
 1. Add the license-maven-plugin into pom.xml file.
 
@@ -214,8 +214,8 @@ $ pip install fosslight-dependency
 ### From source code
 
 ```
-$ git clone https://github.com/fosslight/fosslight_dependency.git
-$ cd fosslight_dependency
+$ git clone https://github.com/fosslight/fosslight_dependency_scanner.git
+$ cd fosslight_dependency_scanner
 $ pip install .
 ```
 
@@ -223,7 +223,7 @@ $ pip install .
 
 ## 🚀 How to run
 
-You can run the FOSSLight Dependency with options based on your package manager.
+You can run the FOSSLight Dependency Scanner with options based on your package manager.
 
 ```
 $ fosslight_dependency
@@ -255,7 +255,7 @@ The manifest file of android project is 'build.gradle' as same as the gradle pro
 
 ## 📁 Result
 
-FOSSLight Dependency creates the result file that has xlsx extension (Microsoft Excel file).
+FOSSLight Dependency Scanner creates the result file that has xlsx extension (Microsoft Excel file).
 
 It prints the OSS information based on manifest file(package.json, pom.xml) of dependencies (including transitive dependenices).
 For a unique OSS name, OSS name is printed such as (package_manager):(oss name) or (group id):(artifact id).
