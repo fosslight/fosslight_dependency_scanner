@@ -3,7 +3,7 @@ Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
  <p align='right'>
-  <a href="https://github.com/fosslight/fosslight_dependency/blob/main/docs/user-guide.md">[English]</a>
+  <a href="https://github.com/fosslight/fosslight_dependency_scanner/blob/main/docs/user-guide.md">[English]</a>
 </p>
 
 # User Guide
@@ -217,8 +217,8 @@ $ pip install fosslight-dependency
 ### From source code
 
 ```
-$ git clone https://github.com/fosslight/fosslight_dependency.git
-$ cd fosslight_dependency
+$ git clone https://github.com/fosslight/fosslight_dependency_scanner.git
+$ cd fosslight_dependency_scanner
 $ pip install .
 ```
 
