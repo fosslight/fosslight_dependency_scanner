@@ -51,7 +51,7 @@ def check_valid_manifest_file():
         PACKAGE = manifest_array[int(found_idx[0])][0]
         logger.info("### Info Message ###")
         logger.info("Found the manifest file(" + manifest_array[int(found_idx[0])][1] + ")automatically.")
-        logger.warn("Set PACKAGE =" + PACKAGE)
+        logger.warning("Set PACKAGE =" + PACKAGE)
         ret = 0
     else:
         ret = 1

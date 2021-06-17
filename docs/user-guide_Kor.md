@@ -27,7 +27,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## 🧐 How to analyze the dependencies
 
-FOSSLight Dependency는 다른 오픈소스 소프트웨어를 이용하여 여러 패키지 매니저들의 dependency 분석을 수행하고 있습니다. 그 중 다음 기준에 따라 오픈소스 소프트웨어를 선택하고 있습니다.
+FOSSLight Dependency Scanner는 다른 오픈소스 소프트웨어를 이용하여 여러 패키지 매니저들의 dependency 분석을 수행하고 있습니다. 그 중 다음 기준에 따라 오픈소스 소프트웨어를 선택하고 있습니다.
 
 1. Direct dependency뿐만 아니라 transitive dependency까지 추출 가능
 2. 오픈소스 이름, 버전, License명 추출 가능
@@ -60,7 +60,7 @@ $ npm install -g license-checker
 $ npm install
 ```
 
-> - package.json 파일이 input directory에 존재하는 경우, 해당 명령어 실행은 FOSSLight dependency에서 자동으로 수행하므로 skip 가능합니다.
+> - package.json 파일이 input directory에 존재하는 경우, 해당 명령어 실행은 FOSSLight Dependency Scanner에서 자동으로 수행하므로 skip 가능합니다.
 > - 이미 dependency들이 설치된 node_modules 디렉토리가 존재하는 경우, node_modules폴더가 존재하는 path를 input directory로 설정하여 실행 가능합니다.
 
 <br>
@@ -143,7 +143,7 @@ $ pip install -r requirements.txt
 
 ### Maven (optional)
 
-> - Maven의 경우, input directory에 pom.xml 파일이 존재하는 경우, plugin 추가 및 실행을 FOSSLight dependency 내부에서 자동으로 수행하므로 다음은 skip하셔도 됩니다.
+> - Maven의 경우, input directory에 pom.xml 파일이 존재하는 경우, plugin 추가 및 실행을 FOSSLight Dependency Scanner 내부에서 자동으로 수행하므로 다음은 skip하셔도 됩니다.
 
 1. pom.xml 파일에 license-maven-plugin을 추가합니다.
 
@@ -206,7 +206,7 @@ $ pod install
 
 ## 🎉 How to install
 
-FOSSLight Dependency는 Python3.6+ 환경에서 설치할 것을 권장합니다.
+FOSSLight Dependency Scanner는 Python3.6+ 환경에서 설치할 것을 권장합니다.
 
 ### From pip
 
@@ -226,7 +226,7 @@ $ pip install .
 
 ## 🚀 How to run
 
-FOSSLight Dependency는 패키지 매니저에 따라 다음 option들을 이용하여 실행할 수 있습니다.
+FOSSLight Dependency Scanner는 패키지 매니저에 따라 다음 option들을 이용하여 실행할 수 있습니다.
 
 ```
 $ fosslight_dependency
@@ -243,7 +243,7 @@ $ fosslight_dependency
 | -n     | (app name)                                  | (android only optional) <br> app directory name (default: app)                               |
 | -v     | N/A                                         | release 버전                                                                                 |
 
-이때, FOSSLight Dependency는 패키지 매니저의 manifest 파일이 존재하는 프로젝트의 top directory에서 실행되어야 합니다.
+이때, FOSSLight Dependency Scanner는 패키지 매니저의 manifest 파일이 존재하는 프로젝트의 top directory에서 실행되어야 합니다.
 예를 들면, NPM 패키지 매니저를 이용하는 프로젝트의 경우, input directory는 'package.json' 파일이 존재하는 directory여야 합니다.
 각 패키지 매니저별 manifest 파일은 다음과 같습니다.
 
@@ -251,13 +251,13 @@ $ fosslight_dependency
 | --------------- | ------------ | ---------------- | ------- | ------------ | ------------ | --------- | ------- |
 | Manifest file   | package.json | requirements.txt | pom.xml | build.gradle | pubspec.yaml | Podfile   | gradlew |
 
-즉, FOSSLight Dependency 실행 시, input directory('-p' 옵션)는 위와 같이 패키지 매니저의 manifest 파일이 존재하는 프로젝트의 top directory로 지정해 주어야 합니다.
+즉, FOSSLight Dependency Scanner 실행 시, input directory('-p' 옵션)는 위와 같이 패키지 매니저의 manifest 파일이 존재하는 프로젝트의 top directory로 지정해 주어야 합니다.
 Android 프로젝트의 실제 manifest file은 다른 gradle 프로젝트와 동일한 'build.gradle' 파일이지만, 다른 java 프로젝트와 구별하기 위해 gradlew 파일로 지정하였습니다.
 <br>
 
 ## 📁 Result
 
-FOSSLight Dependency는 xlsx(Microsoft Excel file)양식의 결과 파일을 생성합니다.
+FOSSLight Dependency Scanner는 xlsx(Microsoft Excel file)양식의 결과 파일을 생성합니다.
 
 결과 파일에는 transitive dependency들을 포함한 모든 분석된 dependency들의 manifest 파일을 기반으로 OSS 정보가 기록됩니다.
 이때, 고유한 OSS명을 작성하기 위해, OSS명은 (패키지 매니저):(OSS명) 또는 (group id):(artifact id) 양식으로 기록됩니다.

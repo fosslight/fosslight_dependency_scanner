@@ -3,7 +3,7 @@ Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
 
-# FOSSLight Dependency
+# FOSSLight Dependency Scanner
 
 <img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency)
 
@@ -32,4 +32,4 @@ Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_depen
 ## 📄 License
 
 Copyright (c) 2020 LG Electronics, Inc.  
-FOSSLight Dependency is licensed under Apache-2.0, as found in the [LICENSE](https://github.com/fosslight/fosslight_dependency/blob/main/LICENSE) file.
+FOSSLight Dependency Scanner is licensed under Apache-2.0, as found in the [LICENSE](https://github.com/fosslight/fosslight_dependency/blob/main/LICENSE) file.
