@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: FOSSLight Util
-Source: https://github.com/fosslight/fosslight_dependency
+Upstream-Name: FOSSLight Dependency Scanner
+Source: https://github.com/fosslight/fosslight_dependency_scanner
 
 Files: *.md
 Copyright: 2021 LG Electronics
@@ -32,4 +32,4 @@ License: Apache-2.0
 
 Files: src/fosslight_dependency/third_party/nomos/*
 Copyright: 2006-2009 Hewlett-Packard Development Company, L.P.
-License: GPL-2.0-only
+License: LicenseRef-3rd_party_licenses
