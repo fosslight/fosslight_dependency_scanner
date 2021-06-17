@@ -21,7 +21,7 @@ if __name__ == "__main__":
         version=__version__,
         package_dir={"": "src"},
         packages=find_packages(where='src'),
-        description='FOSSLight Dependency',
+        description='FOSSLight Dependency Scanner',
         long_description=reamdme,
         long_description_content_type='text/markdown',
         license='Apache-2.0',
