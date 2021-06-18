@@ -18,9 +18,9 @@ GENOBJS = _precheck.o _autodata.o
 HDRS = nomos.h $(OBJS:.o=.h) _autodefs.h
 
 #CFLAGS_LOCAL = -DSTANDALONE -g -O2 -Wall -D_FILE_OFFSET_BITS=64
-CFLAGS_LOCAL = -DSTANDALONE -Wall -D_FILE_OFFSET_BITS=64 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/glib-2.0 -I/usr/include/json-c
+CFLAGS_LOCAL = -DSTANDALONE -Wall -D_FILE_OFFSET_BITS=64 $(shell pkg-config glib-2.0 --cflags) $(shell pkg-config --cflags json-c)
 
-FO_LDFLAGS += -L --static /usr/lib/x86_64-linux-gnu/libglib-2.0.a -L --static /usr/lib/x86_64-linux-gnu/libjson-c.a -lpthread
+FO_LDFLAGS += $(shell pkg-config glib-2.0 --libs) $(shell pkg-config --libs json-c) -lpthread -lrt
 
 all: encode $(EXE)
 
