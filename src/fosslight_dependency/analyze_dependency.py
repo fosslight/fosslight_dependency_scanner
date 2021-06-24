@@ -732,7 +732,7 @@ def parse_and_generate_output_gradle(input_fp):
 
 
 def preprocess_pub_result(input_file):
-    matched_json = re.findall('final ossLicenses = <String, dynamic>({[\s\S]*});', input_file.read())
+    matched_json = re.findall(r'final ossLicenses = <String, dynamic>({[\s\S]*});', input_file.read())
     if len(matched_json) > 0:
         return matched_json[0]
     else:
