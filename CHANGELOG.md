@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.2.1 (24/06/2021)
+## 🔧 Maintenance
+
+- Update PR action commands @soimkim (#28)
+- Update nomos standalone binary and source @dd-jy (#27)
+- Update nomos standalone binary @dd-jy (#25)
+- Update reuse related files @soimkim (#24)
+- Change name to FOSSLight Dependency Scanner @dd-jy (#23)
+
+---
+
 ## v3.2.0 (11/06/2021)
 ## Changes
 ## 🚀 Features
