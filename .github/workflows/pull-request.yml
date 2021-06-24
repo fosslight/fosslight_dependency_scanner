@@ -24,7 +24,7 @@ jobs:
         pip install tox
     - name: Run Tox
       run: |
-        tox
+        tox -e release
   reuse:
     runs-on: ubuntu-latest
     steps: 
