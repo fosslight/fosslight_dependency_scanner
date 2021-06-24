@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.3.0 (24/06/2021)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the pub parsing error @dd-jy (#29)
+
+---
+
 ## v3.2.1 (24/06/2021)
 ## 🔧 Maintenance
 
