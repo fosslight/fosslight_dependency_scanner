@@ -13,12 +13,11 @@ with open('README.md', 'r', 'utf-8') as f:
 with open('requirements.txt', 'r', 'utf-8') as f:
     required = f.read().splitlines()
 
-exec(open("src/fosslight_dependency/_version.py").read())
 
 if __name__ == "__main__":
     setup(
         name='fosslight_dependency',
-        version=__version__,
+        version='3.3.0',
         package_dir={"": "src"},
         packages=find_packages(where='src'),
         description='FOSSLight Dependency Scanner',

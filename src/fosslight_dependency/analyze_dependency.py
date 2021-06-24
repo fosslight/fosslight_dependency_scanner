@@ -16,13 +16,14 @@ import re
 from xml.etree.ElementTree import parse
 from bs4 import BeautifulSoup
 import yaml
-from lastversion import lastversion
-from fosslight_util.set_log import init_log
+import pkg_resources
 from datetime import datetime
+from fosslight_util.set_log import init_log, init_log_item
 from fosslight_util.write_excel import write_excel_and_csv
-from fosslight_dependency._version import __version__
 from fosslight_dependency._help import print_help_msg
 
+# Package Name
+_PKG_NAME = "fosslight_dependency"
 
 # Check the manifest file
 manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
@@ -83,7 +84,8 @@ def parse_option():
 
     # -v option
     if args.version:
-        print(__version__)
+        cur_version = pkg_resources.get_distribution(_PKG_NAME).version
+        print("Current version : " + cur_version)
         sys.exit(0)
 
     # -m option
@@ -732,9 +734,8 @@ def parse_and_generate_output_gradle(input_fp):
 
 
 def preprocess_pub_result(input_file):
-    matched_json = re.findall(r'final ossLicenses = <String, dynamic>({.*});', input_file.read())
-
-    if matched_json[0] is not None:
+    matched_json = re.findall(r'final ossLicenses = <String, dynamic>({[\s\S]*});', input_file.read())
+    if len(matched_json) > 0:
         return matched_json[0]
     else:
         logger.error("### Error Message ###")
@@ -1016,13 +1017,9 @@ def main():
 
     parse_option()
     logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_" + start_time + ".txt"), True, 20, 10)
+    _result_log = init_log_item(_PKG_NAME)
 
-    # Check the latest version
-    latest_version = lastversion.has_update(repo="fosslight_dependency", at='pip', current_version=__version__)
-    if latest_version:
-        logger.info('### Version Info ###')
-        logger.info('Newer version is available:{}'.format(str(latest_version)))
-        logger.info('You can update it with command (\'pip install fosslight_dependency --upgrade\')')
+    logger.info("Tool Info : " + _result_log["Tool Info"])
 
     # Configure global variables according to package manager.
     try:

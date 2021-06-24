@@ -22,7 +22,7 @@ _HELP_MESSAGE_DEPENDENCY = """
         Optional
             -h\t\t\t\t    Print help message.
             -v\t\t\t\t    Print the version of the script.
-            -m <package_manager>\t    Enther the package manager(npm, maven, gradle, pip, pub, cocoapods, android).
+            -m <package_manager>\t    Enter the package manager(npm, maven, gradle, pip, pub, cocoapods).
             -p <input_path>\t\t    Enter the path where the script will be run.
             -o <output_path>\t\t    Enter the path where the result file will be generated.
 
@@ -31,10 +31,11 @@ _HELP_MESSAGE_DEPENDENCY = """
             -d <deactivate_cmd>\t\t    Virtual environment deactivate command(ex, 'conda deactivate')
 
         Optional only for gradle, maven
-            -c <dir_name>\t\t    Enter the customized build output directory name(default: target)
-        
+            -c <dir_name>\t\t    Enter the customized build output directory name
+                                    \t\t-Default name : 'build' for gradle, 'target' for maven
+
         Optional only for android
-            -n <app_name>\t\t   Enter the application directory name where the plugin output file is located(default: app)
+            -n <app_name>\t\t    Enter the application directory name where the plugin output file is located(default: app)
         """
 
 
