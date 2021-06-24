@@ -17,7 +17,6 @@ from xml.etree.ElementTree import parse
 from bs4 import BeautifulSoup
 import yaml
 import pkg_resources
-from lastversion import lastversion
 from datetime import datetime
 from fosslight_util.set_log import init_log, init_log_item
 from fosslight_util.write_excel import write_excel_and_csv
@@ -1021,7 +1020,7 @@ def main():
     _result_log = init_log_item(_PKG_NAME)
 
     logger.info("Tool Info : " + _result_log["Tool Info"])
-    
+
     # Configure global variables according to package manager.
     try:
         configure_package()
