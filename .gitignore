@@ -1,3 +1,8 @@
 node_modules/
 package.json
 package-lock.json
+hooks/__pycache__
+__pycache__
+build/
+dist/
+cli.spec
