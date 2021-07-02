@@ -1,12 +1,5 @@
 # Changelog
 
-## v3.4.0 (02/07/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the windows executable file issue @dd-jy (#30)
-
----
 
 ## v3.3.0 (24/06/2021)
 ## Changes
