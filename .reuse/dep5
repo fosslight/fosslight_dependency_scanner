@@ -35,15 +35,15 @@ Copyright: 2006-2009 Hewlett-Packard Development Company, L.P.
 License: LicenseRef-3rd_party_licenses
 
 Files: tests/test_gradle/*
-Copyright: 2017-2021 Copyright Google LLC.
+Copyright: 2017-2021 Google LLC.
 License: Apache-2.0
 
 Files: tests/test_maven1/lombok.maven/*
-Copyright: Copyright (c) 2010 Anthony Whitford
+Copyright: 2010 Anthony Whitford
 License: MIT
 
 Files: tests/test_pub/iamport_flutter/*
-Copyright: Copyright 2019 (c) Siot Inc.
+Copyright: 2019 Siot Inc.
 License: MIT
 
 Files: tests/test_npm1/*
