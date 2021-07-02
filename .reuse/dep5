@@ -54,4 +54,10 @@ Files: tests/test_npm2/*
 Copyright: 2021 LG Electronics
 License: Apache-2.0
 
+Files: tests/test_maven2/*
+Copyright: 2021 LG Electronics
+License: Apache-2.0
 
+Files: tests/test_pypi/*
+Copyright: 2021 LG Electronics
+License: Apache-2.0
