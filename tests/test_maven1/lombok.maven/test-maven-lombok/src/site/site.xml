@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Maven Lombok Plugin">
+  <body>
+    <breadcrumbs>
+      <item name="Sample" href="http://awhitford.github.com/lombok.maven/test-maven-lombok/" />
+    </breadcrumbs>
+    <menu name="Overview">
+      <item name="Introduction" href="index.html" />
+    </menu>
+    <menu ref="reports" />
+  </body>
+</project>

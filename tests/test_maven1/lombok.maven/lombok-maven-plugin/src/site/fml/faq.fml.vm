@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<faqs id="FAQ" title="Frequently Asked Questions">
+  <part id="General">
+    <title>General</title>
+    <faq id="needed">
+      <question>Does one need to use the lombok-maven-plugin in order to use lombok in a maven project?</question>
+      <answer>
+        <p>No.  The lombok-maven-plugin provides some goals that may assist lombok users, but it is not required.</p>
+        <p>One can use lombok with maven by adding the following to the <em>pom.xml</em>:</p>
+        <source><![CDATA[
+<dependencies>
+  <dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>${LombokVersion}</version>
+    <scope>provided</scope>
+  </dependency>
+</dependencies>]]>
+        </source>
+        <p>Note that lombok requires Java 6, so an explicit declaration of 1.6 compatibility to the compiler may also be required:</p>
+        <source><![CDATA[
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-compiler-plugin</artifactId>
+      <configuration>
+        <compilerVersion>1.6</compilerVersion>
+        <source>1.6</source>
+        <target>1.6</target>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>]]>
+        </source>
+      </answer>
+    </faq>
+    <faq id="legacy-plugin-name">
+      <question>What is the difference between <em>maven-lombok-plugin</em> and <em>lombok-maven-plugin</em>?</question>
+      <answer>
+        <p>The first incarnation of this plugin was labeled <em>maven-lombok-plugin</em>, and was built using 0.9.3 of Project Lombok.</p>
+        <p>When the plugin was revised to support 0.10.0, the plugin was renamed to follow the Maven Plugin Naming Conventions.  According to the convention, <em>maven-lombok-plugin</em> implies that it has a groupId of <em>org.apache.maven.plugins</em>; since it does not, <em>lombok-maven-plugin</em> is more appropriate.</p>
+      </answer>
+    </faq>
+    <faq id="alt-src-setup">
+      <question>Rather than placing source code in <em>src/main/lombok</em>, is there a way to delombok <em>src/main/java</em> code?</question>
+      <answer>
+        <p>This is a common request, and yes there is a way to configure Maven to achieve this desired behavior.
+        Please be advised that this strategy may have some negative consequences.</p>
+        <p>Delombok still operates as a code generator, but the <em>src/main/java</em> code is your delombok
+        source (rather than <em>src/main/lombok</em>) and you need to override Maven's source directory to be
+        <em>target/generated-sources/delombok</em> (rather than <em>src/main/java</em>).</p>
+        <source><![CDATA[
+<build>
+  <sourceDirectory>target/generated-sources/delombok</sourceDirectory>
+  <testSourceDirectory>target/generated-test-sources/delombok</testSourceDirectory>
+  <plugin>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok-maven-plugin</artifactId>
+    <version>${MavenLombokPluginVersion}</version>
+    <executions>
+      <execution>
+        <id>delombok</id>
+        <phase>generate-sources</phase>
+        <goals>
+          <goal>delombok</goal>
+        </goals>
+        <configuration>
+          <addOutputDirectory>false</addOutputDirectory>
+          <sourceDirectory>src/main/java</sourceDirectory>
+        </configuration>
+      </execution>
+      <execution>
+        <id>test-delombok</id>
+        <phase>generate-test-sources</phase>
+        <goals>
+          <goal>testDelombok</goal>
+        </goals>
+        <configuration>
+          <addOutputDirectory>false</addOutputDirectory>
+          <sourceDirectory>src/test/java</sourceDirectory>
+        </configuration>
+      </execution>
+    </executions>
+  </plugin>
+</build>]]>
+        </source>
+        <p>The discussion on <a href="http://stackoverflow.com/questions/11329965/how-to-ignore-the-java-source-directory-during-maven-compilation">Stack Overflow</a> may be helpful.</p>
+      </answer>
+    </faq>
+    <faq id="lombok-pg">
+      <question>Can one use <em>lombok-pg</em> extensions?</question>
+      <answer>
+        <p>Yes -- as long as you are not using Java 7 (<a href="https://github.com/peichhorn/lombok-pg/issues/143">see lombok-pg issue 143</a>).  Simply add the <a href="https://github.com/peichhorn/lombok-pg">lombok-pg</a> artifact as a dependency to the plugin declaration.  For example:</p>
+        <source><![CDATA[
+<build>
+  <plugin>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok-maven-plugin</artifactId>
+    <version>${MavenLombokPluginVersion}</version>
+    <dependencies>
+      <dependency>
+        <groupId>com.github.peichhorn</groupId>
+        <artifactId>lombok-pg</artifactId>
+        <version>0.11.3</version>
+      </dependency>
+    </dependencies>
+  </plugin>
+</build>]]>
+        </source>
+        <p>Based on the lack of recent activity in the <em>lombok-pg</em> project, using those extensions is not recommended as you may run into future compatibility issues.</p> 
+      </answer>
+    </faq>
+    <faq id="pmd-suppression">
+      <question>Can one suppress PMD for generated methods?</question>
+      <answer>
+        <p>PMD is supposed to be skipping elements that are annotated with <code>@SuppressWarnings("all")</code>.  If <em>delombok</em> fully qualifies the annotation as <code>@java.lang.SupressWarnings("all")</code>, then PMD may fail to skip it.  PMD 5.1 fixed this <a href="http://sourceforge.net/p/pmd/bugs/1164/">bug</a>.</p>
+        <p>The easiest way to get PMD to behave properly is to configure <em>delombok</em> to not fully qualify <code>java.lang</code> references.  For example:</p>
+        <source><![CDATA[
+<build>
+  <plugin>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok-maven-plugin</artifactId>
+    <version>${MavenLombokPluginVersion}</version>
+    <executions>
+      <execution>
+        <id>delombok</id>
+        <phase>generate-sources</phase>
+        <goals>
+          <goal>delombok</goal>
+        </goals>
+        <configuration>
+          <formatPreferences>
+            <javaLangAsFQN>skip</javaLangAsFQN>
+          </formatPreferences>
+        </configuration>
+    </executions>
+  </plugin>
+</build>]]>
+        </source>
+        <p>Another strategy with PMD 5, is that one can disable a rule using the <a href="http://pmd.sourceforge.net/pmd-5.0.5/suppressing.html#Violation_Suppress_XPath">Violation Suppress XPath</a> mechanism.  This used to be demonstrated by the <a href="../test-maven-lombok/">Sample project</a>, but it has since been removed because it is no longer necessary.  You can read more about this strategy <a href="http://anthonywhitford.blogspot.com/2013/09/suppressing-pmd-alerts-for-lombok.html">here</a>.</p>
+      </answer>
+    </faq>    
+  </part>
+  <part id="Versions">
+    <title>Versions</title>
+    <faq id="version-lombok">
+      <question>What version of lombok.jar is used by the plugin?</question>
+      <answer>
+        <p>Please refer to the <a href="dependencies.html">Project Dependencies</a> page.</p>
+      </answer>
+    </faq>
+    <faq id="version-override">
+      <question>Can the version of lombok.jar be overridden?</question>
+      <answer>
+        <p>Yes.  Maven 2.0.9 introduced the ability to override a dependency used by a plugin.  For example:</p>
+        <source><![CDATA[
+<build>
+  <plugin>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok-maven-plugin</artifactId>
+    <version>${MavenLombokPluginVersion}</version>
+    <dependencies>
+      <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>0.99</version>
+      </dependency>
+    </dependencies>
+  </plugin>
+</build>]]>
+        </source>
+        <p>The above example uses a newer version of the lombok.jar than what is defined for the plugin.  But please note that the Delombok interface will need to be consistent; if not, then this will not work.  For example, plugin changes were required to support 0.10.0-RC1 from 0.9.3 because Delombok had changed and was not fully backwards compatible from an interface perspective.  Another incompatibility was introduced (<em>shadow class loading</em>) with version 1.16.0.</p>
+      </answer>
+    </faq>
+  </part>
+</faqs>

@@ -1,0 +1,76 @@
+plugins {
+  id 'application'
+  id 'net.researchgate.release'
+  id 'eclipse'
+}
+
+ext {
+  cliMainClass = 'com.google.cloud.tools.jib.cli.JibCli'
+}
+
+// use `run` to build and run the app
+// use `installDist` or `distZip` to create an installable application
+application {
+  applicationName = 'jib'
+  mainClassName = cliMainClass
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated-src"]
+
+tasks.register('generateSources', Copy) {
+  // to re-run the task whenever the file changes
+  inputs.file 'gradle.properties'
+
+  from fileTree('src/java-templates')
+  into "${buildDir}/generated-src"
+
+  rename('\\.template$', '')
+  expand(['version': "${version}"])
+}
+
+compileJava.source generateSources
+
+dependencies {
+  implementation project(':jib-core')
+  implementation project(':jib-plugins-common')
+
+  implementation dependencyStrings.COMMONS_TEXT
+  implementation dependencyStrings.JACKSON_DATAFORMAT_YAML
+  implementation dependencyStrings.JACKSON_DATABIND
+  implementation dependencyStrings.GUAVA
+  implementation dependencyStrings.PICOCLI
+  implementation dependencyStrings.GOOGLE_HTTP_CLIENT
+  implementation dependencyStrings.GOOGLE_HTTP_CLIENT_APACHE_V2
+
+  testImplementation dependencyStrings.JUNIT
+  testImplementation dependencyStrings.JUNIT_PARAMS
+  testImplementation dependencyStrings.TRUTH
+  testImplementation dependencyStrings.TRUTH8
+  testImplementation dependencyStrings.MOCKITO_CORE
+  testImplementation dependencyStrings.SLF4J_API
+  testImplementation dependencyStrings.SYSTEM_RULES
+
+  integrationTestImplementation project(path:':jib-core', configuration:'integrationTests')
+}
+
+release {
+  tagTemplate = 'v$version-cli'
+  ignoredSnapshotDependencies = [
+    'com.google.cloud.tools:jib-core',
+    'com.google.cloud.tools:jib-plugins-common',
+  ]
+  git {
+    requireBranch = /^cli-release-v\d+.*$/  //regex
+  }
+}
+
+/* ECLIPSE */
+eclipse.classpath.plusConfigurations += [configurations.integrationTestImplementation]
+eclipse.classpath.file.whenMerged {
+  entries.each {
+    if (it.path == 'src/integration-test/resources') {
+      it.excludes += 'jarTest/'
+    }
+  }
+}
+/* ECLIPSE */

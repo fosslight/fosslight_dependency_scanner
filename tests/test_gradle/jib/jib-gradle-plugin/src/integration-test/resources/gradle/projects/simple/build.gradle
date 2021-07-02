@@ -1,0 +1,36 @@
+plugins {
+  id 'java'
+  id 'com.google.cloud.tools.jib'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile files('libs/dependency-1.0.0.jar')
+}
+
+jib {
+  from.image = 'gcr.io/distroless/java@sha256:2315ed1472a09826c1f31ab93ff13ceaa3a4e7d5482f357d15a296b3db0d1c96'
+  to {
+    image = System.getProperty("_TARGET_IMAGE")
+    credHelper = 'gcr'
+  }
+  container {
+    creationTime = 'EPOCH'
+    args = ['An argument.']
+    ports = ['1000/tcp', '2000-2003/udp']
+    labels = [key1:'value1', key2:'value2']
+    volumes = ['/var/log', '/var/log2']
+    workingDirectory = '/home'
+    extraClasspath = ['/d1','/d2']
+  }
+  outputPaths {
+    tar = file("$buildDir/different-jib-image.tar")
+  }
+  extraDirectories.paths = file('src/main/custom-extra-dir')
+}

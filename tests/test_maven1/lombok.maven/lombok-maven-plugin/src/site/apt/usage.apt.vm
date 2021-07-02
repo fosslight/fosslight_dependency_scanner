@@ -1,0 +1,29 @@
+Usage
+
+  Note that Lombok requires Java 6, but the plugin requires Java 7, or later, to execute at build time.
+
+* Delombok
+
+  Add the following to the <pom.xml> to activate the <<delombok>> goal:
+
++--
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok-maven-plugin</artifactId>
+      <version>${MavenLombokPluginVersion}</version>
+      <executions>
+        <execution>
+          <phase>generate-sources</phase>
+          <goals>
+            <goal>delombok</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
++--
+
+  Place the java source code with lombok annotations in <<<src/main/lombok>>> (instead of <<<src/main/java>>>).  During the build process, the <<<src/main/lombok>>> code will be {{{http://projectlombok.org/features/delombok.html}delomboked}} and the generated java code ends up in <<<target/generated-sources/delombok>>>.  The delomboked code is compiled and analysed together with the <<<src/main/java>>> code.

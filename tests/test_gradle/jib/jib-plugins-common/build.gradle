@@ -1,0 +1,30 @@
+plugins {
+  id 'eclipse'
+}
+
+dependencies {
+  implementation project(':jib-core')
+  // since jib core doesn't export dependencies to a compile scope
+  // (they are "runtime"), just grab them manually. This means we don't have
+  // to synchronize dependencies between the two projects -- we don't
+  // want to use the sourceProject helper because it does things we don't want
+  // for an unpublished library.
+  implementation project(':jib-core').configurations.implementation.dependencies
+
+  implementation dependencyStrings.EXTENSION_COMMON
+
+  testImplementation dependencyStrings.JUNIT
+  testImplementation dependencyStrings.JUNIT_PARAMS
+  testImplementation dependencyStrings.TRUTH
+  testImplementation dependencyStrings.TRUTH8
+  testImplementation dependencyStrings.MOCKITO_CORE
+  testImplementation dependencyStrings.SLF4J_API
+  testImplementation dependencyStrings.SYSTEM_RULES
+  testImplementation project(path:':jib-core', configuration:'tests')
+}
+
+sourceSets.test.resources.srcDirs project(':jib-core').sourceSets.test.resources
+
+/* ECLIPSE */
+eclipse.classpath.plusConfigurations += [configurations.integrationTestImplementation]
+/* ECLIPSE */

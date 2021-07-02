@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Maven Lombok Plugin">
+  <skin>
+    <groupId>org.apache.maven.skins</groupId>
+    <artifactId>maven-fluido-skin</artifactId>
+    <version>1.9</version>
+  </skin>
+  <custom>
+    <fluidoSkin>
+      <ohloh>
+        <projectId>lombok_maven</projectId>
+      </ohloh>
+      <twitter>
+        <user>WhitfordAnthony</user>
+      </twitter>
+    </fluidoSkin>
+  </custom>
+  <publishDate position="right" format="yyyy-MM-dd"/>
+  <version position="right"/>
+  <body>
+    <breadcrumbs>
+      <item name="Project Lombok" href="http://projectlombok.org/" />
+      <item name="Maven" href="http://awhitford.github.com/lombok.maven/" />
+    </breadcrumbs>
+    <menu name="Overview">
+      <item name="Introduction" href="index.html" />
+    </menu>
+    <menu ref="modules" />
+    <menu ref="reports" />
+  </body>
+</project>

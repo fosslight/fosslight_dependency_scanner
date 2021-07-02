@@ -1,0 +1,48 @@
+plugins {
+  id 'net.researchgate.release'
+  id 'maven-publish'
+  id 'eclipse'
+}
+
+jar {
+  manifest {
+    attributes 'Implementation-Version': archiveVersion
+    attributes 'Automatic-Module-Name': 'com.google.cloud.tools.jib.plugins.extension'
+
+    // OSGi metadata
+    attributes 'Bundle-SymbolicName': 'com.google.cloud.tools.jib.plugins.extension'
+    attributes 'Bundle-Name': 'Common Base for Jib Plugin Extension APIs'
+    attributes 'Bundle-Vendor': 'Google LLC'
+    attributes 'Bundle-DocURL': 'https://github.com/GoogleContainerTools/jib'
+    attributes 'Bundle-License': 'https://www.apache.org/licenses/LICENSE-2.0'
+    attributes 'Export-Package': 'com.google.cloud.tools.jib.plugins.extension'
+  }
+}
+
+configureMavenRelease()
+
+/* RELEASE */
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      pom {
+        name = 'Common Base for Jib Plugin Extension APIs'
+        description = 'Internal common base for Jib Plugin Extension APIs.'
+      }
+      from components.java
+    }
+  }
+}
+
+// Release plugin (git release commits and version updates)
+release {
+  tagTemplate = 'v$version-extension-common'
+  git {
+    requireBranch = /^extension-common-release-v\d+.*$/  //regex
+  }
+}
+/* RELEASE */
+
+/* ECLIPSE */
+eclipse.classpath.plusConfigurations += [configurations.integrationTestImplementation]
+/* ECLIPSE */
