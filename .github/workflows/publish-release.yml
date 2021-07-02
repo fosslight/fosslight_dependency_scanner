@@ -32,7 +32,7 @@ jobs:
   
   build:
     needs: update-changelog
-    runs-on: ubuntu-18.04
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
     
@@ -43,15 +43,20 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install .
+        pip install pyinstaller
         
-    - name: PyInstaller Windows
-      uses: JackMcKew/pyinstaller-action-windows@main
-      with:
-        path: ./
+    - name: Build exe with PyInstaller for windows
+      run: |
+        pyinstaller --onefile cli.py -n cli --additional-hooks-dir=hooks --add-binary "src/fosslight_dependency/third_party/askalono/askalono.exe;third_party/askalono"
+        mkdir out
+        move dist/cli.exe out/fosslight_dependency.exe
         
     - name : Zip release file
-      run: zip -rj ./fosslight_dependency_windows.zip dist/windows/fosslight_dependency.exe ./LICENSES/LicenseRef-3rd_party_licenses.txt ./LICENSE
+      run: |
+        move ./LICENSES/LicenseRef-3rd_party_licenses.txt out/
+        move ./LICENSE out/
+        Compress-Archive out fosslight_dependency_windows.zip
                 
     - name: Upload release file
       uses: actions/upload-release-asset@v1.0.1

@@ -116,7 +116,7 @@ def parse_option():
             OUTPUT_RESULT_DIR = os.path.abspath(OUTPUT_RESULT_DIR)
         else:
             try:
-                os.mkdir(OUTPUT_RESULT_DIR)
+                os.makedirs(OUTPUT_RESULT_DIR)
             except:
                 print("You entered wrong output path(" + OUTPUT_RESULT_DIR + ") to generate output file.")
                 sys.exit(1)
@@ -293,7 +293,15 @@ def clean_run_maven_plugin_output():
 
 def run_maven_plugin():
     logger.info('run maven license scanning plugin with temporary pom.xml')
-    command = "mvn license:aggregate-download-licenses"
+    if os.path.isfile('mvnw'):
+        if check_os() == "Windows":
+            command = "mvnw.cmd"
+        else:
+            command = "./mvnw"
+    else:
+        command = "mvn"
+
+    command += " license:aggregate-download-licenses"
 
     ret = subprocess.call(command, shell=True)
 
@@ -317,8 +325,7 @@ def open_input_file():
         input_file_name = str(OUTPUT_CUSTOM_DIR) + str(input_rest_tmp)
 
     if os.path.isfile(input_file_name) != 1:
-        logger.error("### Error Message ###")
-        logger.error(input_file_name + " doesn't exist in this directory.")
+        logger.warning(input_file_name + " doesn't exist in this directory.")
 
         if PACKAGE == "maven":
             global is_maven_first_try
@@ -1093,7 +1100,10 @@ def main():
     if sheet_list is not None:
         success, msg = write_excel_and_csv(os.path.join(OUTPUT_RESULT_DIR, output_file_name), sheet_list)
         if success:
-            logger.info("Generated {0}.xlsx and {0}.csv into {1}!".format(output_file_name, OUTPUT_RESULT_DIR))
+            if check_os() == 'Windows':
+                logger.info("Generated {0}.xlsx into {1}!".format(output_file_name, OUTPUT_RESULT_DIR))
+            else:
+                logger.info("Generated {0}.xlsx and {0}.csv into {1}!".format(output_file_name, OUTPUT_RESULT_DIR))
         else:
             logger.error("Fail to generate result file. msg:()", msg)
     else:
