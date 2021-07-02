@@ -34,7 +34,7 @@ Files: src/fosslight_dependency/third_party/nomos/*
 Copyright: 2006-2009 Hewlett-Packard Development Company, L.P.
 License: LicenseRef-3rd_party_licenses
 
-Files: tests/test_gradle/jib/*
+Files: tests/test_gradle/*
 Copyright: 2017-2021 Copyright Google LLC.
 License: Apache-2.0
 
@@ -45,4 +45,13 @@ License: MIT
 Files: tests/test_pub/iamport_flutter/*
 Copyright: Copyright 2019 (c) Siot Inc.
 License: MIT
+
+Files: tests/test_npm1/*
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
+Files: tests/test_npm2/*
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+
 
