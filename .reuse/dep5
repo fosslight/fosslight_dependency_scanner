@@ -42,7 +42,7 @@ Files: tests/test_maven1/lombok.maven/*
 Copyright: 2010 Anthony Whitford
 License: MIT
 
-Files: tests/test_pub/iamport_flutter/*
+Files: tests/test_pub/*
 Copyright: 2019 Siot Inc.
 License: MIT
 

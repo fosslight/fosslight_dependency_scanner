@@ -1,3 +1,0 @@
-include ':simple-service'
-include ':complex-service'
-include ':lib'

@@ -1,5 +1,0 @@
-apiVersion: jib/v1alpha1
-kind: BuildFile
-
-${replace
-this}
