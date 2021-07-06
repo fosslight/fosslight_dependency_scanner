@@ -1,5 +1,6 @@
 pyinstaller
 tox
+tox-wheel
 pytest
 pytest-cov
 pytest-flake8
