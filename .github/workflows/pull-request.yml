@@ -60,29 +60,21 @@ jobs:
     - name: Install dependencies 
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install tox
-        pip install tox-wheel
         pip install fosslight_dependency 
         sudo npm install -g license-checker      
     - name: Install Pod
       working-directory: ./tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips
       run: pod install --clean-install
-    - name: Make executable file
-      run: pyinstaller --onefile cli.py -n cli --additional-hooks-dir=hooks --add-binary "src/fosslight_dependency/third_party/askalono/askalono_macos:third_party/askalono"
     - name: Run Test
-      working-directory: ./dist
       run: |
-        ./cli -p ../tests/test_pypi -o ../tests/result/pip
-        ./cli -p ../tests/test_npm1 -o ../tests/result/npm1
-        ./cli -p ../tests/test_npm2 -o ../tests/result/npm2 -m npm
-        ./cli -p ../tests/test_maven1/lombok.maven -o ../tests/result/maven1
-        ./cli -p ../tests/test_maven2 -o ../tests/result/maven2
-        ./cli -p ../tests/test_gradle/jib -o ../tests/result/gradle
-        ./cli -p ../tests/test_pub -o ../tests/result/pub
-        ./cli -p ../tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips -o ../tests/result/Cocoapods
-    - name: Run Flake8
-      run: tox -e run_macos
+        fosslight_dependency -p tests/test_pypi -o tests/result/pip
+        fosslight_dependency -p tests/test_npm1 -o tests/result/npm1
+        fosslight_dependency -p tests/test_npm2 -o tests/result/npm2 -m npm
+        fosslight_dependency -p tests/test_maven1/lombok.maven -o tests/result/maven1
+        fosslight_dependency -p tests/test_maven2 -o tests/result/maven2
+        fosslight_dependency -p tests/test_gradle/jib -o tests/result/gradle
+        fosslight_dependency -p tests/test_pub -o tests/result/pub
+        fosslight_dependency -p tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips -o tests/result/Cocoapods
   reuse:
     runs-on: ubuntu-latest
     steps: 
