@@ -67,7 +67,7 @@ jobs:
       run: pod install --clean-install
     - name: Run Test
       run: |
-        fosslight_dependency -p tests/test_pypi -o tests/result/pip
+        fosslight_dependency -p tests/test_pypi -o tests/result/pypi
         fosslight_dependency -p tests/test_npm1 -o tests/result/npm1
         fosslight_dependency -p tests/test_npm2 -o tests/result/npm2 -m npm
         fosslight_dependency -p tests/test_maven1/lombok.maven -o tests/result/maven1
