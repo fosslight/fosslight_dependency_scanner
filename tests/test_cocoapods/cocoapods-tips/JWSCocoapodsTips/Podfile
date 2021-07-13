@@ -1,0 +1,75 @@
+# Uncomment the next line to define a global platform for your project
+# platform :ios, '9.0'
+
+#2-1 def 사용
+def network_pods
+    
+    # 대표적인 네트워크 라이브러리입니다.
+    pod 'Alamofire'
+    # Alamofire를 사용할 때 상단 상태 바에 통신중일때 기본 인디케이터가 나타나도록 합니다.
+    pod 'AlamofireNetworkActivityIndicator'
+    # Alamofire를 이용할 때 로그를 쉽게 볼 수 있습니다.
+    pod 'AlamofireActivityLogger'
+end
+
+def core_pods
+    
+    # 스넵킷이라는 오토레이아웃을 소스 코드 구현을 용이하게 해주는 라이브러리입니다.
+    pod 'SnapKit'
+    
+    # 유용한 날짜 관련 라이브러리입니다.
+    pod 'SwiftDate'
+    
+end
+
+def ui_pods
+    
+    # 안드로이드의 토스트 기능을 쉽게 사용하게 해주는 라이브러리 입니다.
+    pod 'Toaster'
+end
+
+# 2-2 Debugging 에서만 사용하기
+def debugging_pods
+    pod 'FLEX', :configurations => ['Debug']
+end
+
+# 2-3 git의 repository에서 직접 가져오기
+def repository_pods
+    pod 'Bolts-Swift', :git => 'https://github.com/BoltsFramework/Bolts-Swift'
+end
+
+# 2-4 xcode에서 pods 프로젝트 경고 없애기, ..에서 개별 경고 없애기 테스트
+def warning_pods
+    # 7개의 경고가 있었음.
+#    pod 'CleanroomLogger', '~> 5.1.1'
+
+    # 7개의 경고가 사라짐
+    pod 'CleanroomLogger', '~> 5.1.1', :inhibit_warnings => true
+end
+
+target 'JWSCocoapodsTips' do
+  # Comment the next line if you're not using Swift and don't want to use dynamic frameworks
+  # 스위프트를 사용하지 않고 동적 라이브러리를 이용하지 않는다면 아래 구문을 주석처리 합니다
+  use_frameworks!
+  
+  # xcode에서 pods의 모든 프로젝트 경고 없애기
+#  inhibit_all_warnings!
+
+  # Pods for JWSCocoapodsTips
+  
+  # 이렇게 위에 정의된 내용을 사용합니다.
+  #2-1 def 사용
+  network_pods
+  core_pods
+  ui_pods
+  
+  # 2-2 Debugging 에서만 사용하기
+  debugging_pods
+  
+  # 2-3 git의 repository에서 직접 가져오기
+  repository_pods
+  
+  # 2-4 xcode에서 pods 프로젝트 경고 없애기, ..에서 개별 경고 없애기 테스트
+  warning_pods
+
+end
