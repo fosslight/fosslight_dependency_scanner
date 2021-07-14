@@ -26,9 +26,9 @@ from fosslight_dependency._help import print_help_msg
 _PKG_NAME = "fosslight_dependency"
 
 # Check the manifest file
-manifest_array = [["pip", "requirements.txt"], ["npm", "package.json"], ["maven", "pom.xml"],
-                  ["gradle", "build.gradle"], ["pub", "pubspec.yaml"], ["cocoapods", "Podfile.lock"],
-                  ["android", "gradlew"]]
+SUPPORT_PACKAE = ["pip", "npm", "maven", "gradle", "pub", "cocoapods", "android"]
+manifest_array = [[SUPPORT_PACKAE[0], "requirements.txt"], [SUPPORT_PACKAE[1], "package.json"], [SUPPORT_PACKAE[2], "pom.xml"],
+                  [SUPPORT_PACKAE[3], "build.gradle"], [SUPPORT_PACKAE[4], "pubspec.yaml"], [SUPPORT_PACKAE[5], "Podfile.lock"]]
 
 # binary url to check license text
 license_scanner_url_linux = "third_party/nomos/nomossa"
@@ -93,7 +93,12 @@ def parse_option():
         MANUAL_DETECT = 0   # It will be detected the package manager automatically with manifest file.
     else:
         MANUAL_DETECT = 1
-        PACKAGE = "".join(args.manager)
+        package_name = "".join(args.manager)
+        if package_name in SUPPORT_PACKAE:
+            PACKAGE = package_name
+        else:
+            print("Please enter the supported package manager({0}) with 'm' option.".format(", ".join(SUPPORT_PACKAE)))
+            sys.exit(1)
 
     # -a option
     if args.activate:
@@ -327,6 +332,9 @@ def open_input_file():
     if os.path.isfile(input_file_name) != 1:
         logger.warning(input_file_name + " doesn't exist in this directory.")
 
+        if PACKAGE == "gradle" and MANUAL_DETECT == 0:
+            return False
+
         if PACKAGE == "maven":
             global is_maven_first_try
 
@@ -340,11 +348,11 @@ def open_input_file():
                 else:
                     clean_run_maven_plugin_output()
 
-        logger.error("Please check the below thing first.")
-        logger.error("  1.Did you run the license-maven-plugin?")
-        logger.error("  2.Or if your project has the customized build output directory, \
-                    then use '-c' option with your customized build output directory name")
-        logger.error("    $ fosslight_dependency -c output")
+            logger.error("Please check the below thing first.")
+            logger.error("  1.Did you run the license-maven-plugin?")
+            logger.error("  2.Or if your project has the customized build output directory, \
+                        then use '-c' option with your customized build output directory name")
+            logger.error("    $ fosslight_dependency -c output")
         sys.exit(1)
 
     input_fp = open(input_file_name, 'r', encoding='utf8')
@@ -966,13 +974,27 @@ def main_maven():
 
 
 def main_gradle():
-    # Before running this script, first you should add the com.github.hierynomus.license in build.gradle and run it.
+    global PACKAGE
 
+    # Before running this script, first you should add the com.github.hierynomus.license in build.gradle and run it.
     # open dependency-license.json
     input_fp = open_input_file()
 
-    # Make output file for OSS report using temporary output file for License Gradle Plugin.
-    sheet_list = parse_and_generate_output_gradle(input_fp)
+    # If the PACKAGE is gradle & MANUAL_DETECT is false, then open_input_file results is false.
+    # In that case, we re-try the open_input_file for the android package manager.
+    if not input_fp:
+        PACKAGE = 'android'
+        set_package_variables(PACKAGE)
+        input_fp = open_input_file()
+
+    if PACKAGE == "gradle":
+        # Make output file for OSS report using temporary output file for License Gradle Plugin.
+        sheet_list = parse_and_generate_output_gradle(input_fp)
+    elif PACKAGE == "android":
+        sheet_list = parse_and_generate_output_android(input_fp)
+    else:
+        logger.error("Cannot find the PACKAGE name() based on gradle.", PACKAGE)
+        sys.exit(1)
 
     # close dependency-license.json
     close_input_file(input_fp)
@@ -1013,27 +1035,11 @@ def main_android():
     return sheet_list
 
 
-def main():
+def set_package_variables(package):
+    global PACKAGE, dn_url, output_file_name, input_file_name, venv_tmp_dir, pom_backup, is_maven_first_try, \
+        tmp_license_txt_file_name, source_type
 
-    global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, \
-        MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE, APPNAME
-    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, \
-        is_maven_first_try, tmp_license_txt_file_name, source_type, logger
-
-    start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-
-    parse_option()
-    logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_" + start_time + ".txt"), True, 20, 10)
-    _result_log = init_log_item(_PKG_NAME)
-
-    logger.info("Tool Info : " + _result_log["Tool Info"])
-
-    # Configure global variables according to package manager.
-    try:
-        configure_package()
-    except:
-        logger.error("Error : Failed to configure package.")
-        sys.exit(1)
+    PACKAGE = package
 
     if PACKAGE == "pip":
         dn_url = "https://pypi.org/project/"
@@ -1077,6 +1083,31 @@ def main():
         logger.error("You enter the wrong first argument.")
         logger.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
         sys.exit(1)
+
+
+def main():
+
+    global PACKAGE, output_file_name, input_file_name, CUR_PATH, OUTPUT_RESULT_DIR, \
+        MANUAL_DETECT, OUTPUT_CUSTOM_DIR, dn_url, PIP_ACTIVATE, PIP_DEACTIVATE, APPNAME
+    global license_scanner_url, license_scanner_bin, venv_tmp_dir, pom_backup, \
+        is_maven_first_try, tmp_license_txt_file_name, source_type, logger
+
+    start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+    parse_option()
+    logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_" + start_time + ".txt"), True, 20, 10)
+    _result_log = init_log_item(_PKG_NAME)
+
+    logger.info("Tool Info : " + _result_log["Tool Info"])
+
+    # Configure global variables according to package manager.
+    try:
+        configure_package()
+    except:
+        logger.error("Error : Failed to configure package.")
+        sys.exit(1)
+
+    set_package_variables(PACKAGE)
 
     if PACKAGE == "pip":
         sheet_list = main_pip()
