@@ -31,6 +31,7 @@ Each package manager uses the results of the following software:
 - Gradle : [License Gradle Plugin](https://github.com/hierynomus/license-gradle-plugin)
 - Maven : [license-maven-plugin](https://github.com/mojohaus/license-maven-plugin)
 - Pub : [flutter_oss_licenses](https://github.com/espresso3389/flutter_oss_licenses)
+- Android(gradle) : [android-dependency-scanning](https://github.com/fosslight/android-dependency-scanning)
 
 Because we utilizes the different open source software to analyze the dependencies of each package manager, you need to set up the **Prerequisite** steps in [User guide](https://fosslight.org/fosslight-guide-en/scanner/2_dependency.html) according to package manager to analyze.
 

@@ -983,6 +983,7 @@ def main_gradle():
     # If the PACKAGE is gradle & MANUAL_DETECT is false, then open_input_file results is false.
     # In that case, we re-try the open_input_file for the android package manager.
     if not input_fp:
+        logger.warning("If the PACKAGE is gradle and automatically detcted, it re-tries to find input file for android")
         PACKAGE = 'android'
         set_package_variables(PACKAGE)
         input_fp = open_input_file()

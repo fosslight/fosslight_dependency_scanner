@@ -62,6 +62,10 @@ Files: tests/test_pypi/*
 Copyright: 2021 LG Electronics
 License: Apache-2.0
 
-Files: tests/test_cocoapods/cocoapods-tips*
+Files: tests/test_cocoapods/cocoapods-tips/*
 Copyright: 2017 ClintJang 
 License: MIT
+
+Files: tests/test_android/*
+Copyright: 2018 Google, Inc
+License: Apache-2.0
