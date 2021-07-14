@@ -17,12 +17,13 @@ _HELP_MESSAGE_DEPENDENCY = """
         Gradle : License Gradle Plugin
         Maven : License-maven-plugin
         Pub : Flutter_oss_licenses
+        Android : android-dependency-scanning
 
     Options:
         Optional
             -h\t\t\t\t    Print help message.
             -v\t\t\t\t    Print the version of the script.
-            -m <package_manager>\t    Enter the package manager(npm, maven, gradle, pip, pub, cocoapods).
+            -m <package_manager>\t    Enter the package manager(npm, maven, gradle, pip, pub, cocoapods, android).
             -p <input_path>\t\t    Enter the path where the script will be run.
             -o <output_path>\t\t    Enter the path where the result file will be generated.
 
