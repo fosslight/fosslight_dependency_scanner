@@ -14,7 +14,7 @@ Hi! I'm really appreciate that you'd like to contribute to this project. Your he
    - ![enhancement](https://img.shields.io/badge/-enhancement-1D76DB) : New feature
    - ![documentation](https://img.shields.io/badge/-documentation-0E8A16) : Documentation update
    - ![chore](https://img.shields.io/badge/-chore-0E8A16) : Refactoring, Maintenance
-7. The pull request you submit is automatically tested in multiple OS environments through github action.
+7. The pull request you submit is automatically tested in multiple OS environments through github action. Please ensure that all checks for your PR are in a green state.
    - Building source code in Ubuntu, Windodws, and Mac OS
    - Running tests for each package manager in each OS
 
