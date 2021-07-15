@@ -7,14 +7,27 @@ Hi! I'm really appreciate that you'd like to contribute to this project. Your he
 1. <a class="github-button" href="https://github.com/LGE-OSS/fosslight_dependency/fork" data-icon="octicon-repo-forked" aria-label="Fork LGE-OSS/fosslight_dependency on GitHub">`Fork`</a> and clone the repository
 2. Create a new branch: `git checkout -b my-branch-name`
 3. Make your change and make sure it works properly.
-4. Commit your changes to a branch, making sure to sign-off thos changes for the [Developer Certificate of Origin](#Developer-Certificate-of-Origin).
+4. Commit your changes to a branch, making sure to sign-off those changes for the [Developer Certificate of Origin](#Developer-Certificate-of-Origin).
 5. Push to your fork and submit a pull request.
 6. When you write to PR template, you can add labels based on your type of changes.
    - ![bug fix](https://img.shields.io/badge/-bug%20fix-B60205) : Bug fix
    - ![enhancement](https://img.shields.io/badge/-enhancement-1D76DB) : New feature
    - ![documentation](https://img.shields.io/badge/-documentation-0E8A16) : Documentation update
    - ![chore](https://img.shields.io/badge/-chore-0E8A16) : Refactoring, Maintenance
-7. Please wait for your pull request to be reviewed and merged!
+7. The pull request you submit is automatically tested in multiple OS environments through github action.
+   - Building source code in Ubuntu, Windodws, and Mac OS
+   - Running tests for each package manager in each OS
+
+      - Test contents for each OS
+         |OS         |Pypi |NPM |Gradle|Android|Maven|Pub |Cocoapods|
+         |:----------|:---:|:--:|:----:|:-----:|:---:|:--:|:-------:|
+         |**Ubuntu** |O    |O   |O     |       |O    |O   |         |
+         |**Windows**|O    |    |O     |O      |O    |O   |         |
+         |**Mac OS** |O    |O   |O     |       |O    |O   |O        |
+   - Checking the code for PEP8 requirements.
+   - Checking compliacne by using REUSE.
+
+8. Please wait for your pull request to be reviewed and merged!
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
