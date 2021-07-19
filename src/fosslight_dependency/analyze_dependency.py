@@ -611,6 +611,9 @@ def parse_and_generate_output_pip(tmp_file_name):
             oss_version = d['Version']
             dn_loc = dn_url + oss_init_name + "/" + oss_version
 
+            if license_name is not None:
+                license_name = license_name.replace(';', ',')
+
             license_file_dir = d['LicenseFile']
             license_name_with_license_scanner = check_and_run_license_scanner(license_file_dir, os_name)
 
