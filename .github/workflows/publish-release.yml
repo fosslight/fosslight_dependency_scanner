@@ -20,8 +20,6 @@ jobs:
       id: get_release
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      with:
-        tag_name: ${{ github.ref }}
     - name: Bump up version
       env:
         NEW_TAG: ${{ steps.get_release.outputs.tag_name }}
