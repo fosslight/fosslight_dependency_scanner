@@ -69,3 +69,7 @@ License: MIT
 Files: tests/test_android/*
 Copyright: 2018 Google, Inc
 License: Apache-2.0
+
+Files: .bumpversion.cfg
+Copyright: 2021 LG Electronics
+License: Apache-2.0
