@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.5.1 (29/07/2021)
+## Changes
+## 🔧 Maintenance
+
+- Update version in setup.py when released @bjk7119 (#38)
+- change the pypi license separator from ';' to ',' @dd-jy (#37)
+- Update CONTRIBUTING.md @bjk7119 (#36)
+
+---
+
 ## v3.5.0 (14/07/2021)
 ## Changes
 ## 🐛 Hotfixes
