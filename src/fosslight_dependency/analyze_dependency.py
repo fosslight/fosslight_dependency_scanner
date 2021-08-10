@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 import yaml
 import pkg_resources
 from datetime import datetime
-from fosslight_util.set_log import init_log, init_log_item
+from fosslight_util.set_log import init_log
 from fosslight_util.write_excel import write_excel_and_csv
 from fosslight_dependency._help import print_help_msg
 
@@ -1099,8 +1099,8 @@ def main():
     start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     parse_option()
-    logger = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_" + start_time + ".txt"), True, 20, 10)
-    _result_log = init_log_item(_PKG_NAME)
+    logger, _result_log = init_log(os.path.join(OUTPUT_RESULT_DIR, "fosslight_dependency_log_" + start_time + ".txt"),
+                                   True, 20, 10, _PKG_NAME)
 
     logger.info("Tool Info : " + _result_log["Tool Info"])
 
