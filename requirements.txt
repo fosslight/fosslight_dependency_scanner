@@ -4,4 +4,4 @@ lxml
 virtualenv
 pyyaml
 lastversion
-fosslight_util
+fosslight_util>=1.1.0
