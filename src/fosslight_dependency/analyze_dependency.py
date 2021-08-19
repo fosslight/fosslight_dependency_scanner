@@ -698,7 +698,8 @@ def parse_and_generate_output_maven(input_fp):
         if len(licenses):
             license_names = []
             for key_license in licenses.iter("license"):
-                license_names.append(key_license.findtext("name").replace(",", ""))
+                if key_license.findtext("name") is not None:
+                    license_names.append(key_license.findtext("name").replace(",", ""))
             license_name = ', '.join(license_names)
         else:
             # Case that doesn't include License tag value.
