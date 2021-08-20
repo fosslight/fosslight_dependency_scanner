@@ -978,27 +978,35 @@ def parse_and_generate_output_swift(input_fp):
 
         homepage = key['repositoryURL']
         dn_loc = homepage
+        license_name = ''
 
         github_repo = "/".join(homepage.split('/')[-2:])
         try:
-            repositoy = g.get_repo(github_repo)
-            license_name = repositoy.get_license().license.spdx_id
-        except Exception as e:
-            logger.info("Cannot find the license name with github api. error:", e)
-            license_name = ""
-        if license_name == "":
+            repository = g.get_repo(github_repo)
+        except Exception:
+            logger.error("It cannot find the license name. Please use '-t' option with github token.")
+            logger.error("refer:https://docs.github.com/en/github/authenticating-to-github/"\
+                        +"keeping-your-account-and-data-secure/creating-a-personal-access-token")
+            repository = ''
+        
+        if repository is not None:
             try:
-                license_txt_data = base64.b64decode(repositoy.get_license().content).decode('utf-8')
-                tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                tmp_license_txt.write(license_txt_data)
-                tmp_license_txt.close()
-                license_name = check_and_run_license_scanner(tmp_license_txt_file_name, os_name)
-            except Exception as e:
-                logger.info("Cannot find the license name with license scanner binary. error:", e)
-                license_name = ""
+                license_name = repository.get_license().license.spdx_id
+            except Exception:
+                logger.info("Cannot find the license name with github api.")
 
-            if os.path.isfile(tmp_license_txt_file_name):
-                os.remove(tmp_license_txt_file_name)
+            if license_name == "":
+                try:
+                    license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
+                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
+                    tmp_license_txt.write(license_txt_data)
+                    tmp_license_txt.close()
+                    license_name = check_and_run_license_scanner(tmp_license_txt_file_name, os_name)
+                except Exception:
+                    logger.info("Cannot find the license name with license scanner binary.")
+
+                if os.path.isfile(tmp_license_txt_file_name):
+                    os.remove(tmp_license_txt_file_name)
 
         sheet_list["SRC"].append(['Package.resolved', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
