@@ -985,10 +985,10 @@ def parse_and_generate_output_swift(input_fp):
             repository = g.get_repo(github_repo)
         except Exception:
             logger.error("It cannot find the license name. Please use '-t' option with github token.")
-            logger.error("refer:https://docs.github.com/en/github/authenticating-to-github/"\
-                        +"keeping-your-account-and-data-secure/creating-a-personal-access-token")
+            logger.error("{0}{1}".format("refer:https://docs.github.com/en/github/authenticating-to-github/",
+                         "keeping-your-account-and-data-secure/creating-a-personal-access-token"))
             repository = ''
-        
+
         if repository is not None:
             try:
                 license_name = repository.get_license().license.spdx_id
