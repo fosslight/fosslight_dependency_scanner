@@ -19,6 +19,7 @@ Currently, it supports the following package managers.
 - [PIP](https://pip.pypa.io/) (Python)
 - [Pub](https://pub.dev/) (Dart with flutter)
 - [Cocoapods](https://cocoapods.org/) (Swift/Obj-C)
+- [Swift](https://swift.org/package-manager/) (Swift)
 
 ## 🧐 How to analyze the dependencies
 

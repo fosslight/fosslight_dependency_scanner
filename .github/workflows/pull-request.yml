@@ -75,7 +75,7 @@ jobs:
         fosslight_dependency -p tests/test_gradle/jib -o tests/result/gradle
         fosslight_dependency -p tests/test_pub -o tests/result/pub
         fosslight_dependency -p tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips -o tests/result/Cocoapods
-        fosslight_dependency -p tests/test_swift -o tests/result/swift
+        fosslight_dependency -p tests/test_swift -o tests/result/swift -t ${{ secrets.TOKEN }}
   reuse:
     runs-on: ubuntu-latest
     steps: 
