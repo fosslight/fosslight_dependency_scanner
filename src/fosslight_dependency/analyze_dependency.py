@@ -21,14 +21,21 @@ from datetime import datetime
 from fosslight_util.set_log import init_log
 from fosslight_util.write_excel import write_excel_and_csv
 from fosslight_dependency._help import print_help_msg
+import base64
+
+try:
+    from github import Github
+except:
+    pass
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
 
 # Check the manifest file
-SUPPORT_PACKAE = ["pip", "npm", "maven", "gradle", "pub", "cocoapods", "android"]
+SUPPORT_PACKAE = ["pip", "npm", "maven", "gradle", "pub", "cocoapods", "android", "swift"]
 manifest_array = [[SUPPORT_PACKAE[0], "requirements.txt"], [SUPPORT_PACKAE[1], "package.json"], [SUPPORT_PACKAE[2], "pom.xml"],
-                  [SUPPORT_PACKAE[3], "build.gradle"], [SUPPORT_PACKAE[4], "pubspec.yaml"], [SUPPORT_PACKAE[5], "Podfile.lock"]]
+                  [SUPPORT_PACKAE[3], "build.gradle"], [SUPPORT_PACKAE[4], "pubspec.yaml"], [SUPPORT_PACKAE[5], "Podfile.lock"],
+                  [SUPPORT_PACKAE[7], "Package.resolved"]]
 
 # binary url to check license text
 license_scanner_url_linux = "third_party/nomos/nomossa"
@@ -61,7 +68,8 @@ def check_valid_manifest_file():
 
 
 def parse_option():
-    global MANUAL_DETECT, PIP_ACTIVATE, PIP_DEACTIVATE, PACKAGE, OUTPUT_CUSTOM_DIR, CUR_PATH, OUTPUT_RESULT_DIR, APPNAME
+    global MANUAL_DETECT, PIP_ACTIVATE, PIP_DEACTIVATE, PACKAGE, OUTPUT_CUSTOM_DIR, CUR_PATH, OUTPUT_RESULT_DIR, \
+        APPNAME, GITHUB_TOKEN
 
     default_unspecified = "UNSPECIFIED"
 
@@ -75,6 +83,7 @@ def parse_option():
     parser.add_argument('-v', '--version', action='store_true', required=False)
     parser.add_argument('-o', '--output', nargs=1, type=str, required=False)
     parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
+    parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
 
     args = parser.parse_args()
 
@@ -146,6 +155,12 @@ def parse_option():
         APPNAME = "".join(args.appname)
     else:
         APPNAME = "app"
+
+    # -t option
+    if args.token:
+        GITHUB_TOKEN = "".join(args.token)
+    else:
+        GITHUB_TOKEN = ""
 
 
 def configure_package():
@@ -331,6 +346,17 @@ def open_input_file():
 
     if os.path.isfile(input_file_name) != 1:
         logger.warning(input_file_name + " doesn't exist in this directory.")
+
+        if PACKAGE == "swift":
+            for file_in_swift in os.listdir("."):
+                if file_in_swift.endswith(".xcodeproj"):
+                    input_file_name_in_xcodeproj = os.path.join(file_in_swift,
+                                                                "project.xcworkspace/xcshareddata/swiftpm",
+                                                                input_file_name)
+                    if input_file_name_in_xcodeproj != input_file_name:
+                        if os.path.isfile(input_file_name_in_xcodeproj):
+                            input_file_name = input_file_name_in_xcodeproj
+                            return open_input_file()
 
         if PACKAGE == "gradle" and MANUAL_DETECT == 0:
             return False
@@ -785,7 +811,6 @@ def parse_and_generate_output_pub(tmp_file_name):
 
         tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
         tmp_license_txt.write(license_txt)
-        # tmp_license_txt.write(license_txt.encode().decode('utf-8'))
         tmp_license_txt.close()
 
         license_name_with_license_scanner = check_and_run_license_scanner(tmp_license_txt_file_name, os_name)
@@ -923,6 +948,63 @@ def parse_and_generate_output_android(input_fp):
     return sheet_list
 
 
+def parse_and_generate_output_swift(input_fp):
+    global GITHUB_TOKEN
+
+    sheet_list = {}
+    sheet_list["SRC"] = []
+
+    json_raw = json.load(input_fp)
+    json_data = json_raw["object"]["pins"]
+
+    os_name = check_os()
+    check_license_scanner(os_name)
+
+    if GITHUB_TOKEN is not None:
+        g = Github(GITHUB_TOKEN)
+    else:
+        g = Github()
+
+    for key in json_data:
+        oss_origin_name = key['package']
+        oss_name = "swift:" + oss_origin_name
+
+        revision = key['state']['revision']
+        version = key['state']['version']
+        if version is None:
+            oss_version = revision
+        else:
+            oss_version = version
+
+        homepage = key['repositoryURL']
+        dn_loc = homepage
+
+        github_repo = "/".join(homepage.split('/')[-2:])
+        try:
+            repositoy = g.get_repo(github_repo)
+            license_name = repositoy.get_license().license.spdx_id
+        except Exception as e:
+            logger.info("Cannot find the license name with github api. error:", e)
+            license_name = ""
+        if license_name == "":
+            try:
+                license_txt_data = base64.b64decode(repositoy.get_license().content).decode('utf-8')
+                tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
+                tmp_license_txt.write(license_txt_data)
+                tmp_license_txt.close()
+                license_name = check_and_run_license_scanner(tmp_license_txt_file_name, os_name)
+            except Exception as e:
+                logger.info("Cannot find the license name with license scanner binary. error:", e)
+                license_name = ""
+
+            if os.path.isfile(tmp_license_txt_file_name):
+                os.remove(tmp_license_txt_file_name)
+
+        sheet_list["SRC"].append(['Package.resolved', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+
+    return sheet_list
+
+
 ###########################################
 # Main functions for each package manager  #
 ###########################################
@@ -1040,6 +1122,17 @@ def main_android():
     return sheet_list
 
 
+def main_swift():
+
+    input_fp = open_input_file()
+
+    sheet_list = parse_and_generate_output_swift(input_fp)
+
+    close_input_file(input_fp)
+
+    return sheet_list
+
+
 def set_package_variables(package):
     global PACKAGE, dn_url, output_file_name, input_file_name, venv_tmp_dir, pom_backup, is_maven_first_try, \
         tmp_license_txt_file_name, source_type
@@ -1082,6 +1175,11 @@ def set_package_variables(package):
     elif PACKAGE == "android":
         input_file_name = os.path.join(APPNAME, "android_dependency_output.txt")
         output_file_name = "android_dependency_output"
+
+    elif PACKAGE == "swift":
+        input_file_name = "Package.resolved"
+        output_file_name = "swift_dependency_output"
+        tmp_license_txt_file_name = "tmp_license.txt"
 
     else:
         logger.error("### Error Message ###")
@@ -1128,6 +1226,8 @@ def main():
         sheet_list = main_cocoapods()
     elif PACKAGE == "android":
         sheet_list = main_android()
+    elif PACKAGE == "swift":
+        sheet_list = main_swift()
     else:
         logger.error("### Error Message ###")
         logger.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
