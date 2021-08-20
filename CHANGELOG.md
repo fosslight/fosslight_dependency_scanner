@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.6.0 (20/08/2021)
+## Changes
+## 🚀 Features
+
+- Support swift package manager @dd-jy (#45)
+
+## 🐛 Hotfixes
+
+- Fix the maven license result parsing issue @dd-jy (#44)
+
+## 🔧 Maintenance
+
+- Set condition to use FOSSLight Util v1.1.0 or later @bjk7119 (#43)
+
+---
+
 ## v3.5.2 (12/08/2021)
 ## Changes
 ## 🔧 Maintenance
