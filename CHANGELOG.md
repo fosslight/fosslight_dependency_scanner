@@ -6,6 +6,7 @@
 
 ## 🔧 Maintenance
 
+- Update README.md @dd-jy (#5)
 - Update publish-release.yml @dd-jy (#4)
 - Update LICENSE @dd-jy (#3)
 
