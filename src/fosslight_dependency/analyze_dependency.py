@@ -761,9 +761,13 @@ def parse_and_generate_output_gradle(input_fp):
         oss_version = version_refine(oss_ini_version)
 
         license_names = []
-        for licenses in d['licenses']:
-            license_names.append(licenses['name'].replace(",", ""))
-        license_name = ', '.join(license_names)
+        try:
+            for licenses in d['licenses']:
+                if licenses['name'] != '':
+                    license_names.append(licenses['name'].replace(",", ""))
+            license_name = ', '.join(license_names)
+        except Exception:
+            logger.info("Cannot find the license name")
 
         if used_filename == "true" or group_id == "":
             dn_loc = 'Unknown'
