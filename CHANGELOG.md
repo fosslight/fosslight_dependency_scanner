@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.6.0 (20/08/2021)
+## v3.6.1 (25/08/2021)
 ## Changes
 ## 🚀 Features
 
@@ -8,26 +8,15 @@
 
 ## 🐛 Hotfixes
 
+- Fix the gradle license parsing error @dd-jy (#47)
+- Fix a bug related release actions @soimkim (#46)
 - Fix the maven license result parsing issue @dd-jy (#44)
 
 ## 🔧 Maintenance
 
+- Fix the gradle license parsing error @dd-jy (#47)
 - Set condition to use FOSSLight Util v1.1.0 or later @bjk7119 (#43)
-
----
-
-## v3.5.2 (12/08/2021)
-## Changes
-## 🔧 Maintenance
-
 - Merge init_log & init_log_item functiions @bjk7119 (#40)
-
----
-
-## v3.5.1 (29/07/2021)
-## Changes
-## 🔧 Maintenance
-
 - Update version in setup.py when released @bjk7119 (#38)
 - change the pypi license separator from ';' to ',' @dd-jy (#37)
 - Update CONTRIBUTING.md @bjk7119 (#36)
