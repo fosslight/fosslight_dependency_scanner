@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.7.0 (27/08/2021)
+## Changes
+## 🚀 Features
+
+- Support carthage package manager @dd-jy (#48)
+
+---
+
 ## v3.6.1 (25/08/2021)
 ## Changes
 ## 🚀 Features
