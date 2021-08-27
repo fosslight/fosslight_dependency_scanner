@@ -20,6 +20,7 @@ Currently, it supports the following package managers.
 - [Pub](https://pub.dev/) (Dart with flutter)
 - [Cocoapods](https://cocoapods.org/) (Swift/Obj-C)
 - [Swift](https://swift.org/package-manager/) (Swift)
+- [Carthage](https://github.com/Carthage/Carthage) (Carthage)
 
 ## 🧐 How to analyze the dependencies
 
