@@ -1074,7 +1074,7 @@ def parse_and_generate_output_carthge(input_fp):
                 if os.path.isfile(tmp_license_txt_file_name):
                     os.remove(tmp_license_txt_file_name)
 
-        sheet_list["SRC"].append(['Package.resolved', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+        sheet_list["SRC"].append(['Cartfile.resolved', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
     return sheet_list
 
