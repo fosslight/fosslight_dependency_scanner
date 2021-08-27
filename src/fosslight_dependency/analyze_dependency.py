@@ -32,10 +32,10 @@ except:
 _PKG_NAME = "fosslight_dependency"
 
 # Check the manifest file
-SUPPORT_PACKAE = ["pip", "npm", "maven", "gradle", "pub", "cocoapods", "android", "swift"]
+SUPPORT_PACKAE = ["pip", "npm", "maven", "gradle", "pub", "cocoapods", "android", "swift", "carthage"]
 manifest_array = [[SUPPORT_PACKAE[0], "requirements.txt"], [SUPPORT_PACKAE[1], "package.json"], [SUPPORT_PACKAE[2], "pom.xml"],
                   [SUPPORT_PACKAE[3], "build.gradle"], [SUPPORT_PACKAE[4], "pubspec.yaml"], [SUPPORT_PACKAE[5], "Podfile.lock"],
-                  [SUPPORT_PACKAE[7], "Package.resolved"]]
+                  [SUPPORT_PACKAE[7], "Package.resolved"], [SUPPORT_PACKAE[8], "Cartfile.resolved"]]
 
 # binary url to check license text
 license_scanner_url_linux = "third_party/nomos/nomossa"
@@ -999,7 +999,69 @@ def parse_and_generate_output_swift(input_fp):
             except Exception:
                 logger.info("Cannot find the license name with github api.")
 
-            if license_name == "":
+            if license_name == "" or license_name == "NOASSERTION":
+                try:
+                    license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
+                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
+                    tmp_license_txt.write(license_txt_data)
+                    tmp_license_txt.close()
+                    license_name = check_and_run_license_scanner(tmp_license_txt_file_name, os_name)
+                except Exception:
+                    logger.info("Cannot find the license name with license scanner binary.")
+
+                if os.path.isfile(tmp_license_txt_file_name):
+                    os.remove(tmp_license_txt_file_name)
+
+        sheet_list["SRC"].append(['Package.resolved', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+
+    return sheet_list
+
+
+def parse_and_generate_output_carthge(input_fp):
+    global GITHUB_TOKEN
+
+    sheet_list = {}
+    sheet_list["SRC"] = []
+
+    os_name = check_os()
+    check_license_scanner(os_name)
+
+    if GITHUB_TOKEN is not None:
+        g = Github(GITHUB_TOKEN)
+    else:
+        g = Github()
+
+    for i, line in enumerate(input_fp.readlines()):
+
+        re_result = re.findall(r'github[\s]\"(\S*)\"[\s]\"(\S*)\"', line)
+        try:
+            github_repo = re_result[0][0]
+            oss_origin_name = github_repo.split('/')[1]
+            oss_name = "carthage:" + oss_origin_name
+            oss_version = re_result[0][1]
+            homepage = "https://github.com/" + github_repo
+            dn_loc = homepage
+
+            license_name = ''
+        except Exception:
+            logger.error("It cannot find the github oss information. So skip it.")
+            break
+
+        try:
+            repository = g.get_repo(github_repo)
+        except Exception:
+            logger.error("It cannot find the license name. Please use '-t' option with github token.")
+            logger.error("{0}{1}".format("refer:https://docs.github.com/en/github/authenticating-to-github/",
+                         "keeping-your-account-and-data-secure/creating-a-personal-access-token"))
+            repository = ''
+
+        if repository is not None:
+            try:
+                license_name = repository.get_license().license.spdx_id
+            except Exception:
+                logger.info("Cannot find the license name with github api.")
+
+            if license_name == "" or license_name == "NOASSERTION":
                 try:
                     license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
                     tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
@@ -1145,6 +1207,17 @@ def main_swift():
     return sheet_list
 
 
+def main_carthage():
+
+    input_fp = open_input_file()
+
+    sheet_list = parse_and_generate_output_carthge(input_fp)
+
+    close_input_file(input_fp)
+
+    return sheet_list
+
+
 def set_package_variables(package):
     global PACKAGE, dn_url, output_file_name, input_file_name, venv_tmp_dir, pom_backup, is_maven_first_try, \
         tmp_license_txt_file_name, source_type
@@ -1191,6 +1264,11 @@ def set_package_variables(package):
     elif PACKAGE == "swift":
         input_file_name = "Package.resolved"
         output_file_name = "swift_dependency_output"
+        tmp_license_txt_file_name = "tmp_license.txt"
+
+    elif PACKAGE == "carthage":
+        input_file_name = "Cartfile.resolved"
+        output_file_name = "carthage_dependency_output"
         tmp_license_txt_file_name = "tmp_license.txt"
 
     else:
@@ -1240,6 +1318,8 @@ def main():
         sheet_list = main_android()
     elif PACKAGE == "swift":
         sheet_list = main_swift()
+    elif PACKAGE == "carthage":
+        sheet_list = main_carthage()
     else:
         logger.error("### Error Message ###")
         logger.error("Please enter the supported package manager. (Check the help message with (-h) option.)")
