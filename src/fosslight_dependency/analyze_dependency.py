@@ -203,13 +203,16 @@ def check_virtualenv_arg():
 
         venv_path = os.path.join(CUR_PATH, venv_tmp_dir)
 
-        if python_version == 2:
-            create_venv_command = "virtualenv -p python " + venv_tmp_dir
+        if check_os() == "Windows":
+            create_venv_command = "python -m venv " + venv_tmp_dir
         else:
-            create_venv_command = "virtualenv -p python3 " + venv_tmp_dir
+            if python_version == 2:
+                create_venv_command = "virtualenv -p python " + venv_tmp_dir
+            else:
+                create_venv_command = "virtualenv -p python3 " + venv_tmp_dir
 
         if check_os() == "Windows":
-            activate_command = ".\\" + os.path.join(venv_tmp_dir, "Scripts", "activate")
+            activate_command = os.path.join(venv_tmp_dir, "Scripts", "activate.bat")
         else:
             activate_command = ". " + os.path.join(venv_path, "bin", "activate")
 
