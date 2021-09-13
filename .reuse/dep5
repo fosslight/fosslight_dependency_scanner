@@ -81,3 +81,7 @@ License: Apache-2.0
 Files: tests/test_carthage/*
 Copyright: 2021 LG Electronics
 License: Apache-2.0
+
+Files: .gitattributes 
+Copyright: 2021 LG Electronics
+License: Apache-2.0
