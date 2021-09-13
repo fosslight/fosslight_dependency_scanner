@@ -59,7 +59,7 @@ def check_valid_manifest_file():
         PACKAGE = manifest_array[int(found_idx[0])][0]
         logger.info("### Info Message ###")
         logger.info("Found the manifest file(" + manifest_array[int(found_idx[0])][1] + ")automatically.")
-        logger.warning("Set PACKAGE =" + PACKAGE)
+        logger.warning("Set PACKAGE = " + PACKAGE)
         ret = 0
     else:
         ret = 1
@@ -450,7 +450,14 @@ def start_license_checker():
 def start_pip_licenses():
     global PIP_ACTIVATE
 
-    tmp_file_name = "tmp_pip_license_output.json"
+    pip_licenses = 'pip-licenses'
+    ptable = 'PTable'
+    pip_licenses_default_options = ' --from=mixed --with-url --format=json --with-license-file'
+    pip_licenses_system_option = ' --with-system -p '
+    pip_license_dependency = [pip_licenses, ptable]
+
+    tmp_pip_list = "tmp_list.txt"
+    tmp_ret_file_name = []
 
     if PIP_ACTIVATE.startswith("source "):
         tmp_activate = PIP_ACTIVATE[7:]
@@ -464,20 +471,72 @@ def start_pip_licenses():
         command_separator = "&"
     else:
         command_separator = ";"
+
     activate_command = PIP_ACTIVATE
-    install_pip_command = "pip install pip-licenses"
-    pip_licenses_command = "pip-licenses --from=mixed --with-url --format=json --with-license-file > " + tmp_file_name
-    uninstall_pip_command = "pip uninstall -y pip-licenses PTable"
+    pip_list_command = "pip freeze > " + tmp_pip_list
     deactivate_command = PIP_DEACTIVATE
 
-    command_list = [activate_command, install_pip_command, pip_licenses_command, uninstall_pip_command,
-                    deactivate_command]
+    command_list = [activate_command, pip_list_command, deactivate_command]
     command = command_separator.join(command_list)
 
     ret = subprocess.call(command, shell=True)
+    if ret != 0:
+        logger.error("### Error Message ###")
+        logger.error("This command(" + command + ") returns an error.")
+        sys.exit(1)
 
+    exists_pip_licenses = False
+    exists_ptable = False
+
+    if os.path.isfile(tmp_pip_list):
+        with open(tmp_pip_list, 'r', encoding='utf-8') as pip_list_file:
+            for pip_list in pip_list_file.readlines():
+                pip_list_name = pip_list.split('==')[0]
+                if pip_list_name == pip_licenses:
+                    exists_pip_licenses = True
+                elif pip_list_name == ptable:
+                    exists_ptable = True
+        os.remove(tmp_pip_list)
+
+    command_list = []
+    command_list.append(activate_command)
+    if not exists_pip_licenses:
+        install_pip_command = "pip install " + pip_licenses
+        command_list.append(install_pip_command)
+
+    tmp_file_name = "tmp_pip_license_output.json"
+    pip_licenses_command = pip_licenses + pip_licenses_default_options + " > " + tmp_file_name
+    command_list.append(pip_licenses_command)
+
+    tmp_pip_license_info_file_name = ""
+    if exists_ptable:
+        tmp_pip_license_info_file_name = "tmp_pip_license_info_output.json"
+        pip_licenses_info_command = pip_licenses + pip_licenses_default_options + pip_licenses_system_option
+        if exists_pip_licenses:
+            pip_licenses_info_command += " ".join(pip_license_dependency)
+        else:
+            pip_licenses_info_command += ptable
+        pip_licenses_info_command += " > " + tmp_pip_license_info_file_name
+        command_list.append(pip_licenses_info_command)
+
+    if not exists_pip_licenses:
+        uninstall_pip_command = "pip uninstall -y "
+        if exists_ptable:
+            uninstall_pip_command += pip_licenses
+        else:
+            uninstall_pip_command += " ".join(pip_license_dependency)
+        command_list.append(uninstall_pip_command)
+
+    command_list.append(deactivate_command)
+
+    command = command_separator.join(command_list)
+
+    ret = subprocess.call(command, shell=True)
     if ret == 0:
-        return tmp_file_name
+        tmp_ret_file_name.append(tmp_file_name)
+        if tmp_pip_license_info_file_name:
+            tmp_ret_file_name.append(tmp_pip_license_info_file_name)
+        return tmp_ret_file_name
     else:
         logger.error("### Error Message ###")
         logger.error("This command(" + command + ") returns an error.")
@@ -540,6 +599,7 @@ def check_and_run_license_scanner(file_dir, os_name):
             else:
                 ret = os.system(run_license_scanner)
                 if ret != 0:
+                    logger.error("This command(" + run_license_scanner + ") returns error.")
                     return ""
 
             fp = open(tmp_output_file_name, "r", encoding='utf8')
@@ -624,13 +684,10 @@ def parse_and_generate_output_pip(tmp_file_name):
     os_name = check_os()
     check_license_scanner(os_name)
 
-    sheet_list = {}
-
+    sheet_list = []
     try:
         with open(tmp_file_name, 'r', encoding='utf-8') as json_file:
             json_data = json.load(json_file)
-
-        sheet_list["SRC"] = []
 
         for d in json_data:
             oss_init_name = d['Name']
@@ -649,14 +706,10 @@ def parse_and_generate_output_pip(tmp_file_name):
             if license_name_with_license_scanner != "":
                 license_name = license_name_with_license_scanner
 
-            sheet_list["SRC"].append(['pip', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+            sheet_list.append(['pip', oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
     except Exception as ex:
         logger.error("Error:" + str(ex))
-
-    if os.path.isdir(venv_tmp_dir):
-        shutil.rmtree(venv_tmp_dir)
-        logger.info("remove tmp directory: " + venv_tmp_dir)
 
     return sheet_list
 
@@ -1090,14 +1143,22 @@ def main_pip():
     check_virtualenv_arg()
 
     # Run the command 'pip-licenses with option'.
-    tmp_file_name = start_pip_licenses()
+    tmp_ret_file_name = start_pip_licenses()
+
+    sheet_list = {}
+    sheet_list["SRC"] = []
 
     # Make output file for OSS report using temporary output file for pip-licenses.
-    sheet_list = parse_and_generate_output_pip(tmp_file_name)
+    for tmp_file in tmp_ret_file_name:
+        package_sheet_list = parse_and_generate_output_pip(tmp_file)
+        sheet_list["SRC"].extend(package_sheet_list)
 
-    # Remove temporary output file.
-    if os.path.isfile(tmp_file_name):
-        os.remove(tmp_file_name)
+        if os.path.isfile(tmp_file):
+            os.remove(tmp_file)
+
+    if os.path.isdir(venv_tmp_dir):
+        shutil.rmtree(venv_tmp_dir)
+        logger.info("remove tmp directory: " + venv_tmp_dir)
 
     return sheet_list
 
