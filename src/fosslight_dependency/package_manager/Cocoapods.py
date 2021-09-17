@@ -29,10 +29,12 @@ class Cocoapods(PackageManager):
         self.append_input_package_list_file(self.input_file_name)
 
     def parse_oss_information(self, f_name):
+        with open(f_name, 'r', encoding='utf8') as input_fp:
+            podfile_yaml = yaml.load(input_fp, Loader=yaml.FullLoader)
+
         pod_in_sepc_list = []
         pod_not_in_spec_list = []
         spec_repo_list = []
-        podfile_yaml = yaml.load(f_name, Loader=yaml.FullLoader)
 
         for spec_item_key in podfile_yaml[_spec_repos]:
             for spec_item in podfile_yaml[_spec_repos][spec_item_key]:
