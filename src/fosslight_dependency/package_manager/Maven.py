@@ -35,7 +35,8 @@ class Maven(PackageManager):
         self.append_input_package_list_file(self.input_file_name)
 
     def __del__(self):
-        self.clean_run_maven_plugin_output()
+        if self.is_run_plugin:
+            self.clean_run_maven_plugin_output()
 
     def run_plugin(self):
         ret = True
