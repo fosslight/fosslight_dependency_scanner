@@ -151,7 +151,7 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
             else:
                 ret = os.system(run_license_scanner)
                 if ret != 0:
-                    logger.error("This command(" + run_license_scanner + ") returns error.")
+                    logger.info("Cannot find the license name with scanner bin.")
                     return ""
 
             fp = open(tmp_output_file_name, "r", encoding='utf8')
