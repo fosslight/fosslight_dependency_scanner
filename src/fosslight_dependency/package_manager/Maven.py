@@ -78,6 +78,9 @@ class Maven(PackageManager):
                                                     </goals>\
                                                 </execution>\
                                             </executions>\
+                                            <configuration>\
+                                                <excludedScopes>test</excludedScopes>\
+                                            </configuration>\
                                         </plugin>'
 
             tmp_plugin = bs(license_maven_plugin, xml)
