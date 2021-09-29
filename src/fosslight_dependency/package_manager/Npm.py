@@ -39,7 +39,7 @@ class Npm(PackageManager):
         license_checker_cmd = 'license-checker --production --json --out ' + self.input_file_name
         custom_path_option = ' --customPath '
         node_modules = 'node_modules'
-        npm_install_cmd = 'npm install'
+        npm_install_cmd = 'npm install --prod'
 
         if os.path.isdir(node_modules) != 1:
             logger.info("node_modules directory is not existed. So it executes 'npm install'.")

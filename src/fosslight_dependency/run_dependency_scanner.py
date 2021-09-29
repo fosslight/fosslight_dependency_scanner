@@ -20,6 +20,10 @@ from fosslight_util.write_excel import write_excel_and_csv
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
+logger = logging.getLogger(constant.LOGGER_NAME)
+warnings.filterwarnings("ignore", category=FutureWarning)
+_sheet_name = "SRC"
+_fosslight_report = "FOSSLight-Report"
 
 
 def find_package_manager():
@@ -48,11 +52,6 @@ def find_package_manager():
     return ret, found_package_manager
 
 
-logger = logging.getLogger(constant.LOGGER_NAME)
-warnings.filterwarnings("ignore", category=FutureWarning)
-_PKG_NAME = "fosslight_dependency"
-
-
 def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_activate_cmd='', pip_deactivate_cmd='',
                            output_custom_dir='', app_name=const.default_app_name, github_token=''):
     global logger
@@ -73,7 +72,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
     else:
         output_dir = os.getcwd()
 
-    start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    start_time = datetime.now().strftime('%y%m%d_%H%M%S')
     logger, _result_log = init_log(os.path.join(output_dir, "fosslight_dependency_log_" + start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME)
 
@@ -123,15 +122,15 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         found_package_manager.append(package_manager)
 
     sheet_list = {}
-    sheet_list["SRC"] = []
+    sheet_list[_sheet_name] = []
 
     for pm in found_package_manager:
         ret, package_sheet_list = analyze_dependency(pm, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
                                                      output_custom_dir, app_name, github_token)
         if ret:
-            sheet_list["SRC"].extend(package_sheet_list)
+            sheet_list[_sheet_name].extend(package_sheet_list)
 
-    output_filename = _PKG_NAME + '_output'
+    output_filename = _fosslight_report + '_' + start_time
     if sheet_list is not None:
         success, msg = write_excel_and_csv(os.path.join(output_dir, output_filename), sheet_list)
         if success:
