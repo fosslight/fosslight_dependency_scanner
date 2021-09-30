@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.7.2 (30/09/2021)
+## Changes
+## 🐛 Hotfixes
+
+- Add test scope in excludedScopes for maven plugin @dd-jy (#54)
+
+## 🔧 Maintenance
+
+- Refactoring the code @dd-jy (#53)
+
+---
+
 ## v3.7.1 (16/09/2021)
 ## Changes
 ## 🐛 Hotfixes
