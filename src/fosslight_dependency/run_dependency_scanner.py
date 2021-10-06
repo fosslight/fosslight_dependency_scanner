@@ -24,6 +24,8 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
 _sheet_name = "SRC"
 _fosslight_report = "FOSSLight-Report"
+_xlsx_extension = '.xlsx'
+_csv_extension = '.csv'
 
 
 def find_package_manager():
@@ -57,8 +59,19 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
     global logger
 
     ret = True
+    output_filename = ''
 
     if output_dir:
+        dirname = os.path.dirname(output_dir)
+        basename = os.path.basename(output_dir)
+
+        if basename.endswith(_xlsx_extension) or basename.endswith(_csv_extension):
+            output_filename = os.path.splitext(basename)[0]
+            if dirname:
+                output_dir = dirname
+            else:
+                output_dir = os.getcwd()
+
         if os.path.isdir(output_dir):
             output_dir = os.path.abspath(output_dir)
         else:
@@ -130,15 +143,19 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         if ret:
             sheet_list[_sheet_name].extend(package_sheet_list)
 
-    output_filename = _fosslight_report + '_' + start_time
+    if not output_filename:
+        output_filename = _fosslight_report + '_' + start_time
+
     if sheet_list is not None:
         success, msg = write_excel_and_csv(os.path.join(output_dir, output_filename), sheet_list)
         if success:
+            output_xlsx_name = output_filename + _xlsx_extension
             if platform.system() == const.WINDOWS:
-                logger.info("Generated {0}.xlsx into {1}!".format(output_filename, output_dir))
+                logger.info("Generated {0} into {1}!".format(output_xlsx_name, output_dir))
             else:
-                logger.info("Generated {0}.xlsx and {0}.csv into {1}!"
-                            .format(output_filename, output_dir))
+                output_csv_name = output_filename + '_' + _sheet_name + _csv_extension
+                logger.info("Generated {0} and {1} into {2}!"
+                            .format(output_xlsx_name, output_csv_name, output_dir))
         else:
             ret = False
             logger.error("Fail to generate result file. msg:()" + msg)
