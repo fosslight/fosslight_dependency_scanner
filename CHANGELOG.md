@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.7.3 (07/10/2021)
+## Changes
+## 🔧 Maintenance
+
+- Modify -o option to add output file name(.csv, .xlsx) @dd-jy (#55)
+
+---
+
 ## v3.7.2 (30/09/2021)
 ## Changes
 ## 🐛 Hotfixes
