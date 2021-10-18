@@ -60,6 +60,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
 
     ret = True
     output_filename = ''
+    sheet_list = {}
+    sheet_list[_sheet_name] = []
 
     if output_dir:
         dirname = os.path.dirname(output_dir)
@@ -95,7 +97,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         logger.error("You entered the wrong output path(" + output_dir + ") to generate output file.")
         logger.error("Please enter the output path that already exists or can be created with the '-o' option.")
         logger.error(" > err msg : " + err_msg)
-        return False
+        return False, sheet_list
 
     autodetect = True
     if package_manager:
@@ -106,7 +108,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
             logger.error("You entered the unsupported package manager(" + package_manager + ").")
             logger.error("Please enter the supported package manager({0}) with '-m' option."
                          .format(", ".join(support_packagemanager)))
-            return False
+            return False, sheet_list
 
     if input_dir:
         if os.path.isdir(input_dir):
@@ -115,7 +117,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         else:
             logger.error("You entered the wrong input path(" + input_dir + ") to run the script.")
             logger.error("Please enter the existed input path with '-p' option.")
-            return False
+            return False, sheet_list
     else:
         input_dir = os.getcwd()
         os.chdir(input_dir)
@@ -130,12 +132,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         finally:
             if not ret:
                 logger.error("Failed to detect package manager automatically.")
-                return False
+                return False, sheet_list
     else:
         found_package_manager.append(package_manager)
-
-    sheet_list = {}
-    sheet_list[_sheet_name] = []
 
     for pm in found_package_manager:
         ret, package_sheet_list = analyze_dependency(pm, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
@@ -163,7 +162,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         logger.error("Analyzing result is empty.")
 
     logger.warning("### FINISH ###")
-    return ret
+    return ret, sheet_list
 
 
 def main():
@@ -215,8 +214,9 @@ def main():
     if args.token:  # -t option
         github_token = ''.join(args.token)
 
-    run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token)
+    ret, sheet_list = run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
+                                             output_custom_dir, app_name, github_token)
+    return sheet_list
 
 
 if __name__ == '__main__':
