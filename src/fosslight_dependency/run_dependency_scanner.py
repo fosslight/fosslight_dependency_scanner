@@ -22,7 +22,7 @@ from fosslight_util.write_excel import write_excel_and_csv
 _PKG_NAME = "fosslight_dependency"
 logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
-_sheet_name = "SRC"
+_sheet_name = "SRC_FL_Dependency"
 _fosslight_report = "FOSSLight-Report"
 _xlsx_extension = '.xlsx'
 _csv_extension = '.csv'
