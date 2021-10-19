@@ -214,9 +214,8 @@ def main():
     if args.token:  # -t option
         github_token = ''.join(args.token)
 
-    ret, sheet_list = run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                                             output_custom_dir, app_name, github_token)
-    return sheet_list
+    run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
+                           output_custom_dir, app_name, github_token)
 
 
 if __name__ == '__main__':
