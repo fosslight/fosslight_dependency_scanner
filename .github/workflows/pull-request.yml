@@ -4,7 +4,8 @@ name: Pull requests fosslight_dependency_scanner
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - '*'
 
 jobs:
   build_ubuntu:
