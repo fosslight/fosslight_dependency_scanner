@@ -118,7 +118,7 @@ class Pypi(PackageManager):
             pip_activate_cmd = ". " + tmp_activate
         elif self.pip_activate_cmd.startswith("conda "):
             if self.platform == const.LINUX:
-                tmp_activate = "eval \"$(conda shell.bash hook)\""
+                tmp_activate = "eval \"$(conda shell.bash hook)\";"
                 pip_activate_cmd = tmp_activate + self.pip_activate_cmd
         else:
             pip_activate_cmd = self.pip_activate_cmd
@@ -142,7 +142,7 @@ class Pypi(PackageManager):
                 err_msg = 'cmd ret code(' + str(cmd_ret) + ')'
         except Exception as e:
             ret = False
-            err_msg = e
+            err_msg = str(e)
         finally:
             if not ret:
                 logger.error("Failed to freeze dependencies (" + command + "):" + err_msg)
