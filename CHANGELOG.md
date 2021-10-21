@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.7.4 (21/10/2021)
+## Changes
+## 🐛 Hotfixes
+
+- Fix a bug related to return sheet_list in main @soimkim (#59)
+
+## 🔧 Maintenance
+
+- Add '-f(format)' option and modify '-o' option. @dd-jy (#61)
+- Return sheet_list and change sheet name to SRC_FL_Dependency @soimkim (#60)
+- Change sheet name to SRC_FL_Dependency from SRC @soimkim (#57)
+- Run PR action for all branches @soimkim (#58)
+- Return sheet_list from main @soimkim (#56)
+
+---
+
 ## v3.7.3 (07/10/2021)
 ## Changes
 ## 🔧 Maintenance
