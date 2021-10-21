@@ -28,7 +28,9 @@ _HELP_MESSAGE_DEPENDENCY = """
             -m <package_manager>\t    Enter the package manager.
                                         \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage)
             -p <input_path>\t\t    Enter the path where the script will be run.
-            -o <output_path>\t\t    Enter the path where the result file will be generated.
+            -o <output_path>\t\t    Output path
+            \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
+            -f <format>\t\t\t    Output file format (excel, csv, opossum)
 
         Required only for pypi
             -a <activate_cmd>\t\t    Virtual environment activate command(ex, 'conda activate (venv name)')

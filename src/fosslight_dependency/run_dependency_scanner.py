@@ -5,7 +5,6 @@
 
 import os
 import sys
-import platform
 import argparse
 import pkg_resources
 import warnings
@@ -16,16 +15,13 @@ from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
 from fosslight_dependency._help import print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
-from fosslight_util.write_excel import write_excel_and_csv
+from fosslight_util.output_format import check_output_format, write_output_file
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
 logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
 _sheet_name = "SRC_FL_Dependency"
-_fosslight_report = "FOSSLight-Report"
-_xlsx_extension = '.xlsx'
-_csv_extension = '.csv'
 
 
 def find_package_manager():
@@ -54,49 +50,36 @@ def find_package_manager():
     return ret, found_package_manager
 
 
-def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_activate_cmd='', pip_deactivate_cmd='',
-                           output_custom_dir='', app_name=const.default_app_name, github_token=''):
+def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='', pip_deactivate_cmd='',
+                           output_custom_dir='', app_name=const.default_app_name, github_token='', format=''):
     global logger
 
     ret = True
-    output_filename = ''
     sheet_list = {}
     sheet_list[_sheet_name] = []
+    _json_ext = ".json"
+    _start_time = datetime.now().strftime('%y%m%d_%H%M%S')
 
-    if output_dir:
-        dirname = os.path.dirname(output_dir)
-        basename = os.path.basename(output_dir)
-
-        if basename.endswith(_xlsx_extension) or basename.endswith(_csv_extension):
-            output_filename = os.path.splitext(basename)[0]
-            if dirname:
-                output_dir = dirname
-            else:
-                output_dir = os.getcwd()
-
-        if os.path.isdir(output_dir):
-            output_dir = os.path.abspath(output_dir)
+    success, msg, output_path, output_file, output_extension = check_output_format(output_dir_file, format)
+    if success:
+        if output_path == "":
+            output_path = os.getcwd()
         else:
-            try:
-                os.makedirs(output_dir)
-                output_dir = os.path.abspath(output_dir)
-            except Exception as e:
-                err_msg = str(e)
-                ret = False
-                output_dir = os.getcwd()
-    else:
-        output_dir = os.getcwd()
+            output_path = os.path.abspath(output_path)
 
-    start_time = datetime.now().strftime('%y%m%d_%H%M%S')
-    logger, _result_log = init_log(os.path.join(output_dir, "fosslight_dependency_log_" + start_time + ".txt"),
+        if output_file == "":
+            if output_extension == _json_ext:
+                output_file = "Opossum_input_" + _start_time
+            else:
+                output_file = "FOSSLight-Report_" + _start_time
+
+    logger, _result_log = init_log(os.path.join(output_path, "fosslight_dependency_log_" + _start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME)
 
     logger.info("Tool Info : " + _result_log["Tool Info"])
 
-    if not ret:
-        logger.error("You entered the wrong output path(" + output_dir + ") to generate output file.")
-        logger.error("Please enter the output path that already exists or can be created with the '-o' option.")
-        logger.error(" > err msg : " + err_msg)
+    if not success:
+        logger.error(msg)
         return False, sheet_list
 
     autodetect = True
@@ -137,27 +120,21 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir='', pip_
         found_package_manager.append(package_manager)
 
     for pm in found_package_manager:
-        ret, package_sheet_list = analyze_dependency(pm, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
+        ret, package_sheet_list = analyze_dependency(pm, input_dir, output_path, pip_activate_cmd, pip_deactivate_cmd,
                                                      output_custom_dir, app_name, github_token)
         if ret:
             sheet_list[_sheet_name].extend(package_sheet_list)
 
-    if not output_filename:
-        output_filename = _fosslight_report + '_' + start_time
-
     if sheet_list is not None:
-        success, msg = write_excel_and_csv(os.path.join(output_dir, output_filename), sheet_list)
-        if success:
-            output_xlsx_name = output_filename + _xlsx_extension
-            if platform.system() == const.WINDOWS:
-                logger.info("Generated {0} into {1}!".format(output_xlsx_name, output_dir))
-            else:
-                output_csv_name = output_filename + '_' + _sheet_name + _csv_extension
-                logger.info("Generated {0} and {1} into {2}!"
-                            .format(output_xlsx_name, output_csv_name, output_dir))
+        output_file_without_ext = os.path.join(output_path, output_file)
+        success_to_write, writing_msg = write_output_file(output_file_without_ext, output_extension,
+                                                          sheet_list)
+        if success_to_write:
+            logger.info("Writing Output file(" + output_file + output_extension + "):" + str(success_to_write) + " "
+                                               + writing_msg)
         else:
             ret = False
-            logger.error("Fail to generate result file. msg:()" + msg)
+            logger.error("Fail to generate result file. msg:()" + writing_msg)
     else:
         logger.error("Analyzing result is empty.")
 
@@ -174,6 +151,7 @@ def main():
     output_custom_dir = ''
     app_name = const.default_app_name
     github_token = ''
+    format = ''
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-h', '--help', action='store_true', required=False)
@@ -186,6 +164,7 @@ def main():
     parser.add_argument('-c', '--customized', nargs=1, type=str, required=False)
     parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
+    parser.add_argument('-f', '--format', nargs=1, type=str, required=False)
 
     args = parser.parse_args()
 
@@ -213,9 +192,11 @@ def main():
         app_name = ''.join(args.appname)
     if args.token:  # -t option
         github_token = ''.join(args.token)
+    if args.format:  # -f option
+        format = ''.join(args.format)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token)
+                           output_custom_dir, app_name, github_token, format)
 
 
 if __name__ == '__main__':
