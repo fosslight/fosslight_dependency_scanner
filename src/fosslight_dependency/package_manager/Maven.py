@@ -9,6 +9,7 @@ import subprocess
 import shutil
 from bs4 import BeautifulSoup as bs
 from xml.etree.ElementTree import parse
+import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -24,6 +25,7 @@ class Maven(PackageManager):
     input_file_name = os.path.join('target', 'generated-resources', 'licenses.xml')
     is_run_plugin = False
     output_custom_dir = ''
+    dependency_tree = {}
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -127,19 +129,40 @@ class Maven(PackageManager):
             shutil.rmtree(top_path)
 
     def run_maven_plugin(self):
+        dependency_tree_fname = 'tmp_dependency_tree.txt'
+
         logger.info('Run maven license scanning plugin with temporary pom.xml')
         if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
             if self.platform == const.WINDOWS:
-                cmd = "mvnw.cmd"
+                cmd_mvn = "mvnw.cmd"
             else:
-                cmd = "./mvnw"
+                cmd_mvn = "./mvnw"
         else:
-            cmd = "mvn"
-        cmd += " license:aggregate-download-licenses"
+            cmd_mvn = "mvn"
+        cmd = cmd_mvn + " license:aggregate-download-licenses"
 
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error("Failed to run maven plugin: " + cmd)
+
+        cmd = cmd_mvn + " dependency:tree > " + dependency_tree_fname
+        ret = subprocess.call(cmd, shell=True)
+        if ret != 0:
+            logger.error("Failed to run: " + cmd)
+        else:
+            self.parse_dependency_tree(dependency_tree_fname)
+            os.remove(dependency_tree_fname)
+
+    def parse_dependency_tree(self, f_name):
+        with open(f_name, 'r', encoding='utf8') as input_fp:
+            for i, line in enumerate(input_fp.readlines()):
+                try:
+                    re_result = re.findall(r'[\+|\\]\-\s([^\:\s]+\:[^\:\s]+)\:(?:[^\:\s]+)\:([^\:\s]+)\:([^\:\s]+)', line)
+                    if re_result:
+                        dependency_key = re_result[0][0] + ':' + re_result[0][1]
+                        self.dependency_tree[dependency_key] = re_result[0][2]
+                except Exception as e:
+                    logger.error("Failed to parse dependency tree: " + str(e))
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
@@ -171,7 +194,15 @@ class Maven(PackageManager):
                 # Case that doesn't include License tag value.
                 license_name = ''
 
+            try:
+                comment = ''
+                dependency_tree_key = oss_name + ':' + version
+                if dependency_tree_key in self.dependency_tree.keys():
+                    comment = self.dependency_tree[dependency_tree_key]
+            except Exception as e:
+                logger.error("Fail to find oss scope in dependency tree: " + str(e))
+
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
