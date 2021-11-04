@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.7.5 (04/11/2021)
+## Changes
+## 🔧 Maintenance
+
+- Add maven scope into comment of FOSSLight report @dd-jy (#62)
+
+---
+
 ## v3.7.4 (21/10/2021)
 ## Changes
 ## 🐛 Hotfixes
