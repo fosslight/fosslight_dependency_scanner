@@ -11,6 +11,8 @@ import warnings
 from datetime import datetime
 import logging
 import fosslight_dependency.constant as const
+import traceback
+from collections import defaultdict
 from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
 from fosslight_dependency._help import print_help_msg
@@ -26,22 +28,35 @@ _sheet_name = "SRC_FL_Dependency"
 
 def find_package_manager():
     ret = True
-    manifest_file_name = list(set(list(const.SUPPORT_PACKAE.values())))
+    manifest_file_name = []
+    for value in const.SUPPORT_PACKAE.values():
+        if isinstance(value, list):
+            manifest_file_name.extend(value)
+        else:
+            manifest_file_name.append(value)
 
     found_manifest_file = []
     for f in manifest_file_name:
         if os.path.isfile(f):
             found_manifest_file.append(f)
 
-    found_package_manager = []
+    found_package_manager = defaultdict(list)
     for f_idx in found_manifest_file:
         for key, value in const.SUPPORT_PACKAE.items():
-            if value == f_idx:
-                found_package_manager.append(key)
+            if isinstance(value, list):
+                for v in value:
+                    if f_idx == v:
+                        if key in found_package_manager.keys():
+                            found_package_manager[key].append(f_idx)
+                        else:
+                            found_package_manager[key] = [f_idx]
+            else:
+                if value == f_idx:
+                    found_package_manager[key] = [f_idx]
 
     if len(found_package_manager) >= 1:
         logger.info("Found the manifest file(" + ','.join(found_manifest_file) + ")automatically.")
-        logger.warning("### Set Package Manager = " + ', '.join(found_package_manager))
+        logger.warning("### Set Package Manager = " + ', '.join(found_package_manager.keys()))
     else:
         ret = False
         logger.error("Cannot find the manifest file.")
@@ -105,23 +120,24 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         input_dir = os.getcwd()
         os.chdir(input_dir)
 
-    found_package_manager = []
+    found_package_manager = {}
     if autodetect:
         try:
             ret, found_package_manager = find_package_manager()
         except Exception as e:
             logger.error(str(e))
+            logger.error(traceback.format_exc())
             ret = False
         finally:
             if not ret:
                 logger.error("Failed to detect package manager automatically.")
                 return False, sheet_list
     else:
-        found_package_manager.append(package_manager)
+        found_package_manager[package_manager] = ''
 
-    for pm in found_package_manager:
+    for pm, manifest_file_name in found_package_manager.items():
         ret, package_sheet_list = analyze_dependency(pm, input_dir, output_path, pip_activate_cmd, pip_deactivate_cmd,
-                                                     output_custom_dir, app_name, github_token)
+                                                     output_custom_dir, app_name, github_token, manifest_file_name)
         if ret:
             sheet_list[_sheet_name].extend(package_sheet_list)
 

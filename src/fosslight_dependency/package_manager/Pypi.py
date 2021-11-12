@@ -8,6 +8,7 @@ import logging
 import subprocess
 import json
 import shutil
+import copy
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -62,11 +63,21 @@ class Pypi(PackageManager):
     def create_virtualenv(self):
         ret = True
 
-        manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
-        if not os.path.isfile(manifest_file):
-            logger.error('Cannot create virtualenv becuase it cannot find the ' + manifest_file)
-            logger.error("Please run with '-a' and '-d' option.")
-            return False
+        manifest_files = self.manifest_file_name
+        if not manifest_files:
+            manifest_files = copy.deepcopy(const.SUPPORT_PACKAE[self.package_manager_name])
+            self.set_manifest_file(manifest_files)
+
+        install_cmd_list = []
+        for manifest_file in manifest_files:
+            if os.path.exists(manifest_file):
+                if manifest_file == 'setup.py':
+                    install_cmd_list.append("pip install .")
+                elif manifest_file == 'requirements.txt':
+                    install_cmd_list.append("pip install -r requirements.txt")
+            else:
+                manifest_files.remove(manifest_file)
+                self.set_manifest_file(manifest_files)
 
         venv_path = os.path.join(self.input_dir, self.venv_tmp_dir)
 
@@ -79,7 +90,15 @@ class Pypi(PackageManager):
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
-        install_cmd = "pip install -r requirements.txt"
+        if install_cmd_list:
+            install_cmd = cmd_separator.join(install_cmd_list)
+        else:
+            logger.error(const.SUPPORT_PACKAE[self.package_manager_name])
+            logger.error('Cannot create virtualenv becuase it cannot find: '
+                         + ', '.join(const.SUPPORT_PACKAE[self.package_manager_name]))
+            logger.error("Please run with '-a' and '-d' option.")
+            return False
+
         deactivate_cmd = "deactivate"
 
         self.set_pip_activate_cmd(activate_cmd)
@@ -234,7 +253,7 @@ class Pypi(PackageManager):
                 if license_name_with_license_scanner != "":
                     license_name = license_name_with_license_scanner
 
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
+                sheet_list.append([', '.join(self.manifest_file_name),
                                    oss_name, oss_version,
                                    license_name, dn_loc, homepage, '', '', ''])
 

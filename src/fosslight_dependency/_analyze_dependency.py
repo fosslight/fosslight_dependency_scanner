@@ -21,7 +21,7 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 
 def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate_cmd='', pip_deactivate_cmd='',
-                       output_custom_dir='', app_name=const.default_app_name, github_token=''):
+                       output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=[]):
     ret = True
     package_sheet_list = []
 
@@ -48,6 +48,8 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         ret = False
         return ret, package_sheet_list
 
+    if manifest_file_name:
+        package_manager.set_manifest_file(manifest_file_name)
     ret = package_manager.run_plugin()
     if ret:
         for f_name in package_manager.input_package_list_file:

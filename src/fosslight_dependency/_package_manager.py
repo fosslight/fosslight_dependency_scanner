@@ -34,6 +34,7 @@ class PackageManager:
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.dn_url = dn_url
+        self.manifest_file_name = []
 
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)
@@ -44,6 +45,9 @@ class PackageManager:
 
     def append_input_package_list_file(self, input_package_file):
         self.input_package_list_file.append(input_package_file)
+
+    def set_manifest_file(self, manifest_file_name):
+        self.manifest_file_name = manifest_file_name
 
 
 def version_refine(oss_version):
