@@ -21,7 +21,7 @@ CARTHAGE = 'carthage'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
-    PYPI: 'requirements.txt',
+    PYPI: ['requirements.txt', 'setup.py'],
     NPM: 'package.json',
     MAVEN: 'pom.xml',
     GRADLE: 'build.gradle',
