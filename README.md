@@ -40,7 +40,7 @@ Because we utilizes the different open source software to analyze the dependenci
 ## 📖 User Guide
 
 We describe the user guide in the FOSSLight guide page.
-Please see the [**User Guide**](https://fosslight.org/fosslight-guide-en/scanner/2_dependency.html) for more information on how to install and run it.
+Please see the [**User Guide**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html) for more information on how to install and run it.
 
 ## 👏 Contributing Guide
 
