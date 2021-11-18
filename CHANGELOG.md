@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.7.6 (18/11/2021)
+## Changes
+## 🚀 Features
+
+- Add setup.py installation for pypi @dd-jy (#63)
+
+## 🐛 Hotfixes
+
+- Fix the pypi result when pip-licenses package exists @dd-jy (#66)
+
+## 🔧 Maintenance
+
+- Change the log when it fails to detect the package manager @dd-jy (#65)
+- Fix url for User Guide @JustinWonjaePark (#64)
+
+---
+
 ## v3.7.5 (04/11/2021)
 ## Changes
 ## 🔧 Maintenance
