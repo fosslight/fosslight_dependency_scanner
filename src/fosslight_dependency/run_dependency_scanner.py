@@ -59,8 +59,7 @@ def find_package_manager():
         logger.warning("### Set Package Manager = " + ', '.join(found_package_manager.keys()))
     else:
         ret = False
-        logger.error("Cannot find the manifest file.")
-        logger.error("Please run with '-m' option to append the package manager name to be analzyed.")
+        logger.info("It cannot find the manifest file.")
 
     return ret, found_package_manager
 
@@ -130,7 +129,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             ret = False
         finally:
             if not ret:
-                logger.error("Failed to detect package manager automatically.")
+                logger.warning("Dependency scanning terminated because the package manager was not found.")
                 return False, sheet_list
     else:
         found_package_manager[package_manager] = ''
