@@ -56,7 +56,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
             logger.info("Parse oss information with file: " + str(f_name))
 
             if os.path.isfile(f_name):
-                package_sheet_list = package_manager.parse_oss_information(f_name)
+                package_sheet_list.extend(package_manager.parse_oss_information(f_name))
             else:
                 logger.error('Failed to open input file:' + str(f_name))
                 ret = False
