@@ -36,6 +36,7 @@ Each package manager uses the results of the following software:
 
 Because we utilizes the different open source software to analyze the dependencies of each package manager, you need to set up the **Prerequisite** steps in [User guide](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite) according to package manager to analyze.
 
+
 ## 📖 User Guide
 
 We describe the user guide in the FOSSLight guide page.
