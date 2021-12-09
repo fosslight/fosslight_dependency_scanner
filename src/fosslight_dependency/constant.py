@@ -18,6 +18,7 @@ COCOAPODS = 'cocoapods'
 ANDROID = 'android'
 SWIFT = 'swift'
 CARTHAGE = 'carthage'
+BUILDROOT = 'buildroot'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
@@ -29,7 +30,8 @@ SUPPORT_PACKAE = {
     COCOAPODS: 'Podfile.lock',
     ANDROID: 'build.gradle',
     SWIFT: 'Package.resolved',
-    CARTHAGE: 'Cartfile.resolved'
+    CARTHAGE: 'Cartfile.resolved',
+    BUILDROOT: 'show-info.json'
 }
 
 # default android app name

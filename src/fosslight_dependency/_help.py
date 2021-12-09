@@ -20,13 +20,14 @@ _HELP_MESSAGE_DEPENDENCY = """
         Cocoapods (Swift/Obj-C)
         Swift (Swift)
         Carthage (Swift/Obj-C)
+        Buildroot
 
     Options:
         Optional
             -h\t\t\t\t    Print help message.
             -v\t\t\t\t    Print the version of the script.
             -m <package_manager>\t    Enter the package manager.
-                                        \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage)
+                                        \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage, buildroot)
             -p <input_path>\t\t    Enter the path where the script will be run.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
