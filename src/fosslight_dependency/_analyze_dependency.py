@@ -15,6 +15,7 @@ from fosslight_dependency.package_manager.Cocoapods import Cocoapods
 from fosslight_dependency.package_manager.Android import Android
 from fosslight_dependency.package_manager.Swift import Swift
 from fosslight_dependency.package_manager.Carthage import Carthage
+from fosslight_dependency.package_manager.Go import Go
 import fosslight_util.constant as constant
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -43,6 +44,8 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         package_manager = Swift(input_dir, output_dir, github_token)
     elif package_manager_name == const.CARTHAGE:
         package_manager = Carthage(input_dir, output_dir, github_token)
+    elif package_manager_name == const.GO:
+        package_manager = Go(input_dir, output_dir)
     else:
         logger.error("Not supported package manager name: " + package_manager_name)
         ret = False
