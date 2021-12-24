@@ -65,6 +65,7 @@ class Go(PackageManager):
 
                     license_name = ''
                     homepage = ''
+                    comment = ''
 
                     for dn_loc_i in [dn_loc, tmp_dn_loc]:
                         try:
@@ -72,6 +73,10 @@ class Go(PackageManager):
                             if res.getcode() == 200:
                                 urlopen_success = True
                                 if dn_loc_i == tmp_dn_loc:
+                                    if oss_version:
+                                        comment = 'Cannot connect ' \
+                                                  + dn_loc \
+                                                  + ', so use the latest version page to get the license, homepage.'
                                     dn_loc = tmp_dn_loc
                                 break
                         except Exception:
@@ -94,6 +99,6 @@ class Go(PackageManager):
                     continue
 
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
