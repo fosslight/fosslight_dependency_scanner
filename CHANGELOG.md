@@ -1,5 +1,20 @@
 # Changelog
 
+## v3.8.0 (24/12/2021)
+## Changes
+## 🚀 Features
+
+- Support GO package manager @dd-jy (#71)
+
+## 🔧 Maintenance
+
+- Update CONTRIBUTING guide @dd-jy (#72)
+- Fix typo @syleeeee (#70)
+- Update README.md @syleeeee (#68)
+- Update LicenseRef-3rd_party_licenses.txt @dd-jy (#67)
+
+---
+
 ## v3.7.6 (18/11/2021)
 ## Changes
 ## 🚀 Features
