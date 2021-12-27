@@ -20,6 +20,7 @@ Currently, it supports the following package managers.
 - [Cocoapods](https://cocoapods.org/) (Swift/Obj-C)
 - [Swift](https://swift.org/package-manager/) (Swift)
 - [Carthage](https://github.com/Carthage/Carthage) (Swift/Obj-C)
+- [Go](https://pkg.go.dev/) (Go)
 
 ## 🧐 How to analyze the dependencies
 
