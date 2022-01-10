@@ -6,6 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
 
+
 ## 💡 Introduction
 
 This is the tool that supports the analysis of dependencies for multiple package managers. It detects the manifest file of package managers automatically and analyzes the dependencies with using open source tools. Then, it generates the report file that contains OSS information of dependencies.
@@ -22,14 +23,12 @@ Currently, it supports the following package managers.
 - [Carthage](https://github.com/Carthage/Carthage) (Swift/Obj-C)
 - [Go](https://pkg.go.dev/) (Go)
 
----
 
 ## 📖 User Guide
 
 We describe the user guide in the [**FOSSLight Guide page**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html).  
 In this user guide, you can see how to install the FOSSLight Dependency Scanner and how to set up the prerequisite step and run it according to the package manager of your project. Also, you can check the results of the FOSSLight Dependency Scanner.
 
----
 
 ## 🧐 How to analyze the dependencies
 
@@ -46,6 +45,7 @@ Each package manager uses the results of the following software:
 
 Because we utilizes the different open source software to analyze the dependencies of each package manager, you need to set up the **Prerequisite** steps in [User guide](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite) according to package manager to analyze.
 
+
 ### 🌐 How it works without Internet
 | Package manager | Can it work without Internet?             |
 |-----------------|-------------------------------------------|
@@ -60,14 +60,12 @@ Because we utilizes the different open source software to analyze the dependenci
 | Carthage        | Yes, if the following conditions are met. <br /> - installed the packages of the project (in other words, downloadeded the sources in 'Carthgae/Checkouts' directory). |
 | Go              | No, it can't.                              |
 
----
 
 ## 👏 Contributing Guide
 
 We always welcome your contributions.  
 Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/CONTRIBUTING.md) for how to contribute.
 
----
 
 ## 📄 License
 
