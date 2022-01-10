@@ -77,29 +77,28 @@ def get_github_license(g, github_repo, platform, license_scanner_bin):
     try:
         repository = g.get_repo(github_repo)
     except Exception:
-        logger.error("It cannot find the license name. Please use '-t' option with github token.")
-        logger.error("{0}{1}".format("refer:https://docs.github.com/en/github/authenticating-to-github/",
-                     "keeping-your-account-and-data-secure/creating-a-personal-access-token"))
+        logger.info("It cannot find the license name. Please use '-t' option with github token.")
+        logger.info("{0}{1}".format("refer:https://docs.github.com/en/github/authenticating-to-github/",
+                    "keeping-your-account-and-data-secure/creating-a-personal-access-token"))
         repository = ''
 
-    if repository is not None:
+    if repository != '':
         try:
             license_name = repository.get_license().license.spdx_id
+            if license_name == "" or license_name == "NOASSERTION":
+                try:
+                    license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
+                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
+                    tmp_license_txt.write(license_txt_data)
+                    tmp_license_txt.close()
+                    license_name = check_and_run_license_scanner(platform, license_scanner_bin, tmp_license_txt_file_name)
+                except Exception:
+                    logger.info("Cannot find the license name with license scanner binary.")
+
+                if os.path.isfile(tmp_license_txt_file_name):
+                    os.remove(tmp_license_txt_file_name)
         except Exception:
             logger.info("Cannot find the license name with github api.")
-
-        if license_name == "" or license_name == "NOASSERTION":
-            try:
-                license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
-                tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                tmp_license_txt.write(license_txt_data)
-                tmp_license_txt.close()
-                license_name = check_and_run_license_scanner(platform, license_scanner_bin, tmp_license_txt_file_name)
-            except Exception:
-                logger.info("Cannot find the license name with license scanner binary.")
-
-            if os.path.isfile(tmp_license_txt_file_name):
-                os.remove(tmp_license_txt_file_name)
 
     return license_name
 
