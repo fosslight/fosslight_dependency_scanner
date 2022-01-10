@@ -38,6 +38,7 @@ class Carthage(PackageManager):
         checkout_dir_list = get_checkout_dirname()
         with open(f_name, 'r', encoding='utf8') as input_fp:
             sheet_list = []
+            g = ''
             if not checkout_dir_list:
                 g = connect_github(self.github_token)
 
@@ -63,32 +64,36 @@ class Carthage(PackageManager):
 
                     license_name = ''
                     find_license = False
-                    if not checkout_dir_list:
+                    if oss_origin_name in checkout_dir_list:
+                        oss_path_in_checkout = os.path.join(checkout_dir, oss_origin_name)
+                        for filename_in_dir in os.listdir(oss_path_in_checkout):
+                            if find_license:
+                                break
+                            filename_with_checkout_path = os.path.join(oss_path_in_checkout, filename_in_dir)
+                            if os.path.isfile(filename_with_checkout_path):
+                                for license_file_reg in license_file_regs:
+                                    match_result = re.match(license_file_reg, filename_in_dir.lower())
+                                    if match_result is not None:
+                                        license_name = check_and_run_license_scanner(self.platform,
+                                                                                     self.license_scanner_bin,
+                                                                                     filename_with_checkout_path)
+                                        find_license = True
+                                        break
+                    if license_name == '':
                         if repo == github:
-                            license_name = get_github_license(g, oss_path, self.platform, self.license_scanner_bin)
-                    else:
-                        if oss_origin_name in checkout_dir_list:
-                            oss_path_in_checkout = os.path.join(checkout_dir, oss_origin_name)
-                            for filename_in_dir in os.listdir(oss_path_in_checkout):
-                                if find_license:
-                                    break
-                                filename_with_checkout_path = os.path.join(oss_path_in_checkout, filename_in_dir)
-                                if os.path.isfile(filename_with_checkout_path):
-                                    for license_file_reg in license_file_regs:
-                                        match_result = re.match(license_file_reg, filename_in_dir.lower())
-                                        logger.error(filename_in_dir.lower() + " " + license_file_reg + " " + str(match_result))
-                                        if match_result is not None:
-                                            license_name = check_and_run_license_scanner(self.platform,
-                                                                                         self.license_scanner_bin,
-                                                                                         filename_with_checkout_path)
-                                            find_license = True
-                                            break
+                            try:
+                                if not g:
+                                    g = connect_github(self.github_token)
+                                license_name = get_github_license(g, oss_path, self.platform, self.license_scanner_bin)
+                            except Exception as e:
+                                logger.warning("Failed to get license with github api:" + str(e))
+                                license_name == ''
 
                     sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                       oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
-                except Exception:
-                    logger.warning("Failed to parse oss information")
+                except Exception as e:
+                    logger.warning("Failed to parse oss information:" + str(e))
 
         return sheet_list
 
