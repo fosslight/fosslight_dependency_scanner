@@ -2,7 +2,6 @@
 Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
-
 # FOSSLight Dependency Scanner
 
 <img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
@@ -20,7 +19,17 @@ Currently, it supports the following package managers.
 - [Pub](https://pub.dev/) (Dart with flutter)
 - [Cocoapods](https://cocoapods.org/) (Swift/Obj-C)
 - [Swift](https://swift.org/package-manager/) (Swift)
-- [Carthage](https://github.com/Carthage/Carthage) (Carthage)
+- [Carthage](https://github.com/Carthage/Carthage) (Swift/Obj-C)
+- [Go](https://pkg.go.dev/) (Go)
+
+---
+
+## 📖 User Guide
+
+We describe the user guide in the [**FOSSLight Guide page**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html).  
+In this user guide, you can see how to install the FOSSLight Dependency Scanner and how to set up the prerequisite step and run it according to the package manager of your project. Also, you can check the results of the FOSSLight Dependency Scanner.
+
+---
 
 ## 🧐 How to analyze the dependencies
 
@@ -35,17 +44,30 @@ Each package manager uses the results of the following software:
 - Pub : [flutter_oss_licenses](https://github.com/espresso3389/flutter_oss_licenses)
 - Android(gradle) : [android-dependency-scanning](https://github.com/fosslight/android-dependency-scanning)
 
-Because we utilizes the different open source software to analyze the dependencies of each package manager, you need to set up the **Prerequisite** steps in [User guide](https://fosslight.org/fosslight-guide-en/scanner/2_dependency.html) according to package manager to analyze.
+Because we utilizes the different open source software to analyze the dependencies of each package manager, you need to set up the **Prerequisite** steps in [User guide](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite) according to package manager to analyze.
 
-## 📖 User Guide
+### 🌐 How it works without Internet
+| Package manager | Can it work without Internet?             |
+|-----------------|-------------------------------------------|
+| Gradle          | Yes, if the following conditions are met. <br /> - installed the plugin([com.github.hierynomus.license '0.16.1'](https://plugins.gradle.org/plugin/com.github.hierynomus.license/0.16.1)) <br /> - installed the packages of the project |
+| Maven           | Yes, if the following conditions are met. <br /> - installed the plugin([org.codehaus.mojo:license-maven-plugin](https://search.maven.org/artifact/org.codehaus.mojo/license-maven-plugin/2.0.0/)) <br /> - installed the packages of the project |
+| NPM             | Yes, if the following conditions are met. <br /> - installed the plugin([license-checker](https://www.npmjs.com/package/license-checker)) <br /> - installed the packages of the project (in other words, generated the node_modules directory) |
+| PIP             | No, it can't.                              |
+| Android         | Yes, if the following conditions are met. <br /> - installed the plugin([android-dependency-scanning](https://search.maven.org/artifact/org.fosslight/android-dependency-scanning/1.0.0/jar)) <br /> - installed the packages of the project |
+| Pub             | Yes, if the following conditions are met. <br /> - installed the plugin([flutter_oss_licenses](https://pub.dev/packages/flutter_oss_licenses)) <br /> - installed the packages of the project |
+| Cocoapods       | Yes, if the following conditions are met. <br /> - installed the packages of the project <br /> - enable to run the command (pod spec which --regex {package name} ) |
+| Swift           | No, it can't.                              |
+| Carthage        | Yes, if the following conditions are met. <br /> - installed the packages of the project (in other words, downloadeded the sources in 'Carthgae/Checkouts' directory). |
+| Go              | No, it can't.                              |
 
-We describe the user guide in the FOSSLight guide page.
-Please see the [**User Guide**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html) for more information on how to install and run it.
+---
 
 ## 👏 Contributing Guide
 
 We always welcome your contributions.  
 Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/CONTRIBUTING.md) for how to contribute.
+
+---
 
 ## 📄 License
 
