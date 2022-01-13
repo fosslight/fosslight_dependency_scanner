@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.9.0 (13/01/2022)
+## Changes
+## 🚀 Features
+
+- Modify to analyze the license name for carthage @dd-jy (#73)
+
+## 🔧 Maintenance
+
+- Update the README to add 'how it works without Internet' @dd-jy (#74)
+
+---
+
 ## v3.8.0 (24/12/2021)
 ## Changes
 ## 🚀 Features
