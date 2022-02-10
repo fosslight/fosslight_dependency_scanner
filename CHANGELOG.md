@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.9.1 (10/02/2022)
+## Changes
+## 🔧 Maintenance
+
+- Modify to print output file name @bjk7119 (#75)
+
+---
+
 ## v3.9.0 (13/01/2022)
 ## Changes
 ## 🚀 Features
