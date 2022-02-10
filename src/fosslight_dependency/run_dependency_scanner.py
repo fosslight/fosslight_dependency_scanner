@@ -86,6 +86,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 output_file = "Opossum_input_" + _start_time
             else:
                 output_file = "FOSSLight-Report_" + _start_time
+    else:
+        logger.error(msg)
+        sys.exit(1)
 
     logger, _result_log = init_log(os.path.join(output_path, "fosslight_dependency_log_" + _start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME)
@@ -142,14 +145,13 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     if sheet_list is not None:
         output_file_without_ext = os.path.join(output_path, output_file)
-        success_to_write, writing_msg = write_output_file(output_file_without_ext, output_extension,
-                                                          sheet_list)
+        success_to_write, writing_msg, result_file = write_output_file(output_file_without_ext, output_extension,
+                                                                       sheet_list)
         if success_to_write:
-            logger.info("Writing Output file(" + output_file + output_extension + "):" + str(success_to_write) + " "
-                                               + writing_msg)
+            logger.info(f"Writing Output file({result_file}, success:{success_to_write}")
         else:
             ret = False
-            logger.error("Fail to generate result file. msg:()" + writing_msg)
+            logger.error(f"Fail to generate result file. msg:({writing_msg})")
     else:
         logger.error("Analyzing result is empty.")
 
