@@ -8,6 +8,7 @@ import logging
 import json
 import yaml
 import re
+import traceback
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -15,6 +16,7 @@ from fosslight_dependency._package_manager import PackageManager
 logger = logging.getLogger(constant.LOGGER_NAME)
 
 _spec_repos = 'SPEC REPOS'
+_external_sources = 'EXTERNAL SOURCES'
 _source_type = ['git', 'http', 'svn', 'hg']
 
 
@@ -35,10 +37,19 @@ class Cocoapods(PackageManager):
         pod_in_sepc_list = []
         pod_not_in_spec_list = []
         spec_repo_list = []
+        external_source_list = []
 
-        for spec_item_key in podfile_yaml[_spec_repos]:
-            for spec_item in podfile_yaml[_spec_repos][spec_item_key]:
-                spec_repo_list.append(spec_item)
+        if _spec_repos in podfile_yaml:
+            for spec_item_key in podfile_yaml[_spec_repos]:
+                for spec_item in podfile_yaml[_spec_repos][spec_item_key]:
+                    spec_repo_list.append(spec_item)
+        if _external_sources in podfile_yaml:
+            for external_sources_key in podfile_yaml[_external_sources]:
+                external_source_list.append(external_sources_key)
+                spec_repo_list.append(external_sources_key)
+        if len(spec_repo_list) == 0:
+            logger.error("Cannot fint SPEC REPOS or EXTERNAL SOURCES in Podfile.lock.")
+            return ''
 
         for pods_list in podfile_yaml['PODS']:
             if not isinstance(pods_list, str):
@@ -59,54 +70,66 @@ class Cocoapods(PackageManager):
         sheet_list = []
 
         for pod_oss in pod_in_sepc_list:
-
-            search_oss_name = ""
-            for alphabet_oss in pod_oss[0]:
-                if not alphabet_oss.isalnum():
-                    search_oss_name += "\\\\" + alphabet_oss
+            try:
+                if pod_oss[0] in external_source_list:
+                    podspec_filename = pod_oss[0] + '.podspec.json'
+                    spec_file_path = os.path.join("Pods", "Local Podspecs", podspec_filename)
                 else:
-                    search_oss_name += alphabet_oss
+                    search_oss_name = ""
+                    for alphabet_oss in pod_oss[0]:
+                        if not alphabet_oss.isalnum():
+                            search_oss_name += "\\\\" + alphabet_oss
+                        else:
+                            search_oss_name += alphabet_oss
 
-            command = 'pod spec which --regex ' + '^' + search_oss_name + '$'
-            spec_which = os.popen(command).readline()
-            if spec_which.startswith('[!]'):
-                logger.error("This command(" + command + ") returns an error")
-                return ''
+                    command = 'pod spec which --regex ' + '^' + search_oss_name + '$'
+                    spec_which = os.popen(command).readline()
+                    if spec_which.startswith('[!]'):
+                        logger.error("This command(" + command + ") returns an error")
+                        return ''
 
-            file_path = spec_which.rstrip().split(os.path.sep)
-            if file_path[0] == '':
-                file_path_without_version = os.path.join(os.sep, *file_path[:-2])
-            else:
-                file_path_without_version = os.path.join(*file_path[:-2])
-            spec_file_path = os.path.join(file_path_without_version, pod_oss[1], file_path[-1])
+                    file_path = spec_which.rstrip().split(os.path.sep)
+                    if file_path[0] == '':
+                        file_path_without_version = os.path.join(os.sep, *file_path[:-2])
+                    else:
+                        file_path_without_version = os.path.join(*file_path[:-2])
+                    spec_file_path = os.path.join(file_path_without_version, pod_oss[1], file_path[-1])
 
-            with open(spec_file_path, 'r', encoding='utf8') as json_file:
-                json_data = json.load(json_file)
-
-                oss_origin_name = json_data['name']
-                oss_name = self.package_manager_name + ":" + oss_origin_name
-                oss_version = json_data['version']
-                homepage = self.dn_url + 'pods/' + oss_origin_name
-
-                if not isinstance(json_data['license'], str):
-                    if 'type' in json_data['license']:
-                        license_name = json_data['license']['type']
-                else:
-                    license_name = json_data['license']
-
-                license_name = license_name.replace(",", "")
-
-                source_keys = [key for key in json_data['source']]
-                for src_type_i in _source_type:
-                    if src_type_i in source_keys:
-                        dn_loc = json_data['source'][src_type_i]
-                        if dn_loc.endswith('.git'):
-                            dn_loc = dn_loc[:-4]
+                oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
 
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+            except Exception as e:
+                logger.warning('It failed to get ' + pod_oss[0] + ': ' + str(e))
+                logger.warning(traceback.format_exc())
 
         return sheet_list
+
+    def get_oss_in_podspec(self, spec_file_path):
+        with open(spec_file_path, 'r', encoding='utf8') as json_file:
+            json_data = json.load(json_file)
+
+            oss_origin_name = json_data['name']
+            oss_name = self.package_manager_name + ":" + oss_origin_name
+            oss_version = json_data['version']
+            homepage = self.dn_url + 'pods/' + oss_origin_name
+
+            if not isinstance(json_data['license'], str):
+                if 'type' in json_data['license']:
+                    license_name = json_data['license']['type']
+            else:
+                license_name = json_data['license']
+
+            license_name = license_name.replace(",", "")
+
+            source_keys = [key for key in json_data['source']]
+            for src_type_i in _source_type:
+                if src_type_i in source_keys:
+                    dn_loc = json_data['source'][src_type_i]
+                    if dn_loc.endswith('.git'):
+                        dn_loc = dn_loc[:-4]
+
+        return oss_name, oss_version, license_name, dn_loc, homepage
 
 
 def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list):
