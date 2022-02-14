@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.9.2 (14/02/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Support local scm package for Cocoapods @dd-jy (#76)
+
+---
+
 ## v3.9.1 (10/02/2022)
 ## Changes
 ## 🔧 Maintenance
