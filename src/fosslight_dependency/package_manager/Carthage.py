@@ -86,14 +86,14 @@ class Carthage(PackageManager):
                                     g = connect_github(self.github_token)
                                 license_name = get_github_license(g, oss_path, self.platform, self.license_scanner_bin)
                             except Exception as e:
-                                logger.warning("Failed to get license with github api:" + str(e))
+                                logger.warning(f"Failed to get license with github api: {e}")
                                 license_name == ''
 
                     sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                       oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
                 except Exception as e:
-                    logger.warning("Failed to parse oss information:" + str(e))
+                    logger.warning(f"Failed to parse oss information: {e}")
 
         return sheet_list
 

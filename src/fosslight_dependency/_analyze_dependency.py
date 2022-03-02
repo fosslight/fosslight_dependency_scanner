@@ -47,7 +47,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     elif package_manager_name == const.GO:
         package_manager = Go(input_dir, output_dir)
     else:
-        logger.error("Not supported package manager name: " + package_manager_name)
+        logger.error(f"Not supported package manager name: {package_manager_name}")
         ret = False
         return ret, package_sheet_list
 
@@ -56,17 +56,17 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     ret = package_manager.run_plugin()
     if ret:
         for f_name in package_manager.input_package_list_file:
-            logger.info("Parse oss information with file: " + str(f_name))
+            logger.info(f"Parse oss information with file: {f_name}")
 
             if os.path.isfile(f_name):
                 package_sheet_list.extend(package_manager.parse_oss_information(f_name))
             else:
-                logger.error('Failed to open input file:' + str(f_name))
+                logger.error(f"Failed to open input file: {f_name}")
                 ret = False
 
     if ret:
-        logger.warning("### Complete to analyze: " + package_manager_name)
+        logger.warning(f"### Complete to analyze: {package_manager_name}")
     else:
-        logger.error("### Fail to analyze: " + package_manager_name)
+        logger.error(f"### Fail to analyze: {package_manager_name}")
 
     return ret, package_sheet_list

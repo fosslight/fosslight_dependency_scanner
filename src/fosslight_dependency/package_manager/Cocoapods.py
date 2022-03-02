@@ -78,14 +78,14 @@ class Cocoapods(PackageManager):
                     search_oss_name = ""
                     for alphabet_oss in pod_oss[0]:
                         if not alphabet_oss.isalnum():
-                            search_oss_name += "\\\\" + alphabet_oss
+                            search_oss_name += f"\\\\{alphabet_oss}"
                         else:
                             search_oss_name += alphabet_oss
 
-                    command = 'pod spec which --regex ' + '^' + search_oss_name + '$'
+                    command = f"pod spec which --regex ^{search_oss_name}$"
                     spec_which = os.popen(command).readline()
                     if spec_which.startswith('[!]'):
-                        logger.error("This command(" + command + ") returns an error")
+                        logger.error(f"This command({command}) returns an error")
                         return ''
 
                     file_path = spec_which.rstrip().split(os.path.sep)
@@ -100,7 +100,7 @@ class Cocoapods(PackageManager):
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
             except Exception as e:
-                logger.warning('It failed to get ' + pod_oss[0] + ': ' + str(e))
+                logger.warning(f"It failed to get {pod_oss[0]}:{e}")
                 logger.warning(traceback.format_exc())
 
         return sheet_list
@@ -110,9 +110,9 @@ class Cocoapods(PackageManager):
             json_data = json.load(json_file)
 
             oss_origin_name = json_data['name']
-            oss_name = self.package_manager_name + ":" + oss_origin_name
+            oss_name = f"{self.package_manager_name}:{oss_origin_name}"
             oss_version = json_data['version']
-            homepage = self.dn_url + 'pods/' + oss_origin_name
+            homepage = f"{self.dn_url}pods/{oss_origin_name}"
 
             if not isinstance(json_data['license'], str):
                 if 'type' in json_data['license']:

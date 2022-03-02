@@ -46,7 +46,7 @@ class Gradle(PackageManager):
 
             if name != filename:
                 group_id, artifact_id, oss_ini_version = parse_oss_name_version_in_artifactid(name)
-                oss_name = group_id + ":" + artifact_id
+                oss_name = f"{group_id}:{artifact_id}"
             else:
                 oss_name, oss_ini_version = parse_oss_name_version_in_filename(filename)
                 used_filename = True
@@ -67,8 +67,8 @@ class Gradle(PackageManager):
                 homepage = ''
 
             else:
-                dn_loc = self.dn_url + group_id + "/" + artifact_id + "/" + oss_ini_version
-                homepage = self.dn_url + group_id + "/" + artifact_id
+                dn_loc = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
+                homepage = f"{self.dn_url}{group_id}/{artifact_id}"
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])

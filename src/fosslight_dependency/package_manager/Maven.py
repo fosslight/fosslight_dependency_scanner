@@ -62,7 +62,7 @@ class Maven(PackageManager):
 
         manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
         if os.path.isfile(manifest_file) != 1:
-            logger.error(manifest_file + " is not existed in this directory.")
+            logger.error(f"{manifest_file} is not existed in this directory.")
             return ret
 
         try:
@@ -87,7 +87,7 @@ class Maven(PackageManager):
 
             tmp_plugin = bs(license_maven_plugin, xml)
 
-            license_maven_plugins = '<plugins>' + license_maven_plugin + '<plugins>'
+            license_maven_plugins = f"<plugins>{license_maven_plugin}<plugins>"
             tmp_plugins = bs(license_maven_plugins, xml)
 
             with open(pom_backup, 'r', encoding='utf8') as f:
@@ -105,7 +105,7 @@ class Maven(PackageManager):
                         ret = True
         except Exception as e:
             ret = False
-            logger.error('Failed to add plugin in pom' + str(e))
+            logger.error(f"Failed to add plugin in pom : {e}")
 
         if ret:
             with open(manifest_file, "w", encoding='utf8') as f_w:
@@ -139,16 +139,16 @@ class Maven(PackageManager):
                 cmd_mvn = "./mvnw"
         else:
             cmd_mvn = "mvn"
-        cmd = cmd_mvn + " license:aggregate-download-licenses"
+        cmd = f"{cmd_mvn} license:aggregate-download-licenses"
 
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
-            logger.error("Failed to run maven plugin: " + cmd)
+            logger.error(f"Failed to run maven plugin: {cmd}")
 
-        cmd = cmd_mvn + " dependency:tree > " + dependency_tree_fname
+        cmd = f"{cmd_mvn} dependency:tree > {dependency_tree_fname}"
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
-            logger.error("Failed to run: " + cmd)
+            logger.error(f"Failed to run: {cmd}")
         else:
             self.parse_dependency_tree(dependency_tree_fname)
             os.remove(dependency_tree_fname)
@@ -162,7 +162,7 @@ class Maven(PackageManager):
                         dependency_key = re_result[0][0] + ':' + re_result[0][1]
                         self.dependency_tree[dependency_key] = re_result[0][2]
                 except Exception as e:
-                    logger.error("Failed to parse dependency tree: " + str(e))
+                    logger.error(f"Failed to parse dependency tree: {e}")
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
@@ -179,9 +179,9 @@ class Maven(PackageManager):
             version = d.findtext("version")
             oss_version = version_refine(version)
 
-            oss_name = groupid + ":" + artifactid
-            dn_loc = self.dn_url + groupid + "/" + artifactid + "/" + version
-            homepage = self.dn_url + groupid + "/" + artifactid
+            oss_name = f"{groupid}:{artifactid}"
+            dn_loc = f"{self.dn_url}{groupid}/{artifactid}/{version}"
+            homepage = f"{self.dn_url}{groupid}/{artifactid}"
 
             licenses = d.find("licenses")
             if len(licenses):
@@ -196,11 +196,11 @@ class Maven(PackageManager):
 
             try:
                 comment = ''
-                dependency_tree_key = oss_name + ':' + version
+                dependency_tree_key = f"{oss_name}:{version}"
                 if dependency_tree_key in self.dependency_tree.keys():
                     comment = self.dependency_tree[dependency_tree_key]
             except Exception as e:
-                logger.error("Fail to find oss scope in dependency tree: " + str(e))
+                logger.error(f"Fail to find oss scope in dependency tree: {e}")
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
