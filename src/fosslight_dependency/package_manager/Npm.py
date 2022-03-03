@@ -36,7 +36,7 @@ class Npm(PackageManager):
         ret = True
         tmp_custom_json = 'custom.json'
         flag_tmp_node_modules = False
-        license_checker_cmd = 'license-checker --production --json --out ' + self.input_file_name
+        license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
         node_modules = 'node_modules'
         npm_install_cmd = 'npm install --prod'
@@ -46,7 +46,7 @@ class Npm(PackageManager):
             flag_tmp_node_modules = True
             cmd_ret = subprocess.call(npm_install_cmd, shell=True)
             if cmd_ret != 0:
-                logger.error(npm_install_cmd + " returns an error")
+                logger.error(f"{npm_install_cmd} returns an error")
                 return False
 
         # customized json file for obtaining specific items with license-checker
@@ -55,7 +55,7 @@ class Npm(PackageManager):
         cmd = license_checker_cmd + custom_path_option + tmp_custom_json
         cmd_ret = subprocess.call(cmd, shell=True)
         if cmd_ret != 0:
-            logger.error("It returns the error: " + cmd)
+            logger.error(f"It returns the error: {cmd}")
             logger.error("Please check if the license-checker is installed.(sudo npm install -g license-checker)")
             return False
         else:
@@ -96,7 +96,7 @@ class Npm(PackageManager):
             if d['repository']:
                 dn_loc = d['repository']
             else:
-                dn_loc = self.dn_url + oss_init_name + '/v/' + oss_version
+                dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_version}"
 
             homepage = self.dn_url + oss_init_name
 

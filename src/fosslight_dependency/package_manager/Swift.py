@@ -37,7 +37,7 @@ class Swift(PackageManager):
                     if input_file_name_in_xcodeproj != self.input_file_name:
                         if os.path.isfile(input_file_name_in_xcodeproj):
                             self.input_file_name = input_file_name_in_xcodeproj
-                            logger.info("It uses the manifest file: " + self.input_file_name)
+                            logger.info(f"It uses the manifest file: {self.input_file_name}")
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as json_file:
@@ -50,7 +50,7 @@ class Swift(PackageManager):
 
         for key in json_data:
             oss_origin_name = key['package']
-            oss_name = self.package_manager_name + ":" + oss_origin_name
+            oss_name = f"{self.package_manager_name}:{oss_origin_name}"
 
             revision = key['state']['revision']
             version = key['state']['version']

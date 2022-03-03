@@ -40,7 +40,7 @@ class PackageManager:
         self.license_scanner_bin = check_license_scanner(self.platform)
 
     def run_plugin(self):
-        logger.info('This package manager(' + self.package_manager_name + ') skips the step to run plugin.')
+        logger.info(f"This package manager({self.package_manager_name}) skips the step to run plugin.")
         return True
 
     def append_input_package_list_file(self, input_package_file):
@@ -140,11 +140,11 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
             license_name = ""
         else:
             if platform == const.LINUX:
-                run_license_scanner = license_scanner_bin + " " + file_dir + " > " + tmp_output_file_name
+                run_license_scanner = f"{license_scanner_bin} {file_dir} > {tmp_output_file_name}"
             elif platform == const.MACOS:
-                run_license_scanner = license_scanner_bin + " identify " + file_dir + " > " + tmp_output_file_name
+                run_license_scanner = f"{license_scanner_bin} identify {file_dir} > {tmp_output_file_name}"
             elif platform == const.WINDOWS:
-                run_license_scanner = license_scanner_bin + " identify " + file_dir + " > " + tmp_output_file_name
+                run_license_scanner = f"{license_scanner_bin} identify {file_dir} > {tmp_output_file_name}"
             else:
                 run_license_scanner = ''
 
@@ -175,7 +175,7 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
                 license_name = ""
 
     except Exception as ex:
-        logger.error("Failed to run license scan binary." + str(ex))
+        logger.error(f"Failed to run license scan binary. {ex}")
         license_name = ""
 
     return license_name

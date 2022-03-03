@@ -55,8 +55,8 @@ def find_package_manager():
                     found_package_manager[key] = [f_idx]
 
     if len(found_package_manager) >= 1:
-        logger.info("Found the manifest file(" + ','.join(found_manifest_file) + ")automatically.")
-        logger.warning("### Set Package Manager = " + ', '.join(found_package_manager.keys()))
+        logger.info(f"Found the manifest file({','.join(found_manifest_file)}) automatically.")
+        logger.warning(f"### Set Package Manager = {', '.join(found_package_manager.keys())}")
     else:
         ret = False
         logger.info("It cannot find the manifest file.")
@@ -93,7 +93,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     logger, _result_log = init_log(os.path.join(output_path, "fosslight_dependency_log_" + _start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME)
 
-    logger.info("Tool Info : " + _result_log["Tool Info"])
+    logger.info(f"Tool Info : {_result_log['Tool Info']}")
 
     if not success:
         logger.error(msg)
@@ -105,7 +105,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         support_packagemanager = list(const.SUPPORT_PACKAE.keys())
 
         if package_manager not in support_packagemanager:
-            logger.error("You entered the unsupported package manager(" + package_manager + ").")
+            logger.error(f"You entered the unsupported package manager({package_manager}).")
             logger.error("Please enter the supported package manager({0}) with '-m' option."
                          .format(", ".join(support_packagemanager)))
             return False, sheet_list
@@ -115,7 +115,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             os.chdir(input_dir)
             input_dir = os.getcwd()
         else:
-            logger.error("You entered the wrong input path(" + input_dir + ") to run the script.")
+            logger.error(f"You entered the wrong input path({input_dir}) to run the script.")
             logger.error("Please enter the existed input path with '-p' option.")
             return False, sheet_list
     else:
@@ -190,7 +190,7 @@ def main():
 
     if args.version:  # -v option
         cur_version = pkg_resources.get_distribution(_PKG_NAME).version
-        print('FOSSLight Dependency Scanner Version : ' + cur_version)
+        print(f"FOSSLight Dependency Scanner Version : {cur_version}")
         sys.exit(0)
 
     if args.manager:  # -m option

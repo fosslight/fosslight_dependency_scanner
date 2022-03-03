@@ -35,11 +35,11 @@ class Go(PackageManager):
         ret = True
 
         logger.info("Execute 'go list -m all' to obtain package info.")
-        cmd = "go list -m all > " + self.tmp_file_name
+        cmd = f"go list -m all > {self.tmp_file_name}"
 
         ret_cmd = subprocess.call(cmd, shell=True)
         if ret_cmd != 0:
-            logger.error("Failed to make the result: " + cmd)
+            logger.error(f"Failed to make the result: {cmd}")
             ret = False
 
         self.append_input_package_list_file(self.tmp_file_name)
@@ -54,12 +54,12 @@ class Go(PackageManager):
                 re_result = re.findall(r'(\S+)\s?(\S*)', line)
                 try:
                     package_path = re_result[0][0]
-                    oss_name = self.package_manager_name + ":" + package_path
+                    oss_name = f"{self.package_manager_name}:{package_path}"
                     oss_version = re_result[0][1]
 
                     tmp_dn_loc = self.dn_url + package_path
                     if oss_version:
-                        dn_loc = tmp_dn_loc + '@' + oss_version
+                        dn_loc = f"{tmp_dn_loc}@{oss_version}"
                     else:
                         dn_loc = tmp_dn_loc
 
@@ -74,9 +74,8 @@ class Go(PackageManager):
                                 urlopen_success = True
                                 if dn_loc_i == tmp_dn_loc:
                                     if oss_version:
-                                        comment = 'Cannot connect ' \
-                                                  + dn_loc \
-                                                  + ', so use the latest version page to get the license, homepage.'
+                                        comment = f'Cannot connect {dn_loc}, \
+                                                    so use the latest version page to get the license, homepage.'
                                     dn_loc = tmp_dn_loc
                                 break
                         except Exception:
@@ -95,7 +94,7 @@ class Go(PackageManager):
                             homepage = repository_data.find('a')['href']
 
                 except Exception as e:
-                    logging.warning("Fail to parse " + line + ": " + str(e))
+                    logging.warning(f"Fail to parse {line} : {e}")
                     continue
 
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),

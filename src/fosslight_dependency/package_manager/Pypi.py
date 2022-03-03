@@ -82,11 +82,11 @@ class Pypi(PackageManager):
         venv_path = os.path.join(self.input_dir, self.venv_tmp_dir)
 
         if self.platform == const.WINDOWS:
-            create_venv_cmd = "python -m venv " + self.venv_tmp_dir
+            create_venv_cmd = f"python -m venv {self.venv_tmp_dir}"
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
             cmd_separator = "&"
         else:
-            create_venv_cmd = "virtualenv -p python3 " + self.venv_tmp_dir
+            create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
@@ -111,15 +111,15 @@ class Pypi(PackageManager):
             cmd_ret = subprocess.call(cmd, shell=True)
             if cmd_ret != 0:
                 ret = False
-                err_msg = 'return code(' + str(cmd_ret) + ')'
+                err_msg = f"return code({cmd_ret})"
         except Exception as e:
             ret = False
             err_msg = e
         finally:
             if ret:
-                logger.info('It created the temporary virtualenv(' + venv_path + ').')
+                logger.info(f"It created the temporary virtualenv({venv_path}).")
             else:
-                logger.error('Failed to create virtualenv:' + str(err_msg))
+                logger.error(f"Failed to create virtualenv: {err_msg}")
 
         return ret
 
@@ -134,7 +134,7 @@ class Pypi(PackageManager):
 
         if self.pip_activate_cmd.startswith("source "):
             tmp_activate = self.pip_activate_cmd[7:]
-            pip_activate_cmd = ". " + tmp_activate
+            pip_activate_cmd = f". {tmp_activate}"
         elif self.pip_activate_cmd.startswith("conda "):
             if self.platform == const.LINUX:
                 tmp_activate = "eval \"$(conda shell.bash hook)\";"
@@ -148,7 +148,7 @@ class Pypi(PackageManager):
             command_separator = ";"
 
         activate_command = pip_activate_cmd
-        pip_list_command = "pip freeze > " + tmp_pip_list
+        pip_list_command = f"pip freeze > {tmp_pip_list}"
         deactivate_command = self.pip_deactivate_cmd
 
         command_list = [activate_command, pip_list_command, deactivate_command]
@@ -158,13 +158,13 @@ class Pypi(PackageManager):
             cmd_ret = subprocess.call(command, shell=True)
             if cmd_ret != 0:
                 ret = False
-                err_msg = 'cmd ret code(' + str(cmd_ret) + ')'
+                err_msg = f"cmd ret code({cmd_ret})"
         except Exception as e:
             ret = False
             err_msg = str(e)
         finally:
             if not ret:
-                logger.error("Failed to freeze dependencies (" + command + "):" + err_msg)
+                logger.error(f"Failed to freeze dependencies ({command}): {err_msg})")
                 return False
 
         exists_pip_licenses = False
@@ -181,16 +181,16 @@ class Pypi(PackageManager):
                             exists_ptable = True
                 os.remove(tmp_pip_list)
             except Exception as e:
-                logger.error("Failed to read freezed package list file:" + str(e))
+                logger.error(f"Failed to read freezed package list file: {e}")
                 return False
 
         command_list = []
         command_list.append(activate_command)
         if not exists_pip_licenses:
-            install_pip_command = "pip install " + pip_licenses
+            install_pip_command = f"pip install {pip_licenses}"
             command_list.append(install_pip_command)
 
-        pip_licenses_command = pip_licenses + pip_licenses_default_options + " > " + self.tmp_file_name
+        pip_licenses_command = f"{pip_licenses}{pip_licenses_default_options} > {self.tmp_file_name}"
         command_list.append(pip_licenses_command)
 
         if exists_ptable:
@@ -199,7 +199,7 @@ class Pypi(PackageManager):
                 pip_licenses_info_command += " ".join(pip_license_dependency)
             else:
                 pip_licenses_info_command += ptable
-            pip_licenses_info_command += " > " + self.tmp_pip_license_info_file_name
+            pip_licenses_info_command += f" > {self.tmp_pip_license_info_file_name}"
             command_list.append(pip_licenses_info_command)
 
         if not exists_pip_licenses:
@@ -220,11 +220,11 @@ class Pypi(PackageManager):
                 if exists_ptable:
                     self.append_input_package_list_file(self.tmp_pip_license_info_file_name)
             else:
-                logger.error("Failed to run pip-licenses:" + command)
+                logger.error(f"Failed to run pip-licenses: {command}")
                 ret = False
         except Exception as e:
             ret = False
-            logger.error("Failed to install/uninstall pip-licenses:" + str(e))
+            logger.error(f"Failed to install/uninstall pip-licenses: {e}")
 
         return ret
 
@@ -240,7 +240,7 @@ class Pypi(PackageManager):
                 license_name = check_UNKNOWN(d['License'])
                 homepage = check_UNKNOWN(d['URL'])
                 oss_version = d['Version']
-                dn_loc = self.dn_url + oss_init_name + "/" + oss_version
+                dn_loc = f"{self.dn_url}{oss_init_name}/{oss_version}"
 
                 if license_name is not None:
                     license_name = license_name.replace(';', ',')
@@ -258,7 +258,7 @@ class Pypi(PackageManager):
                                    license_name, dn_loc, homepage, '', '', ''])
 
         except Exception as ex:
-            logger.error("Failed to parse oss information: " + str(ex))
+            logger.error(f"Failed to parse oss information: {ex}")
 
         return sheet_list
 

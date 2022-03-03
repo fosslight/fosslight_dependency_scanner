@@ -39,10 +39,10 @@ class Pub(PackageManager):
 
             for key in json_data:
                 oss_origin_name = json_data[key]['name']
-                oss_name = self.package_manager_name + ":" + oss_origin_name
+                oss_name = f"{self.package_manager_name}:{oss_origin_name}"
                 oss_version = json_data[key]['version']
                 homepage = json_data[key]['homepage']
-                dn_loc = self.dn_url + oss_origin_name + "/versions/" + oss_version
+                dn_loc = f"{self.dn_url}{oss_origin_name}/versions/{oss_version}"
                 license_txt = json_data[key]['license']
 
                 tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
@@ -62,7 +62,7 @@ class Pub(PackageManager):
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
         except Exception as e:
-            logger.error("Fail to parse pub oss information: " + str(e))
+            logger.error(f"Fail to parse pub oss information: {e}")
 
         if os.path.isfile(tmp_license_txt_file_name):
             os.remove(tmp_license_txt_file_name)
