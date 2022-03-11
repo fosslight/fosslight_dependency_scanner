@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.9.3 (11/03/2022)
+## Changes
+## 🔧 Maintenance
+
+- Apply f-string format @bjk7119 (#78)
+- Comment out some sentences in the PR template @soimkim (#77)
+
+---
+
 ## v3.9.2 (14/02/2022)
 ## Changes
 ## 🐛 Hotfixes
