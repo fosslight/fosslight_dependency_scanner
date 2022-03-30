@@ -63,7 +63,8 @@ class Npm(PackageManager):
 
         os.remove(tmp_custom_json)
         if flag_tmp_node_modules:
-            shutil.rmtree(node_modules)
+            if os.path.isdir(node_modules):
+                shutil.rmtree(node_modules)
 
         return ret
 
