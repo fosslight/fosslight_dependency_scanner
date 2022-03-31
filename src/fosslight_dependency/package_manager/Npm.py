@@ -92,6 +92,7 @@ class Npm(PackageManager):
                 license_name = ''
 
             oss_version = d['version']
+            package_path = d['path']
 
             if d['repository']:
                 dn_loc = d['repository']
@@ -101,16 +102,16 @@ class Npm(PackageManager):
             homepage = self.dn_url + oss_init_name
 
             multi_license = check_multi_license(license_name)
-
+            manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             if multi_license:
                 for l_idx in range(0, len(license_name)):
                     license_name = license_name[l_idx].replace(",", "")
-
+                    license_name = check_unknown_license(license_name, manifest_file_path)
                     sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                       oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
             else:
                 license_name = license_name.replace(",", "")
-
+                license_name = check_unknown_license(license_name, manifest_file_path)
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
 
@@ -124,3 +125,21 @@ def check_multi_license(license_name):
         multi_license = False
 
     return multi_license
+
+
+def check_unknown_license(license_name, manifest_file_path):
+    if license_name.endswith('*'):
+        license_name = license_name[:-1]
+
+    if license_name == 'UNKNOWN':
+        try:
+            with open(manifest_file_path, 'r') as f:
+                json_f = json.load(f)
+                for key in json_f.keys():
+                    if key == 'license':
+                        license_name = json_f[key]
+                        break
+        except Exception as e:
+            logging.warning(f"Cannot check unknown license: {e}")
+
+    return license_name
