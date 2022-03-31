@@ -40,8 +40,7 @@ class Pypi(PackageManager):
         if os.path.isfile(self.tmp_pip_license_info_file_name):
             os.remove(self.tmp_pip_license_info_file_name)
 
-        if os.path.isdir(self.venv_tmp_dir):
-            shutil.rmtree(self.venv_tmp_dir)
+        shutil.rmtree(self.venv_tmp_dir, ignore_errors=True)
 
     def set_pip_activate_cmd(self, pip_activate_cmd):
         self.pip_activate_cmd = pip_activate_cmd

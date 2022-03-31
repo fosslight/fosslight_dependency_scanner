@@ -3,7 +3,6 @@
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-from codecs import ignore_errors
 import os
 import logging
 import subprocess
