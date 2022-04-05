@@ -13,6 +13,7 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 
 logger = logging.getLogger(constant.LOGGER_NAME)
+node_modules = 'node_modules'
 
 
 class Npm(PackageManager):
@@ -20,6 +21,8 @@ class Npm(PackageManager):
 
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
+
+    direct_dep = dict()
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -38,7 +41,6 @@ class Npm(PackageManager):
         flag_tmp_node_modules = False
         license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
-        node_modules = 'node_modules'
         npm_install_cmd = 'npm install --prod'
 
         if os.path.isdir(node_modules) != 1:
@@ -78,6 +80,7 @@ class Npm(PackageManager):
             json_data = json.load(json_file)
 
         sheet_list = []
+        comment = ''
 
         keys = [key for key in json_data]
 
@@ -101,6 +104,13 @@ class Npm(PackageManager):
 
             homepage = self.dn_url + oss_init_name
 
+            if self.direct_dep:
+                if oss_init_name in self.direct_dep.keys():
+                    if oss_version in self.direct_dep[oss_init_name]:
+                        comment = 'direct'
+                else:
+                    comment = 'transitive'
+
             multi_license = check_multi_license(license_name)
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             if multi_license:
@@ -108,14 +118,34 @@ class Npm(PackageManager):
                     license_name = license_name[l_idx].replace(",", "")
                     license_name = check_unknown_license(license_name, manifest_file_path)
                     sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
+
+    def parse_direct_dependencies(self):
+        tmp_oss_list = []
+        dependencies = 'dependencies'
+        version = 'version'
+
+        manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
+        try:
+            with open(manifest_file, 'r') as lock_file:
+                json_lock = json.load(lock_file)
+                if dependencies in json_lock:
+                    for dep in json_lock[dependencies]:
+                        tmp_oss_list.append(dep)
+            for direct_oss in tmp_oss_list:
+                with open(os.path.join(node_modules, direct_oss, manifest_file)) as direct_file:
+                    json_direct = json.load(direct_file)
+                    if version in json_direct:
+                        self.direct_dep[direct_oss] = json_direct[version]
+        except Exception as e:
+            logger.warning(f'Cannot print if it is direct dependency: {e}')
 
 
 def check_multi_license(license_name):

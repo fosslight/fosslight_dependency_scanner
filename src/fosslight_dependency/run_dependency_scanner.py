@@ -65,7 +65,7 @@ def find_package_manager():
 
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='', pip_deactivate_cmd='',
-                           output_custom_dir='', app_name=const.default_app_name, github_token='', format=''):
+                           output_custom_dir='', app_name=const.default_app_name, github_token='', format='', direct=True):
     global logger
 
     ret = True
@@ -139,7 +139,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     for pm, manifest_file_name in found_package_manager.items():
         ret, package_sheet_list = analyze_dependency(pm, input_dir, output_path, pip_activate_cmd, pip_deactivate_cmd,
-                                                     output_custom_dir, app_name, github_token, manifest_file_name)
+                                                     output_custom_dir, app_name, github_token, manifest_file_name, direct)
         if ret:
             sheet_list[_sheet_name].extend(package_sheet_list)
 
@@ -169,6 +169,7 @@ def main():
     app_name = const.default_app_name
     github_token = ''
     format = ''
+    direct = True
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-h', '--help', action='store_true', required=False)
@@ -182,6 +183,7 @@ def main():
     parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
     parser.add_argument('-f', '--format', nargs=1, type=str, required=False)
+    parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
 
     args = parser.parse_args()
 
@@ -211,9 +213,14 @@ def main():
         github_token = ''.join(args.token)
     if args.format:  # -f option
         format = ''.join(args.format)
+    if args.direct:  # --direct option
+        if args.direct == 'true':
+            direct = True
+        elif args.direct == 'false':
+            direct = False
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token, format)
+                           output_custom_dir, app_name, github_token, format, direct)
 
 
 if __name__ == '__main__':

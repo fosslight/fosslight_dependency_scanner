@@ -49,6 +49,9 @@ class PackageManager:
     def set_manifest_file(self, manifest_file_name):
         self.manifest_file_name = manifest_file_name
 
+    def parse_direct_dependencies(self):
+        logger.info(f"This package manager({self.package_manager_name}) skips the step to parse direct dependencies.")
+
 
 def version_refine(oss_version):
     version_cmp = oss_version.upper()
