@@ -27,6 +27,7 @@ _license_scanner_windows = "third_party\\askalono\\askalono.exe"
 
 class PackageManager:
     input_package_list_file = []
+    direct_dep = False
 
     def __init__(self, package_manager_name, dn_url, input_dir, output_dir):
         self.input_package_list_file = []
@@ -48,6 +49,9 @@ class PackageManager:
 
     def set_manifest_file(self, manifest_file_name):
         self.manifest_file_name = manifest_file_name
+
+    def set_direct_dependencies(self, direct):
+        self.direct_dep = direct
 
     def parse_direct_dependencies(self):
         logger.info(f"This package manager({self.package_manager_name}) skips the step to parse direct dependencies.")

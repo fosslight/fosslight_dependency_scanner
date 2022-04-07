@@ -21,8 +21,6 @@ class Pub(PackageManager):
     dn_url = 'https://pub.dev/packages/'
     input_file_name = os.path.join('lib', 'oss_licenses.dart')
 
-    direct_dep = False
-
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
         self.append_input_package_list_file(self.input_file_name)
