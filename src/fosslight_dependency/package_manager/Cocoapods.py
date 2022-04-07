@@ -27,7 +27,6 @@ class Cocoapods(PackageManager):
     dn_url = 'https://cocoapods.org/'
     input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
 
-    direct_dep = False
     dep_list = []
 
     def __init__(self, input_dir, output_dir):

@@ -55,6 +55,8 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     if manifest_file_name:
         package_manager.set_manifest_file(manifest_file_name)
 
+    if direct:
+        package_manager.set_direct_dependencies(direct)
     ret = package_manager.run_plugin()
     if ret:
         if direct:

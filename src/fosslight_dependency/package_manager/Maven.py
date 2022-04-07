@@ -10,6 +10,7 @@ import shutil
 from bs4 import BeautifulSoup as bs
 from xml.etree.ElementTree import parse
 import re
+import copy
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -26,6 +27,7 @@ class Maven(PackageManager):
     is_run_plugin = False
     output_custom_dir = ''
     dependency_tree = {}
+    dep_list = []
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -157,9 +159,13 @@ class Maven(PackageManager):
         with open(f_name, 'r', encoding='utf8') as input_fp:
             for i, line in enumerate(input_fp.readlines()):
                 try:
+                    line_bk = copy.deepcopy(line)
                     re_result = re.findall(r'[\+|\\]\-\s([^\:\s]+\:[^\:\s]+)\:(?:[^\:\s]+)\:([^\:\s]+)\:([^\:\s]+)', line)
                     if re_result:
                         dependency_key = re_result[0][0] + ':' + re_result[0][1]
+                        if self.direct_dep:
+                            if re.match(r'^\[\w+\]\s[\+\\]\-', line_bk):
+                                self.dep_list.append(re_result[0][0])
                         self.dependency_tree[dependency_key] = re_result[0][2]
                 except Exception as e:
                     logger.error(f"Failed to parse dependency tree: {e}")
@@ -194,15 +200,26 @@ class Maven(PackageManager):
                 # Case that doesn't include License tag value.
                 license_name = ''
 
+            comment_list = []
             try:
-                comment = ''
                 dependency_tree_key = f"{oss_name}:{version}"
                 if dependency_tree_key in self.dependency_tree.keys():
-                    comment = self.dependency_tree[dependency_tree_key]
+                    comment_list.append(self.dependency_tree[dependency_tree_key])
             except Exception as e:
                 logger.error(f"Fail to find oss scope in dependency tree: {e}")
+
+            if self.direct_dep:
+                if oss_name in self.dep_list:
+                    comment_list.append('direct')
+                else:
+                    comment_list.append('transitive')
+
+            comment = ', '.join(comment_list)
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
+
+    def parse_direct_dependencies(self):
+        self.direct_dep = True
