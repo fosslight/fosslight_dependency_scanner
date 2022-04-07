@@ -55,6 +55,13 @@ class Cocoapods(PackageManager):
         if len(spec_repo_list) == 0:
             logger.error("Cannot fint SPEC REPOS or EXTERNAL SOURCES in Podfile.lock.")
             return ''
+        
+        for dep_key in podfile_yaml[_dependencies]:
+            dep_key_re = re.findall(r'(^\S*)', dep_key)
+            dep_name = dep_key_re[0]
+            if '/' in dep_name:
+                dep_name = dep_name.split('/')[0]
+            self.dep_list.append(dep_name)
 
         for dep_key in podfile_yaml[_dependencies]:
             dep_key_re = re.findall(r'(^\S*)', dep_key)
