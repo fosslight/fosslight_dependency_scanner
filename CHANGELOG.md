@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.9.4 (11/04/2022)
+## Changes
+## 🚀 Features
+
+- Support Package.resolved v2 (swift) @dd-jy (#84)
+
+## 🐛 Hotfixes
+
+- Fix to show npm package license even if not spdx @dd-jy (#80)
+- Fix the npm issue (no packages to install) @dd-jy (#79)
+
+## 🔧 Maintenance
+
+- Add a commit message checker @soimkim (#82)
+
+---
+
 ## v3.9.3 (11/03/2022)
 ## Changes
 ## 🔧 Maintenance
