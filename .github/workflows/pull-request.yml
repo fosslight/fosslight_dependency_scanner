@@ -100,6 +100,7 @@ jobs:
         fosslight_dependency -p tests/test_pub -o tests/result/pub
         fosslight_dependency -p tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips -o tests/result/Cocoapods
         fosslight_dependency -p tests/test_swift -o tests/result/swift -t ${{ secrets.TOKEN }}
+        fosslight_dependency -p tests/test_swift2 -o tests/result/swift2 -t ${{ secrets.TOKEN }}
         fosslight_dependency -p tests/test_carthage -o tests/result/carthage -t ${{ secrets.TOKEN }}
   reuse:
     runs-on: ubuntu-latest
