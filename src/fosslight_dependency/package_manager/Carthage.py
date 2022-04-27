@@ -27,7 +27,6 @@ class Carthage(PackageManager):
 
     input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
     dn_url = "https://github.com/"
-    dep_list = []
 
     def __init__(self, input_dir, output_dir, github_token):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -91,8 +90,8 @@ class Carthage(PackageManager):
                                 logger.warning(f"Failed to get license with github api: {e}")
                                 license_name == ''
 
-                    if self.dep_list:
-                        if oss_origin_name in self.dep_list:
+                    if self.direct_dep_list:
+                        if oss_origin_name in self.direct_dep_list:
                             comment = 'direct'
                         else:
                             comment = 'transitive'
@@ -117,7 +116,7 @@ class Carthage(PackageManager):
                         if oss_path.endswith('.git'):
                             oss_path = oss_path[:-4]
                         oss_origin_name = oss_path.split('/')[-1]
-                        self.dep_list.append(oss_origin_name)
+                        self.direct_dep_list.append(oss_origin_name)
                     except Exception as e:
                         logger.warning(f"Failed to parse Cartfile: {e}")
 

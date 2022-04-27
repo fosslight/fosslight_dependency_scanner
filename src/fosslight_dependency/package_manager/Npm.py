@@ -22,7 +22,7 @@ class Npm(PackageManager):
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
 
-    dep_list = dict()
+    direct_dep_dict = dict()
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -104,9 +104,9 @@ class Npm(PackageManager):
 
             homepage = self.dn_url + oss_init_name
 
-            if self.dep_list:
-                if oss_init_name in self.dep_list.keys():
-                    if oss_version in self.dep_list[oss_init_name]:
+            if self.direct_dep_dict:
+                if oss_init_name in self.direct_dep_dict.keys():
+                    if oss_version in self.direct_dep_dict[oss_init_name]:
                         comment = 'direct'
                 else:
                     comment = 'transitive'
@@ -143,7 +143,7 @@ class Npm(PackageManager):
                 with open(os.path.join(node_modules, direct_oss, manifest_file)) as direct_file:
                     json_direct = json.load(direct_file)
                     if version in json_direct:
-                        self.dep_list[direct_oss] = json_direct[version]
+                        self.direct_dep_dict[direct_oss] = json_direct[version]
         except Exception as e:
             logger.warning(f'Cannot print if it is direct dependency: {e}')
 

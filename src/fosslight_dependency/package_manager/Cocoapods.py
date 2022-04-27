@@ -27,8 +27,6 @@ class Cocoapods(PackageManager):
     dn_url = 'https://cocoapods.org/'
     input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
 
-    dep_list = []
-
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
         self.append_input_package_list_file(self.input_file_name)
@@ -60,7 +58,7 @@ class Cocoapods(PackageManager):
             dep_name = dep_key_re[0]
             if '/' in dep_name:
                 dep_name = dep_name.split('/')[0]
-            self.dep_list.append(dep_name)
+            self.direct_dep_list.append(dep_name)
 
         for pods_list in podfile_yaml['PODS']:
             if not isinstance(pods_list, str):
@@ -83,7 +81,7 @@ class Cocoapods(PackageManager):
         for pod_oss in pod_in_sepc_list:
             try:
                 if self.direct_dep:
-                    if pod_oss[0] in self.dep_list:
+                    if pod_oss[0] in self.direct_dep_list:
                         comment = 'direct'
                     else:
                         comment = 'transitive'

@@ -137,11 +137,17 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     else:
         found_package_manager[package_manager] = ''
 
+    pass_key = 'PASS'
     for pm, manifest_file_name in found_package_manager.items():
+        if manifest_file_name == pass_key:
+            continue
         ret, package_sheet_list = analyze_dependency(pm, input_dir, output_path, pip_activate_cmd, pip_deactivate_cmd,
                                                      output_custom_dir, app_name, github_token, manifest_file_name, direct)
         if ret:
             sheet_list[_sheet_name].extend(package_sheet_list)
+            if pm == const.GRADLE:
+                if const.ANDROID in found_package_manager.keys():
+                    found_package_manager[const.ANDROID] = pass_key
 
     if sheet_list is not None:
         output_file_without_ext = os.path.join(output_path, output_file)

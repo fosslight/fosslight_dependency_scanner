@@ -29,7 +29,6 @@ class Pypi(PackageManager):
     tmp_pip_license_info_file_name = "tmp_pip_license_info_output.json"
     pip_activate_cmd = ''
     pip_deactivate_cmd = ''
-    dep_list = []
 
     def __init__(self, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -257,8 +256,8 @@ class Pypi(PackageManager):
                 if license_name_with_license_scanner != "":
                     license_name = license_name_with_license_scanner
 
-                if self.dep_list:
-                    if oss_init_name in self.dep_list:
+                if self.direct_dep_list:
+                    if oss_init_name in self.direct_dep_list:
                         comment = 'direct'
                     else:
                         comment = 'transitive'
@@ -282,7 +281,7 @@ class Pypi(PackageManager):
         if requirements_f in self.manifest_file_name:
             with open(requirements_f, 'r') as fd:
                 for req in requirements.parse(fd):
-                    self.dep_list.append(req.name)
+                    self.direct_dep_list.append(req.name)
 
         if setup_f in self.manifest_file_name:
             parse_setup = ast.parse(open(setup_f).read())
@@ -298,9 +297,9 @@ class Pypi(PackageManager):
                         install_req_value = ast.literal_eval(keyword.value)
                         for req_key in install_req_value:
                             match_name = re.match(r'(?P<name>[\w\d]+)[\;\=\<\>]*|$', req_key)
-                            self.dep_list.append(match_name.group('name'))
+                            self.direct_dep_list.append(match_name.group('name'))
                     if keyword.arg == 'name':
-                        self.dep_list.append(ast.literal_eval(keyword.value))
+                        self.direct_dep_list.append(ast.literal_eval(keyword.value))
 
 
 def check_UNKNOWN(text):
