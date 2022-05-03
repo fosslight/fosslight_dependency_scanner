@@ -6,7 +6,7 @@
 import os
 import logging
 import subprocess
-import re
+import json
 from bs4 import BeautifulSoup
 import urllib.request
 import fosslight_util.constant as constant
@@ -36,8 +36,8 @@ class Go(PackageManager):
     def run_plugin(self):
         ret = True
 
-        logger.info("Execute 'go list -m all' to obtain package info.")
-        cmd = f"go list -m all > {self.tmp_file_name}"
+        logger.info("Execute 'go list -m -json all' to obtain package info.")
+        cmd = f"go list -m -json all > {self.tmp_file_name}"
 
         ret_cmd = subprocess.call(cmd, shell=True)
         if ret_cmd != 0:
@@ -49,57 +49,76 @@ class Go(PackageManager):
         return ret
 
     def parse_oss_information(self, f_name):
+        indirect = 'Indirect'
+        sheet_list = []
+        json_list = []
         with open(f_name, 'r', encoding='utf8') as input_fp:
-            sheet_list = []
-            for i, line in enumerate(input_fp.readlines()):
+            json_data_raw = ''
+            for line in input_fp.readlines():
+                json_data_raw += line
+                if line.startswith('}'):
+                    json_list.append(json.loads(json_data_raw))
+                    json_data_raw = ''
 
-                re_result = re.findall(r'(\S+)\s?(\S*)', line)
-                try:
-                    package_path = re_result[0][0]
-                    oss_name = f"{self.package_manager_name}:{package_path}"
-                    oss_version = re_result[0][1]
+        for dep_item in json_list:
+            try:
+                if 'Main' in dep_item:
+                    if dep_item['Main']:
+                        continue
+                package_path = dep_item['Path']
+                oss_name = f"{self.package_manager_name}:{package_path}"
+                oss_version = dep_item['Version']
 
-                    tmp_dn_loc = self.dn_url + package_path
-                    if oss_version:
-                        dn_loc = f"{tmp_dn_loc}@{oss_version}"
+                comment = []
+                if self.direct_dep:
+                    if indirect in dep_item:
+                        if dep_item[indirect]:
+                            comment.append('transitive')
+                        else:
+                            comment.append('direct')
                     else:
-                        dn_loc = tmp_dn_loc
+                        comment.append('direct')
 
-                    license_name = ''
-                    homepage = ''
-                    comment = ''
+                tmp_dn_loc = self.dn_url + package_path
+                if oss_version:
+                    dn_loc = f"{tmp_dn_loc}@{oss_version}"
+                else:
+                    dn_loc = tmp_dn_loc
 
-                    for dn_loc_i in [dn_loc, tmp_dn_loc]:
-                        try:
-                            res = urllib.request.urlopen(dn_loc_i)
-                            if res.getcode() == 200:
-                                urlopen_success = True
-                                if dn_loc_i == tmp_dn_loc:
-                                    if oss_version:
-                                        comment = f'Cannot connect {dn_loc}, \
-                                                    so use the latest version page to get the license, homepage.'
-                                    dn_loc = tmp_dn_loc
-                                break
-                        except Exception:
-                            continue
+                license_name = ''
+                homepage = ''
 
-                    if urlopen_success:
-                        content = res.read().decode('utf8')
-                        bs_obj = BeautifulSoup(content, 'html.parser')
+                for dn_loc_i in [dn_loc, tmp_dn_loc]:
+                    try:
+                        res = urllib.request.urlopen(dn_loc_i)
+                        if res.getcode() == 200:
+                            urlopen_success = True
+                            if dn_loc_i == tmp_dn_loc:
+                                if oss_version:
+                                    comment.append(f'Cannot connect {dn_loc}, get info from the latest version.')
+                                dn_loc = tmp_dn_loc
+                            break
+                    except Exception:
+                        continue
 
-                        license_data = bs_obj.find('a', {'data-test-id': 'UnitHeader-license'})
-                        if license_data:
-                            license_name = license_data.text
+                if urlopen_success:
+                    content = res.read().decode('utf8')
+                    bs_obj = BeautifulSoup(content, 'html.parser')
 
-                        repository_data = bs_obj.find('div', {'class': 'UnitMeta-repo'})
-                        if repository_data:
-                            homepage = repository_data.find('a')['href']
+                    license_data = bs_obj.find('a', {'data-test-id': 'UnitHeader-license'})
+                    if license_data:
+                        license_name = license_data.text
 
-                except Exception as e:
-                    logging.warning(f"Fail to parse {line} : {e}")
-                    continue
+                    repository_data = bs_obj.find('div', {'class': 'UnitMeta-repo'})
+                    if repository_data:
+                        homepage = repository_data.find('a')['href']
 
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+            except Exception as e:
+                logging.warning(f"Fail to parse {package_path} in go mod : {e}")
+                continue
+
+            comment = ', '.join(comment)
+            sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
