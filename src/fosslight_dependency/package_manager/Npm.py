@@ -21,15 +21,19 @@ class Npm(PackageManager):
 
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
+    flag_tmp_node_modules = False
 
     direct_dep_dict = dict()
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.direct_dep_dict = dict()
 
     def __del__(self):
         if os.path.isfile(self.input_file_name):
             os.remove(self.input_file_name)
+        if self.flag_tmp_node_modules:
+            shutil.rmtree(node_modules, ignore_errors=True)
 
     def run_plugin(self):
         ret = self.start_license_checker()
@@ -38,14 +42,13 @@ class Npm(PackageManager):
     def start_license_checker(self):
         ret = True
         tmp_custom_json = 'custom.json'
-        flag_tmp_node_modules = False
         license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
         npm_install_cmd = 'npm install --prod'
 
         if os.path.isdir(node_modules) != 1:
             logger.info("node_modules directory is not existed. So it executes 'npm install'.")
-            flag_tmp_node_modules = True
+            self.flag_tmp_node_modules = True
             cmd_ret = subprocess.call(npm_install_cmd, shell=True)
             if cmd_ret != 0:
                 logger.error(f"{npm_install_cmd} returns an error")
@@ -64,8 +67,6 @@ class Npm(PackageManager):
             self.append_input_package_list_file(self.input_file_name)
 
         os.remove(tmp_custom_json)
-        if flag_tmp_node_modules:
-            shutil.rmtree(node_modules, ignore_errors=True)
 
         return ret
 

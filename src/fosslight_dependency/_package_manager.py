@@ -36,6 +36,9 @@ class PackageManager:
 
     def __init__(self, package_manager_name, dn_url, input_dir, output_dir):
         self.input_package_list_file = []
+        self.direct_dep = False
+        self.total_dep_list = []
+        self.direct_dep_list = []
         self.package_manager_name = package_manager_name
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -44,6 +47,17 @@ class PackageManager:
 
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)
+
+    def __del__(self):
+        self.input_package_list_file = []
+        self.direct_dep = False
+        self.total_dep_list = []
+        self.direct_dep_list = []
+        self.package_manager_name = ''
+        self.input_dir = ''
+        self.output_dir = ''
+        self.dn_url = ''
+        self.manifest_file_name = []
 
     def run_plugin(self):
         if self.package_manager_name == const.GRADLE or self.package_manager_name == const.ANDROID:
@@ -62,7 +76,7 @@ class PackageManager:
         self.direct_dep = direct
 
     def parse_direct_dependencies(self):
-        logger.info(f"This package manager({self.package_manager_name}) skips the step to parse direct dependencies.")
+        pass
 
     def run_gradle_task(self):
         dependency_tree_fname = 'tmp_dependency_tree.txt'

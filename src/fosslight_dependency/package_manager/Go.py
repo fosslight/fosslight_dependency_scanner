@@ -26,6 +26,8 @@ class Go(PackageManager):
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.input_file_name = ''
+        self.is_run_plugin = False
 
     def __del__(self):
         if os.path.isfile(self.tmp_file_name):

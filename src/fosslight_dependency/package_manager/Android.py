@@ -38,6 +38,7 @@ class Android(PackageManager):
             sheet_list = []
 
             for i, line in enumerate(input_fp.readlines()):
+                comment = ''
                 split_str = line.strip().split("\t")
                 if i < 2:
                     continue
@@ -48,6 +49,17 @@ class Android(PackageManager):
                     idx, manifest_file, oss_name, oss_version, license_name, dn_loc, homepage = split_str
                 else:
                     continue
-                sheet_list.append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+
+                if self.total_dep_list:
+                    if oss_name not in self.total_dep_list:
+                        continue
+
+                if self.direct_dep:
+                    if oss_name in self.direct_dep_list:
+                        comment = 'direct'
+                    else:
+                        comment = 'transitive'
+
+                sheet_list.append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list

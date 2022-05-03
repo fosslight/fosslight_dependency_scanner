@@ -30,6 +30,8 @@ class Maven(PackageManager):
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.is_run_plugin = False
+        self.dependency_tree = {}
 
         if output_custom_dir:
             self.output_custom_dir = output_custom_dir
@@ -54,6 +56,8 @@ class Maven(PackageManager):
 
             if os.path.isfile(pom_backup):
                 shutil.move(pom_backup, const.SUPPORT_PACKAE.get(self.package_manager_name))
+        else:
+            self.set_direct_dependencies(False)
 
         return ret
 
@@ -150,8 +154,10 @@ class Maven(PackageManager):
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error(f"Failed to run: {cmd}")
+            self.set_direct_dependencies(True)
         else:
             self.parse_dependency_tree(dependency_tree_fname)
+            self.set_direct_dependencies(True)
             os.remove(dependency_tree_fname)
 
     def parse_dependency_tree(self, f_name):
@@ -219,6 +225,3 @@ class Maven(PackageManager):
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
-
-    def parse_direct_dependencies(self):
-        self.direct_dep = True

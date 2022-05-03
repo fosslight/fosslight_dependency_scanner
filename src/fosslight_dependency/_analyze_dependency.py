@@ -76,4 +76,6 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     else:
         logger.error(f"### Fail to analyze: {package_manager_name}")
 
+    del package_manager
+
     return ret, package_sheet_list
