@@ -127,6 +127,7 @@ class PackageManager:
         return ret
 
     def exeucte_gradle_task(self, dependency_tree_fname):
+        ret = False
         if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
             if self.platform == const.WINDOWS:
                 cmd_gradle = "gradlew.bat"
@@ -134,9 +135,9 @@ class PackageManager:
                 cmd_gradle = "./gradlew"
         else:
             cmd_gradle = "gradle"
-        cmd = f"{cmd_gradle} allDeps > {dependency_tree_fname}"
-
-        ret = subprocess.call(cmd, shell=True)
+        with open(dependency_tree_fname, "w") as output:
+            cmd = f"{cmd_gradle} allDeps"
+            ret = subprocess.call(cmd, shell=True, stdout=output)
         return ret
 
     def parse_dependency_tree(self, f_name):
