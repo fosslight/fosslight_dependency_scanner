@@ -137,7 +137,7 @@ class PackageManager:
             cmd_gradle = "gradle"
         with open(dependency_tree_fname, "w") as output:
             cmd = f"{cmd_gradle} allDeps"
-            ret = subprocess.call(cmd, shell=True, stdout=output)
+            ret = subprocess.run(cmd, stdout=output)
         return ret
 
     def parse_dependency_tree(self, f_name):
@@ -192,9 +192,8 @@ def get_github_license(g, github_repo, platform, license_scanner_bin):
             if license_name == "" or license_name == "NOASSERTION":
                 try:
                     license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
-                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                    tmp_license_txt.write(license_txt_data)
-                    tmp_license_txt.close()
+                    with open(tmp_license_txt_file_name, 'w', encoding='utf-8') as tmp_license_txt:
+                        tmp_license_txt.write(license_txt_data)
                     license_name = check_and_run_license_scanner(platform, license_scanner_bin, tmp_license_txt_file_name)
                 except Exception:
                     logger.info("Cannot find the license name with license scanner binary.")
@@ -260,11 +259,11 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
                 if ret != 0:
                     logger.info("=> (No error) This is the information that the license was not found.")
                     return ""
-
-            fp = open(tmp_output_file_name, "r", encoding='utf8')
-            license_output = fp.read()
-            fp.close()
-            os.remove(tmp_output_file_name)
+            license_output = ""
+            with open(tmp_output_file_name, "r", encoding='utf8') as fp:
+                license_output = fp.read()
+            if os.path.isfile(tmp_output_file_name):
+                os.remove(tmp_output_file_name)
 
             if platform == const.LINUX:
                 license_output_re = re.findall(r'.*contains license\(s\)\s(.*)', license_output)
