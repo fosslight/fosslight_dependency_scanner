@@ -79,7 +79,6 @@ class PackageManager:
         pass
 
     def run_gradle_task(self):
-        dependency_tree_fname = 'tmp_dependency_tree.txt'
         if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
             gradle_backup = f'{const.SUPPORT_PACKAE.get(self.package_manager_name)}_bk'
 
@@ -88,15 +87,12 @@ class PackageManager:
             if not ret:
                 return
 
-            ret = self.exeucte_gradle_task(dependency_tree_fname)
-            if ret != 0:
+            ret = self.exeucte_gradle_task()
+            if ret.returncode != 0:
                 self.set_direct_dependencies(False)
                 logger.warning("Failed to run allDeps task.")
             else:
-                self.parse_dependency_tree(dependency_tree_fname)
-
-            if os.path.isfile(dependency_tree_fname):
-                os.remove(dependency_tree_fname)
+                self.parse_dependency_tree(ret.stdout)
 
             if os.path.isfile(gradle_backup):
                 os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
@@ -126,8 +122,7 @@ class PackageManager:
 
         return ret
 
-    def exeucte_gradle_task(self, dependency_tree_fname):
-        ret = False
+    def exeucte_gradle_task(self):
         if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
             if self.platform == const.WINDOWS:
                 cmd_gradle = "gradlew.bat"
@@ -135,13 +130,13 @@ class PackageManager:
                 cmd_gradle = "./gradlew"
         else:
             cmd_gradle = "gradle"
-        with open(dependency_tree_fname, "w") as output:
-            cmd = f"{cmd_gradle} allDeps"
-            ret = subprocess.call(cmd, shell=True, stdout=output)
+
+        cmd = f"{cmd_gradle} allDeps"
+        ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
         return ret
 
-    def parse_dependency_tree(self, f_name):
-        with open(f_name, 'r', encoding='utf8') as input_fp:
+    def parse_dependency_tree(self, input_fp):
+        if input_fp:
             for i, line in enumerate(input_fp.readlines()):
                 try:
                     line_bk = copy.deepcopy(line)
