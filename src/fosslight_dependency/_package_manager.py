@@ -132,7 +132,9 @@ class PackageManager:
             cmd_gradle = "gradle"
 
         cmd = f"{cmd_gradle} allDeps"
+        logging.warning("RUN COMMAND ---------------------------->")
         ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+        logging.warning("RUN DONE ----------------------------")
         return ret
 
     def parse_dependency_tree(self, input_fp):
