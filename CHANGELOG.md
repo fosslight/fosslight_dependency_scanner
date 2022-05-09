@@ -1,5 +1,59 @@
 # Changelog
 
+## v3.9.4 (11/04/2022)
+## Changes
+## 🚀 Features
+
+- Support Package.resolved v2 (swift) @dd-jy (#84)
+
+## 🐛 Hotfixes
+
+- Fix to show npm package license even if not spdx @dd-jy (#80)
+- Fix the npm issue (no packages to install) @dd-jy (#79)
+
+## 🔧 Maintenance
+
+- Add a commit message checker @soimkim (#82)
+
+---
+
+## v3.9.3 (11/03/2022)
+## Changes
+## 🔧 Maintenance
+
+- Apply f-string format @bjk7119 (#78)
+- Comment out some sentences in the PR template @soimkim (#77)
+
+---
+
+## v3.9.2 (14/02/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Support local scm package for Cocoapods @dd-jy (#76)
+
+---
+
+## v3.9.1 (10/02/2022)
+## Changes
+## 🔧 Maintenance
+
+- Modify to print output file name @bjk7119 (#75)
+
+---
+
+## v3.9.0 (13/01/2022)
+## Changes
+## 🚀 Features
+
+- Modify to analyze the license name for carthage @dd-jy (#73)
+
+## 🔧 Maintenance
+
+- Update the README to add 'how it works without Internet' @dd-jy (#74)
+
+---
+
 ## v3.8.0 (24/12/2021)
 ## Changes
 ## 🚀 Features
