@@ -133,7 +133,7 @@ class PackageManager:
             else:
                 cmd_gradle = "./gradlew"
         else:
-            cmd_gradle = "gradle"
+            return 1
         cmd = f"{cmd_gradle} allDeps > {dependency_tree_fname}"
 
         ret = subprocess.call(cmd, shell=True)

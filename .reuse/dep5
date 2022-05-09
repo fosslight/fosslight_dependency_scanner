@@ -89,3 +89,11 @@ License: Apache-2.0
 Files: tests/test_multi_pypi_npm/*
 Copyright: 2021 LG Electronics
 License: Apache-2.0
+
+Files: tests/test_swift2/*
+Copyright: 2022 LG Electronics
+License: Apache-2.0
+
+Files: tests/test_gradle2/*
+Copyright: -
+License: GPL-3.0

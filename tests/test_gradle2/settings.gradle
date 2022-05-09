@@ -1,0 +1,2 @@
+rootProject.name = 'javapackager'
+include 'winrun4j-launcher'
