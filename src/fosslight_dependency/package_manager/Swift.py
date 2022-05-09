@@ -40,16 +40,34 @@ class Swift(PackageManager):
                             logger.info(f"It uses the manifest file: {self.input_file_name}")
 
     def parse_oss_information(self, f_name):
+        sheet_list = []
+        json_ver = 1
+
         with open(f_name, 'r', encoding='utf8') as json_file:
             json_raw = json.load(json_file)
-            json_data = json_raw["object"]["pins"]
+            json_ver = json_raw['version']
 
-        sheet_list = []
+            if json_ver == 1:
+                json_data = json_raw["object"]["pins"]
+            elif json_ver == 2:
+                json_data = json_raw["pins"]
+            else:
+                logger.error(f'Not supported Package.resolved version {json_ver}')
+                return sheet_list
 
         g = connect_github(self.github_token)
 
         for key in json_data:
-            oss_origin_name = key['package']
+            if json_ver == 1:
+                oss_origin_name = key['package']
+                homepage = key['repositoryURL']
+            elif json_ver == 2:
+                oss_origin_name = key['identity']
+                homepage = key['location']
+
+            if homepage.endswith('.git'):
+                homepage = homepage[:-4]
+
             oss_name = f"{self.package_manager_name}:{oss_origin_name}"
 
             revision = key['state']['revision']
@@ -59,7 +77,6 @@ class Swift(PackageManager):
             else:
                 oss_version = version
 
-            homepage = key['repositoryURL']
             dn_loc = homepage
             license_name = ''
 
