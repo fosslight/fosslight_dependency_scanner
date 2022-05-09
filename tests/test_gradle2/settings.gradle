@@ -1,2 +1,4 @@
-rootProject.name = 'javapackager'
-include 'winrun4j-launcher'
+rootProject.name = 'spinnaker-gradle'
+
+include 'spinnaker-project-plugin'
+include 'spinnaker-extensions'
