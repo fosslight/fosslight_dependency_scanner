@@ -93,3 +93,7 @@ License: Apache-2.0
 Files: tests/test_swift2/*
 Copyright: 2022 LG Electronics
 License: Apache-2.0
+
+Files: tests/test_gradle2/*
+Copyright: 2014 Netflix
+License: Apache-2.0

@@ -22,7 +22,8 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 
 def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate_cmd='', pip_deactivate_cmd='',
-                       output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=[]):
+                       output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=[],
+                       direct=True):
     ret = True
     package_sheet_list = []
 
@@ -53,8 +54,14 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     if manifest_file_name:
         package_manager.set_manifest_file(manifest_file_name)
+
+    if direct:
+        package_manager.set_direct_dependencies(direct)
     ret = package_manager.run_plugin()
     if ret:
+        if direct:
+            package_manager.parse_direct_dependencies()
+
         for f_name in package_manager.input_package_list_file:
             logger.info(f"Parse oss information with file: {f_name}")
 
@@ -68,5 +75,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         logger.warning(f"### Complete to analyze: {package_manager_name}")
     else:
         logger.error(f"### Fail to analyze: {package_manager_name}")
+
+    del package_manager
 
     return ret, package_sheet_list

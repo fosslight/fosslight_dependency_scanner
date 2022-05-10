@@ -9,6 +9,9 @@ import logging
 import platform
 import re
 import base64
+import subprocess
+import shutil
+import copy
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 
@@ -27,9 +30,15 @@ _license_scanner_windows = "third_party\\askalono\\askalono.exe"
 
 class PackageManager:
     input_package_list_file = []
+    direct_dep = False
+    total_dep_list = []
+    direct_dep_list = []
 
     def __init__(self, package_manager_name, dn_url, input_dir, output_dir):
         self.input_package_list_file = []
+        self.direct_dep = False
+        self.total_dep_list = []
+        self.direct_dep_list = []
         self.package_manager_name = package_manager_name
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -39,8 +48,22 @@ class PackageManager:
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)
 
+    def __del__(self):
+        self.input_package_list_file = []
+        self.direct_dep = False
+        self.total_dep_list = []
+        self.direct_dep_list = []
+        self.package_manager_name = ''
+        self.input_dir = ''
+        self.output_dir = ''
+        self.dn_url = ''
+        self.manifest_file_name = []
+
     def run_plugin(self):
-        logger.info(f"This package manager({self.package_manager_name}) skips the step to run plugin.")
+        if self.package_manager_name == const.GRADLE or self.package_manager_name == const.ANDROID:
+            self.run_gradle_task()
+        else:
+            logger.info(f"This package manager({self.package_manager_name}) skips the step to run plugin.")
         return True
 
     def append_input_package_list_file(self, input_package_file):
@@ -48,6 +71,86 @@ class PackageManager:
 
     def set_manifest_file(self, manifest_file_name):
         self.manifest_file_name = manifest_file_name
+
+    def set_direct_dependencies(self, direct):
+        self.direct_dep = direct
+
+    def parse_direct_dependencies(self):
+        pass
+
+    def run_gradle_task(self):
+        dependency_tree_fname = 'tmp_dependency_tree.txt'
+        if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
+            gradle_backup = f'{const.SUPPORT_PACKAE.get(self.package_manager_name)}_bk'
+
+            shutil.copy(const.SUPPORT_PACKAE.get(self.package_manager_name), gradle_backup)
+            ret = self.add_allDeps_in_gradle()
+            if not ret:
+                return
+
+            ret = self.exeucte_gradle_task(dependency_tree_fname)
+            if ret != 0:
+                self.set_direct_dependencies(False)
+                logger.warning("Failed to run allDeps task.")
+            else:
+                self.parse_dependency_tree(dependency_tree_fname)
+
+            if os.path.isfile(dependency_tree_fname):
+                os.remove(dependency_tree_fname)
+
+            if os.path.isfile(gradle_backup):
+                os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
+                shutil.move(gradle_backup, const.SUPPORT_PACKAE.get(self.package_manager_name))
+
+    def add_allDeps_in_gradle(self):
+        ret = False
+        configuration = 'project.configurations.runtimeClasspath, project.configurations.runtime'
+        if self.package_manager_name == 'android':
+            configuration = 'project.configurations.releaseRuntimeClasspath'
+
+        allDeps = f'''allprojects {{
+                   task allDeps(type: DependencyReportTask) {{
+                        doFirst{{
+                            try {{
+                                configurations = [{configuration}] as Set }}
+                            catch(UnknownConfigurationException) {{}}
+                        }}
+                    }}
+                    }}'''
+        try:
+            with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'a', encoding='utf8') as f:
+                f.write(allDeps)
+                ret = True
+        except Exception as e:
+            logging.warning(f"Cannot add the allDeps task in build.gradle: {e}")
+
+        return ret
+
+    def exeucte_gradle_task(self, dependency_tree_fname):
+        if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
+            if self.platform == const.WINDOWS:
+                cmd_gradle = "gradlew.bat"
+            else:
+                cmd_gradle = "./gradlew"
+        else:
+            return 1
+        cmd = f"{cmd_gradle} allDeps > {dependency_tree_fname}"
+
+        ret = subprocess.call(cmd, shell=True)
+        return ret
+
+    def parse_dependency_tree(self, f_name):
+        with open(f_name, 'r', encoding='utf8') as input_fp:
+            for i, line in enumerate(input_fp.readlines()):
+                try:
+                    line_bk = copy.deepcopy(line)
+                    re_result = re.findall(r'\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
+                    if re_result:
+                        self.total_dep_list.append(re_result[0][0])
+                        if re.match(r'^[\+|\\]\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line_bk):
+                            self.direct_dep_list.append(re_result[0][0])
+                except Exception as e:
+                    logger.error(f"Failed to parse dependency tree: {e}")
 
 
 def version_refine(oss_version):

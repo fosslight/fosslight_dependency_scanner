@@ -10,6 +10,7 @@ import shutil
 from bs4 import BeautifulSoup as bs
 from xml.etree.ElementTree import parse
 import re
+import copy
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -29,6 +30,8 @@ class Maven(PackageManager):
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.is_run_plugin = False
+        self.dependency_tree = {}
 
         if output_custom_dir:
             self.output_custom_dir = output_custom_dir
@@ -53,6 +56,8 @@ class Maven(PackageManager):
 
             if os.path.isfile(pom_backup):
                 shutil.move(pom_backup, const.SUPPORT_PACKAE.get(self.package_manager_name))
+        else:
+            self.set_direct_dependencies(False)
 
         return ret
 
@@ -149,17 +154,23 @@ class Maven(PackageManager):
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error(f"Failed to run: {cmd}")
+            self.set_direct_dependencies(True)
         else:
             self.parse_dependency_tree(dependency_tree_fname)
+            self.set_direct_dependencies(True)
             os.remove(dependency_tree_fname)
 
     def parse_dependency_tree(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
             for i, line in enumerate(input_fp.readlines()):
                 try:
+                    line_bk = copy.deepcopy(line)
                     re_result = re.findall(r'[\+|\\]\-\s([^\:\s]+\:[^\:\s]+)\:(?:[^\:\s]+)\:([^\:\s]+)\:([^\:\s]+)', line)
                     if re_result:
                         dependency_key = re_result[0][0] + ':' + re_result[0][1]
+                        if self.direct_dep:
+                            if re.match(r'^\[\w+\]\s[\+\\]\-', line_bk):
+                                self.direct_dep_list.append(re_result[0][0])
                         self.dependency_tree[dependency_key] = re_result[0][2]
                 except Exception as e:
                     logger.error(f"Failed to parse dependency tree: {e}")
@@ -194,13 +205,21 @@ class Maven(PackageManager):
                 # Case that doesn't include License tag value.
                 license_name = ''
 
+            comment_list = []
             try:
-                comment = ''
                 dependency_tree_key = f"{oss_name}:{version}"
                 if dependency_tree_key in self.dependency_tree.keys():
-                    comment = self.dependency_tree[dependency_tree_key]
+                    comment_list.append(self.dependency_tree[dependency_tree_key])
             except Exception as e:
                 logger.error(f"Fail to find oss scope in dependency tree: {e}")
+
+            if self.direct_dep:
+                if oss_name in self.direct_dep_list:
+                    comment_list.append('direct')
+                else:
+                    comment_list.append('transitive')
+
+            comment = ', '.join(comment_list)
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])

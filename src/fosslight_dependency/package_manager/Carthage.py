@@ -36,6 +36,7 @@ class Carthage(PackageManager):
     def parse_oss_information(self, f_name):
         github = "github"
         checkout_dir_list = get_checkout_dirname()
+        comment = ''
         with open(f_name, 'r', encoding='utf8') as input_fp:
             sheet_list = []
             g = ''
@@ -89,13 +90,35 @@ class Carthage(PackageManager):
                                 logger.warning(f"Failed to get license with github api: {e}")
                                 license_name == ''
 
+                    if self.direct_dep_list:
+                        if oss_origin_name in self.direct_dep_list:
+                            comment = 'direct'
+                        else:
+                            comment = 'transitive'
+
                     sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
                 except Exception as e:
                     logger.warning(f"Failed to parse oss information: {e}")
 
         return sheet_list
+
+    def parse_direct_dependencies(self):
+        self.direct_dep = True
+        cartfile = 'Cartfile'
+        if os.path.exists(cartfile):
+            with open(cartfile, 'r', encoding='utf8') as input_fp:
+                for i, line in enumerate(input_fp.readlines()):
+                    re_result = re.findall(r'(github|git)[\s]\"(\S*)\"[\s]\"(\S*)\"', line)
+                    try:
+                        oss_path = re_result[0][1]
+                        if oss_path.endswith('.git'):
+                            oss_path = oss_path[:-4]
+                        oss_origin_name = oss_path.split('/')[-1]
+                        self.direct_dep_list.append(oss_origin_name)
+                    except Exception as e:
+                        logger.warning(f"Failed to parse Cartfile: {e}")
 
 
 def get_checkout_dirname():

@@ -28,6 +28,7 @@ class Pub(PackageManager):
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
         json_data = ''
+        comment = ''
 
         with open(f_name, 'r', encoding='utf8') as pub_file:
             json_txt = preprocess_pub_result(pub_file)
@@ -58,8 +59,14 @@ class Pub(PackageManager):
                 else:
                     license_name = ''
 
+                if self.direct_dep:
+                    if json_data[key]['isDirectDependency']:
+                        comment = 'direct'
+                    else:
+                        comment = 'transitive'
+
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         except Exception as e:
             logger.error(f"Fail to parse pub oss information: {e}")
@@ -68,6 +75,9 @@ class Pub(PackageManager):
             os.remove(tmp_license_txt_file_name)
 
         return sheet_list
+
+    def parse_direct_dependencies(self):
+        self.direct_dep = True
 
 
 def preprocess_pub_result(input_file):

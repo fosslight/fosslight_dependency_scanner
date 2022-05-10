@@ -17,6 +17,7 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 _spec_repos = 'SPEC REPOS'
 _external_sources = 'EXTERNAL SOURCES'
+_dependencies = 'DEPENDENCIES'
 _source_type = ['git', 'http', 'svn', 'hg']
 
 
@@ -38,6 +39,7 @@ class Cocoapods(PackageManager):
         pod_not_in_spec_list = []
         spec_repo_list = []
         external_source_list = []
+        comment = ''
 
         if _spec_repos in podfile_yaml:
             for spec_item_key in podfile_yaml[_spec_repos]:
@@ -50,6 +52,13 @@ class Cocoapods(PackageManager):
         if len(spec_repo_list) == 0:
             logger.error("Cannot fint SPEC REPOS or EXTERNAL SOURCES in Podfile.lock.")
             return ''
+
+        for dep_key in podfile_yaml[_dependencies]:
+            dep_key_re = re.findall(r'(^\S*)', dep_key)
+            dep_name = dep_key_re[0]
+            if '/' in dep_name:
+                dep_name = dep_name.split('/')[0]
+            self.direct_dep_list.append(dep_name)
 
         for pods_list in podfile_yaml['PODS']:
             if not isinstance(pods_list, str):
@@ -71,6 +80,11 @@ class Cocoapods(PackageManager):
 
         for pod_oss in pod_in_sepc_list:
             try:
+                if self.direct_dep:
+                    if pod_oss[0] in self.direct_dep_list:
+                        comment = 'direct'
+                    else:
+                        comment = 'transitive'
                 if pod_oss[0] in external_source_list:
                     podspec_filename = pod_oss[0] + '.podspec.json'
                     spec_file_path = os.path.join("Pods", "Local Podspecs", podspec_filename)
@@ -98,7 +112,7 @@ class Cocoapods(PackageManager):
                 oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
 
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
             except Exception as e:
                 logger.warning(f"It failed to get {pod_oss[0]}:{e}")
                 logger.warning(traceback.format_exc())
@@ -130,6 +144,9 @@ class Cocoapods(PackageManager):
                         dn_loc = dn_loc[:-4]
 
         return oss_name, oss_version, license_name, dn_loc, homepage
+
+    def parse_direct_dependencies(self):
+        self.direct_dep = True
 
 
 def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list):

@@ -9,6 +9,9 @@ import subprocess
 import json
 import shutil
 import copy
+import requirements
+import ast
+import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -229,6 +232,7 @@ class Pypi(PackageManager):
 
     def parse_oss_information(self, f_name):
         sheet_list = []
+        comment = ''
         try:
             with open(f_name, 'r', encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
@@ -252,14 +256,50 @@ class Pypi(PackageManager):
                 if license_name_with_license_scanner != "":
                     license_name = license_name_with_license_scanner
 
+                if self.direct_dep_list:
+                    if oss_init_name in self.direct_dep_list:
+                        comment = 'direct'
+                    else:
+                        comment = 'transitive'
+
                 sheet_list.append([', '.join(self.manifest_file_name),
                                    oss_name, oss_version,
-                                   license_name, dn_loc, homepage, '', '', ''])
+                                   license_name, dn_loc, homepage, '', '', comment])
 
         except Exception as ex:
             logger.error(f"Failed to parse oss information: {ex}")
 
         return sheet_list
+
+    def parse_direct_dependencies(self):
+        self.direct_dep = True
+        requirements_f = 'requirements.txt'
+        setup_f = 'setup.py'
+        setup_key = 'setup'
+        install_dep_key = 'install_requires'
+
+        if requirements_f in self.manifest_file_name:
+            with open(requirements_f, 'r') as fd:
+                for req in requirements.parse(fd):
+                    self.direct_dep_list.append(req.name)
+
+        if setup_f in self.manifest_file_name:
+            parse_setup = ast.parse(open(setup_f).read())
+            for node in parse_setup.body:
+                if not isinstance(node, ast.Expr):
+                    continue
+                if not isinstance(node.value, ast.Call):
+                    continue
+                if node.value.func.id != setup_key:
+                    continue
+                for keyword in node.value.keywords:
+                    if keyword.arg == install_dep_key:
+                        install_req_value = ast.literal_eval(keyword.value)
+                        for req_key in install_req_value:
+                            match_name = re.match(r'(?P<name>[\w\d]+)[\;\=\<\>]*|$', req_key)
+                            self.direct_dep_list.append(match_name.group('name'))
+                    if keyword.arg == 'name':
+                        self.direct_dep_list.append(ast.literal_eval(keyword.value))
 
 
 def check_UNKNOWN(text):

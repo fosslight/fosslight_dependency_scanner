@@ -13,6 +13,7 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 
 logger = logging.getLogger(constant.LOGGER_NAME)
+node_modules = 'node_modules'
 
 
 class Npm(PackageManager):
@@ -20,13 +21,19 @@ class Npm(PackageManager):
 
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
+    flag_tmp_node_modules = False
+
+    direct_dep_dict = dict()
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.direct_dep_dict = dict()
 
     def __del__(self):
         if os.path.isfile(self.input_file_name):
             os.remove(self.input_file_name)
+        if self.flag_tmp_node_modules:
+            shutil.rmtree(node_modules, ignore_errors=True)
 
     def run_plugin(self):
         ret = self.start_license_checker()
@@ -35,15 +42,13 @@ class Npm(PackageManager):
     def start_license_checker(self):
         ret = True
         tmp_custom_json = 'custom.json'
-        flag_tmp_node_modules = False
         license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
-        node_modules = 'node_modules'
         npm_install_cmd = 'npm install --prod'
 
         if os.path.isdir(node_modules) != 1:
             logger.info("node_modules directory is not existed. So it executes 'npm install'.")
-            flag_tmp_node_modules = True
+            self.flag_tmp_node_modules = True
             cmd_ret = subprocess.call(npm_install_cmd, shell=True)
             if cmd_ret != 0:
                 logger.error(f"{npm_install_cmd} returns an error")
@@ -62,8 +67,6 @@ class Npm(PackageManager):
             self.append_input_package_list_file(self.input_file_name)
 
         os.remove(tmp_custom_json)
-        if flag_tmp_node_modules:
-            shutil.rmtree(node_modules, ignore_errors=True)
 
         return ret
 
@@ -78,6 +81,7 @@ class Npm(PackageManager):
             json_data = json.load(json_file)
 
         sheet_list = []
+        comment = ''
 
         keys = [key for key in json_data]
 
@@ -101,6 +105,13 @@ class Npm(PackageManager):
 
             homepage = self.dn_url + oss_init_name
 
+            if self.direct_dep_dict:
+                if oss_init_name in self.direct_dep_dict.keys():
+                    if oss_version in self.direct_dep_dict[oss_init_name]:
+                        comment = 'direct'
+                else:
+                    comment = 'transitive'
+
             multi_license = check_multi_license(license_name)
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             if multi_license:
@@ -108,14 +119,34 @@ class Npm(PackageManager):
                     license_name = license_name[l_idx].replace(",", "")
                     license_name = check_unknown_license(license_name, manifest_file_path)
                     sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
+
+    def parse_direct_dependencies(self):
+        tmp_oss_list = []
+        dependencies = 'dependencies'
+        version = 'version'
+
+        manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
+        try:
+            with open(manifest_file, 'r') as lock_file:
+                json_lock = json.load(lock_file)
+                if dependencies in json_lock:
+                    for dep in json_lock[dependencies]:
+                        tmp_oss_list.append(dep)
+            for direct_oss in tmp_oss_list:
+                with open(os.path.join(node_modules, direct_oss, manifest_file)) as direct_file:
+                    json_direct = json.load(direct_file)
+                    if version in json_direct:
+                        self.direct_dep_dict[direct_oss] = json_direct[version]
+        except Exception as e:
+            logger.warning(f'Cannot print if it is direct dependency: {e}')
 
 
 def check_multi_license(license_name):
