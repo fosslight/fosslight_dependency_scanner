@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.10.0 (10/05/2022)
+## Changes
+## 🚀 Features
+
+- Support to comment direct/transitive type @dd-jy (#83)
+
+---
+
 ## v3.9.4 (11/04/2022)
 ## Changes
 ## 🚀 Features
