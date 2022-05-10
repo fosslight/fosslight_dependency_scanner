@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.10.1 (10/05/2022)
+## Changes
+## 🔧 Maintenance
+
+- Add --direct option in help message @dd-jy (#87)
+
+---
+
 ## v3.10.0 (10/05/2022)
 ## Changes
 ## 🚀 Features
