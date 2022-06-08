@@ -79,24 +79,28 @@ class Go(PackageManager):
                     else:
                         comment.append('direct')
 
-                tmp_dn_loc = self.dn_url + package_path
+                homepage_set = []
+                homepage = self.dn_url + package_path
+
                 if oss_version:
-                    dn_loc = f"{tmp_dn_loc}@{oss_version}"
-                else:
-                    dn_loc = tmp_dn_loc
+                    tmp_homepage = f"{homepage}@{oss_version}"
+                    homepage_set.append(tmp_homepage)
+                homepage_set.append(homepage)
 
                 license_name = ''
-                homepage = ''
+                dn_loc = ''
 
-                for dn_loc_i in [dn_loc, tmp_dn_loc]:
+                if oss_version.startswith('v'):
+                    oss_version = oss_version[1:]
+
+                for homepage_i in homepage_set:
                     try:
-                        res = urllib.request.urlopen(dn_loc_i)
+                        res = urllib.request.urlopen(homepage_i)
                         if res.getcode() == 200:
                             urlopen_success = True
-                            if dn_loc_i == tmp_dn_loc:
+                            if homepage_i == homepage:
                                 if oss_version:
-                                    comment.append(f'Cannot connect {dn_loc}, get info from the latest version.')
-                                dn_loc = tmp_dn_loc
+                                    comment.append(f'Cannot connect {tmp_homepage}, get info from the latest version.')
                             break
                     except Exception:
                         continue
@@ -111,7 +115,9 @@ class Go(PackageManager):
 
                     repository_data = bs_obj.find('div', {'class': 'UnitMeta-repo'})
                     if repository_data:
-                        homepage = repository_data.find('a')['href']
+                        dn_loc = repository_data.find('a')['href']
+                    else:
+                        dn_loc = homepage
 
             except Exception as e:
                 logging.warning(f"Fail to parse {package_path} in go mod : {e}")
