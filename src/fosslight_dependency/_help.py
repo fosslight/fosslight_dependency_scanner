@@ -31,9 +31,9 @@ _HELP_MESSAGE_DEPENDENCY = """
             -p <input_path>\t\t    Enter the path where the script will be run.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
-            -f <format>\t\t\t    Output file format (excel, csv, opossum)
+            -f <format>\t\t\t    Output file format (excel, csv, opossum, yaml)
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
-                                \t\tChoice 'Ture' or 'False'. (default:True)
+                                \t\tChoice 'True' or 'False'. (default:True)
 
         Required only for pypi
             -a <activate_cmd>\t\t    Virtual environment activate command(ex, 'conda activate (venv name)')

@@ -72,6 +72,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     sheet_list = {}
     sheet_list[_sheet_name] = []
     _json_ext = ".json"
+    _yaml_ext = ".yaml"
     _start_time = datetime.now().strftime('%y%m%d_%H%M%S')
 
     success, msg, output_path, output_file, output_extension = check_output_format(output_dir_file, format)
@@ -83,9 +84,11 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
         if output_file == "":
             if output_extension == _json_ext:
-                output_file = "Opossum_input_" + _start_time
+                output_file = f"Opossum_input_{_start_time}"
+            elif output_extension == _yaml_ext:
+                output_file = f"fosslight-sbom-info_{_start_time}"
             else:
-                output_file = "FOSSLight-Report_" + _start_time
+                output_file = f"FOSSLight-Report_{_start_time}"
     else:
         logger.error(msg)
         sys.exit(1)
