@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.11.0 (16/06/2022)
+## Changes
+## 🚀 Features
+
+- Add to generate yaml format result @dd-jy (#88)
+
+## 🔧 Maintenance
+
+- Change the output for Go @dd-jy (#89)
+
+---
+
 ## v3.10.1 (10/05/2022)
 ## Changes
 ## 🔧 Maintenance
@@ -319,9 +331,3 @@
 ## 🔧 Maintenance
 - Update 3rd party License text
 - Update documents (README, user-guide)
----
-
-## v3.0.0 (27/01/2021)
-## Changes
-## 🚀 Features
-- FOSSLight dependency initial release
