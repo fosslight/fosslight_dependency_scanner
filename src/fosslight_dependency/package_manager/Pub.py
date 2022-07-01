@@ -37,6 +37,10 @@ class Pub(PackageManager):
             shutil.rmtree(self.tmp_dir)
 
     def run_plugin(self):
+        if os.path.exists(self.input_file_name):
+            logger.info(f"Found {self.input_file_name}, skip the flutter cmd to analyze dependency.")
+            return True
+
         if not os.path.exists(const.SUPPORT_PACKAE.get(self.package_manager_name)):
             logger.error(f"Cannot find the file({const.SUPPORT_PACKAE.get(self.package_manager_name)})")
             return False
@@ -66,11 +70,7 @@ class Pub(PackageManager):
         ret = subprocess.check_output(cmd, shell=True)
         if ret != 0:
             pub_deps = ret.decode('utf8')
-            for line in pub_deps.split('\n'):
-                re_result = re.findall(r'\-\-\s(\S+[^.\s])[.|\s]', line)
-                if re_result:
-                    self.total_dep_list.append(re_result[0])
-            self.total_dep_list = list(set(self.total_dep_list))
+            self.parse_no_deps_file(pub_deps)
 
         cmd = f"flutter pub run flutter_oss_licenses:generate.dart -o {self.input_file_name} --json"
         ret = subprocess.call(cmd, shell=True)
@@ -81,10 +81,23 @@ class Pub(PackageManager):
 
         return True
 
+    def parse_no_deps_file(self, f):
+        for line in f.split('\n'):
+            re_result = re.findall(r'\-\-\s(\S+[^.\s])[.|\s]', line)
+            if re_result:
+                self.total_dep_list.append(re_result[0])
+        self.total_dep_list = list(set(self.total_dep_list))
+
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
         json_data = ''
         comment = ''
+        tmp_no_deps_file = 'tmp_no_deps_result.txt'
+
+        if os.path.exists(tmp_no_deps_file):
+            with open(tmp_no_deps_file, 'r', encoding='utf8') as deps_f:
+                deps_l = deps_f.read()
+                self.parse_no_deps_file(deps_l)
 
         with open(f_name, 'r', encoding='utf8') as pub_file:
             json_f = json.load(pub_file)
@@ -94,34 +107,35 @@ class Pub(PackageManager):
 
             for json_data in json_f:
                 oss_origin_name = json_data['name']
-                if oss_origin_name in self.total_dep_list:
-                    oss_name = f"{self.package_manager_name}:{oss_origin_name}"
-                    oss_version = json_data['version']
-                    homepage = json_data['homepage']
-                    dn_loc = f"{self.dn_url}{oss_origin_name}/versions/{oss_version}"
-                    license_txt = json_data['license']
+                if self.total_dep_list != [] and oss_origin_name not in self.total_dep_list:
+                    continue
+                oss_name = f"{self.package_manager_name}:{oss_origin_name}"
+                oss_version = json_data['version']
+                homepage = json_data['homepage']
+                dn_loc = f"{self.dn_url}{oss_origin_name}/versions/{oss_version}"
+                license_txt = json_data['license']
 
-                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                    tmp_license_txt.write(license_txt)
-                    tmp_license_txt.close()
+                tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
+                tmp_license_txt.write(license_txt)
+                tmp_license_txt.close()
 
-                    license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
-                                                                                      self.license_scanner_bin,
-                                                                                      tmp_license_txt_file_name)
+                license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
+                                                                                  self.license_scanner_bin,
+                                                                                  tmp_license_txt_file_name)
 
-                    if license_name_with_license_scanner != "":
-                        license_name = license_name_with_license_scanner
+                if license_name_with_license_scanner != "":
+                    license_name = license_name_with_license_scanner
+                else:
+                    license_name = ''
+
+                if self.direct_dep:
+                    if json_data['isDirectDependency']:
+                        comment = 'direct'
                     else:
-                        license_name = ''
+                        comment = 'transitive'
 
-                    if self.direct_dep:
-                        if json_data['isDirectDependency']:
-                            comment = 'direct'
-                        else:
-                            comment = 'transitive'
-
-                    sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
         except Exception as e:
             logger.error(f"Fail to parse pub oss information: {e}")
 
