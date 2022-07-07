@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.11.1 (07/07/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Modify to analyze pub dependency @dd-jy (#90)
+
+---
+
 ## v3.11.0 (16/06/2022)
 ## Changes
 ## 🚀 Features
@@ -322,12 +330,3 @@
 ## Changes
 ## 🐛 Hotfixes
 - Fix to generate a single oss for multiple license names for npm, maven
----
-
-## v3.0.1 (26/02/2021)
-## Changes
-## 🚀 Features
-- Add prefix 'pub:' to oss name in result file for pub package manager
-## 🔧 Maintenance
-- Update 3rd party License text
-- Update documents (README, user-guide)
