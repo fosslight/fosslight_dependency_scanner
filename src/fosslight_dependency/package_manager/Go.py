@@ -36,8 +36,8 @@ class Go(PackageManager):
     def run_plugin(self):
         ret = True
 
-        logger.info("Execute 'go list -m -json all' to obtain package info.")
-        cmd = f"go list -m -json all > {self.tmp_file_name}"
+        logger.info("Execute 'go list -m -mod=mod -json all' to obtain package info.")
+        cmd = f"go list -m -mod=mod -json all > {self.tmp_file_name}"
 
         ret_cmd = subprocess.call(cmd, shell=True)
         if ret_cmd != 0:
