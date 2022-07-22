@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.11.2 (22/07/2022)
+## Changes
+## 🚀 Features
+
+- [Enhancement] Golang go list option Fix @ehdwn1991 (#91)
+
+---
+
 ## v3.11.1 (07/07/2022)
 ## Changes
 ## 🐛 Hotfixes
@@ -324,9 +332,3 @@
 ## Changes
 ## 🔧 Maintenance
 - Modify to include binaries that analyze license text.
----
-
-## v3.0.2 (05/03/2021)
-## Changes
-## 🐛 Hotfixes
-- Fix to generate a single oss for multiple license names for npm, maven
