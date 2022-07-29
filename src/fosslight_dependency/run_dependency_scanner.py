@@ -152,17 +152,17 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 if const.ANDROID in found_package_manager.keys():
                     found_package_manager[const.ANDROID] = pass_key
 
-    if sheet_list is not None:
         output_file_without_ext = os.path.join(output_path, output_file)
         success_to_write, writing_msg, result_file = write_output_file(output_file_without_ext, output_extension,
                                                                        sheet_list)
         if success_to_write:
-            logger.info(f"Writing Output file({result_file}, success:{success_to_write}")
+            if result_file:
+                logger.info(f"Writing Output file({result_file}), success:{success_to_write}")
+            else:
+                logger.warning(f"{writing_msg}")
         else:
             ret = False
             logger.error(f"Fail to generate result file. msg:({writing_msg})")
-    else:
-        logger.error("Analyzing result is empty.")
 
     logger.warning("### FINISH ###")
     return ret, sheet_list
