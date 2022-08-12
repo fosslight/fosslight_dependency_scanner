@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.11.3 (12/08/2022)
+## Changes
+## 🔧 Maintenance
+
+- Change a message when there is no output @soimkim (#92)
+
+---
+
 ## v3.11.2 (22/07/2022)
 ## Changes
 ## 🚀 Features
@@ -326,9 +334,3 @@
 ## Changes
 ## 🔧 Maintenance
 - Add license file to wheel
----
-
-## v3.0.3 (12/03/2021)
-## Changes
-## 🔧 Maintenance
-- Modify to include binaries that analyze license text.
