@@ -22,6 +22,7 @@ class Npm(PackageManager):
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
     flag_tmp_node_modules = False
+    package_name = ''
 
     direct_dep_dict = dict()
 
@@ -111,7 +112,9 @@ class Npm(PackageManager):
                         comment = 'direct'
                 else:
                     comment = 'transitive'
-
+            if self.package_name:
+                if self.package_name == oss_init_name:
+                    comment = 'root package'
             multi_license = check_multi_license(license_name)
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             if multi_license:
@@ -132,11 +135,14 @@ class Npm(PackageManager):
         tmp_oss_list = []
         dependencies = 'dependencies'
         version = 'version'
+        name = 'name'
 
         manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
         try:
             with open(manifest_file, 'r') as lock_file:
                 json_lock = json.load(lock_file)
+                if name in json_lock:
+                    self.package_name = json_lock[name]
                 if dependencies in json_lock:
                     for dep in json_lock[dependencies]:
                         tmp_oss_list.append(dep)
