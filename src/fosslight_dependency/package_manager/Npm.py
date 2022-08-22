@@ -8,6 +8,7 @@ import logging
 import subprocess
 import json
 import shutil
+import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -115,14 +116,14 @@ class Npm(PackageManager):
             if self.package_name:
                 if self.package_name == oss_init_name:
                     comment = 'root package'
-            multi_license = check_multi_license(license_name)
+
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
-            if multi_license:
-                for l_idx in range(0, len(license_name)):
-                    license_name = license_name[l_idx].replace(",", "")
-                    license_name = check_unknown_license(license_name, manifest_file_path)
-                    sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+            multi_license, license_comment = check_multi_license(license_name, manifest_file_path)
+
+            if license_comment != '':
+                comment = f'{comment}, {license_comment}'
+                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
+                                  oss_name, oss_version, multi_license, dn_loc, homepage, '', '', comment])
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
@@ -155,13 +156,28 @@ class Npm(PackageManager):
             logger.warning(f'Cannot print if it is direct dependency: {e}')
 
 
-def check_multi_license(license_name):
-    if isinstance(license_name, list):
-        multi_license = True
-    else:
-        multi_license = False
+def check_multi_license(license_name, manifest_file_path):
+    multi_license_list = []
+    multi_license = ''
+    license_comment = ''
+    try:
+        if isinstance(license_name, list):
+            for i in range(0, len(license_name)):
+                l_i = license_name[i].replace(",", "")
+                multi_license_list.append(check_unknown_license(l_i, manifest_file_path))
+            multi_license = ','.join(multi_license_list)
+        else:
+            if license_name.startswith('(') and license_name.endswith(')'):
+                license_name = license_name[1:]
+                license_name = license_name[:-1]
+                license_comment = license_name
+                re_result = re.findall(r'(\S+)\s(AND|OR)\s(\S+)', license_comment)
+                multi_license = f'{re_result[0][0]},{re_result[0][2]}'
+    except Exception as e:
+        multi_license = license_name
+        logger.warning(f'Fail to parse multi license in npm: {e}')
 
-    return multi_license
+    return multi_license, license_comment
 
 
 def check_unknown_license(license_name, manifest_file_path):
