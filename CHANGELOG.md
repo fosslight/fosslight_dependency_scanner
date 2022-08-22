@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.11.4 (22/08/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the comment for npm root package @dd-jy (#93)
+
+## 🔧 Maintenance
+
+- Separate multi license for Npm @dd-jy (#94)
+
+---
+
 ## v3.11.3 (12/08/2022)
 ## Changes
 ## 🔧 Maintenance
@@ -327,10 +339,3 @@
 ## 🚀 Features
 - Support cocoapods package manager
 
-
----
-
-## v3.0.4 (13/03/2021)
-## Changes
-## 🔧 Maintenance
-- Add license file to wheel
