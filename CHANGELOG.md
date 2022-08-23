@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.11.5 (23/08/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Fix to separate multi license for npm @dd-jy (#95)
+
+---
+
 ## v3.11.4 (22/08/2022)
 ## Changes
 ## 🐛 Hotfixes
@@ -332,10 +340,3 @@
 
 - Update changelog @dd-jy (#6)
 - Update github workflows @dd-jy (#5)
----
-
-## v3.0.5 (19/03/2021)
-## Changes
-## 🚀 Features
-- Support cocoapods package manager
-
