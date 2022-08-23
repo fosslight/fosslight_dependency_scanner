@@ -35,12 +35,12 @@ _HELP_MESSAGE_DEPENDENCY = """
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
                                 \t\tChoice 'True' or 'False'. (default:True)
 
-        Required only for pypi
-            -a <activate_cmd>\t\t    Virtual environment activate command(ex, 'conda activate (venv name)')
-            -d <deactivate_cmd>\t\t    Virtual environment deactivate command(ex, 'conda deactivate')
-
         Required only for swift, carthage
             -t <token>\t\t\t    Enter the github personal access token.
+
+        Optional only for pypi
+            -a <activate_cmd>\t\t    Virtual environment activate command(ex, 'conda activate (venv name)')
+            -d <deactivate_cmd>\t\t    Virtual environment deactivate command(ex, 'conda deactivate')
 
         Optional only for gradle, maven
             -c <dir_name>\t\t    Enter the customized build output directory name
