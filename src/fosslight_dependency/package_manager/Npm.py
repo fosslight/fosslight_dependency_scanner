@@ -168,11 +168,9 @@ def check_multi_license(license_name, manifest_file_path):
             multi_license = ','.join(multi_license_list)
         else:
             if license_name.startswith('(') and license_name.endswith(')'):
-                license_name = license_name[1:]
-                license_name = license_name[:-1]
+                license_name = license_name.lstrip('(').rstrip(')')
                 license_comment = license_name
-                re_result = re.findall(r'(\S+)\s(AND|OR)\s(\S+)', license_comment)
-                multi_license = f'{re_result[0][0]},{re_result[0][2]}'
+                multi_license = ','.join(re.split(r'OR|AND', license_name))
     except Exception as e:
         multi_license = license_name
         logger.warning(f'Fail to parse multi license in npm: {e}')
