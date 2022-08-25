@@ -110,10 +110,10 @@ class Pypi(PackageManager):
         cmd = cmd_separator.join(cmd_list)
 
         try:
-            cmd_ret = subprocess.call(cmd, shell=True)
-            if cmd_ret != 0:
+            cmd_ret = subprocess.run(cmd, shell=True)
+            if cmd_ret.returncode != 0:
                 ret = False
-                err_msg = f"return code({cmd_ret})"
+                err_msg = f"return code({cmd_ret.returncode})"
         except Exception as e:
             ret = False
             err_msg = e
