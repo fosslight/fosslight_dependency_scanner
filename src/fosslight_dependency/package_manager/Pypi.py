@@ -110,10 +110,13 @@ class Pypi(PackageManager):
         cmd = cmd_separator.join(cmd_list)
 
         try:
-            cmd_ret = subprocess.call(cmd, shell=True)
-            if cmd_ret != 0:
+            cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+            if cmd_ret.returncode != 0:
                 ret = False
-                err_msg = f"return code({cmd_ret})"
+                err_msg = f"return code({cmd_ret.returncode})"
+            elif cmd_ret.stderr.decode('utf-8').rstrip().startswith('ERROR:'):
+                ret = False
+                err_msg = f"stderr msg({cmd_ret.stderr})"
         except Exception as e:
             ret = False
             err_msg = e
@@ -234,6 +237,7 @@ class Pypi(PackageManager):
         sheet_list = []
         comment = ''
         try:
+            oss_init_name = ''
             with open(f_name, 'r', encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
 
@@ -267,7 +271,7 @@ class Pypi(PackageManager):
                                    license_name, dn_loc, homepage, '', '', comment])
 
         except Exception as ex:
-            logger.error(f"Failed to parse oss information: {ex}")
+            logger.warning(f"Fail to parse oss information: {oss_init_name}({ex})")
 
         return sheet_list
 

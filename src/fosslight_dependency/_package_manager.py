@@ -255,9 +255,8 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
                 license_name = ""
                 return license_name
             else:
-                ret = os.system(run_license_scanner)
-                if ret != 0:
-                    logger.info("=> (No error) This is the information that the license was not found.")
+                ret = subprocess.run(run_license_scanner, shell=True, stderr=subprocess.PIPE)
+                if ret.returncode != 0 or ret.stderr:
                     return ""
 
             fp = open(tmp_output_file_name, "r", encoding='utf8')
