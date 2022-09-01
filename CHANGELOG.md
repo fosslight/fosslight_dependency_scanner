@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.11.6 (01/09/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Fix error when it fails to create venv for Pypi @dd-jy (#97)
+
+## 🔧 Maintenance
+
+- Change the help message @dd-jy (#96)
+
+---
+
 ## v3.11.5 (23/08/2022)
 ## Changes
 ## 🐛 Hotfixes
@@ -327,16 +339,3 @@
 - Change oss name for cocoapods package manager @dd-jy (#10)
 - Create CODE_OF_CONDUCT.md @dd-jy (#9)
 - Add CONTRIBUTING.md @dd-jy (#8)
-
----
-
-## v3.0.6 (25/03/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the cocoapods error @dd-jy (#7)
-
-## 🔧 Maintenance
-
-- Update changelog @dd-jy (#6)
-- Update github workflows @dd-jy (#5)
