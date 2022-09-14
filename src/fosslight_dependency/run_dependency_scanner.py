@@ -72,8 +72,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     sheet_list = {}
     sheet_list[_sheet_name] = []
     _json_ext = ".json"
-    _yaml_ext = ".yaml"
-    _start_time = datetime.now().strftime('%y%m%d_%H%M%S')
+    _start_time = datetime.now().strftime('%y%m%d_%H%M')
 
     success, msg, output_path, output_file, output_extension = check_output_format(output_dir_file, format)
     if success:
@@ -84,16 +83,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
         if output_file == "":
             if output_extension == _json_ext:
-                output_file = f"Opossum_input_{_start_time}"
-            elif output_extension == _yaml_ext:
-                output_file = f"fosslight-sbom-info_{_start_time}"
+                output_file = f"fosslight_opossum_{_start_time}"
             else:
-                output_file = f"FOSSLight-Report_{_start_time}"
+                output_file = f"fosslight_report_{_start_time}"
     else:
         logger.error(msg)
         sys.exit(1)
 
-    logger, _result_log = init_log(os.path.join(output_path, "fosslight_dependency_log_" + _start_time + ".txt"),
+    logger, _result_log = init_log(os.path.join(output_path, "fosslight_dep_log_" + _start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME)
 
     logger.info(f"Tool Info : {_result_log['Tool Info']}")
