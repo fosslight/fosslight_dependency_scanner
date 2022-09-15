@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.11.7 (15/09/2022)
+## Changes
+## 🔧 Maintenance
+
+- Change output report file name @dd-jy (#98)
+
+---
+
 ## v3.11.6 (01/09/2022)
 ## Changes
 ## 🐛 Hotfixes
@@ -324,18 +332,3 @@
 - Add files for reuse compliance. @soimkim (#19)
 - Update only CHANGELOG.md when releasing @soimkim (#18)
 - Apply Tox Configuration & Change help message @bjk7119 (#17)
-
----
-
-## v3.0.7 (17/05/2021)
-## Changes
-## 🔧 Maintenance
-
-- Refactoring code and use fosslight_util @dd-jy (#15)
-- Update user-guide.md @dd-jy (#14)
-- Update contributing guide about DCO @dd-jy (#13)
-- Update the pypi description to README.md @dd-jy (#12)
-- Add 'cocoapods:' to oss name for cocoapods package @dd-jy (#11)
-- Change oss name for cocoapods package manager @dd-jy (#10)
-- Create CODE_OF_CONDUCT.md @dd-jy (#9)
-- Add CONTRIBUTING.md @dd-jy (#8)
