@@ -90,7 +90,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         logger.error(msg)
         sys.exit(1)
 
-    logger, _result_log = init_log(os.path.join(output_path, "fosslight_dep_log_" + _start_time + ".txt"),
+    logger, _result_log = init_log(os.path.join(output_path, "fosslight_log_" + _start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME)
 
     logger.info(f"Tool Info : {_result_log['Tool Info']}")
