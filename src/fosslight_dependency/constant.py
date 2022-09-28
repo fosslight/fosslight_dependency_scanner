@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
+import os
 
 # System platform name
 WINDOWS = 'Windows'
@@ -19,6 +20,7 @@ ANDROID = 'android'
 SWIFT = 'swift'
 CARTHAGE = 'carthage'
 GO = 'go'
+NUGET = 'nuget'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
@@ -31,7 +33,8 @@ SUPPORT_PACKAE = {
     ANDROID: 'build.gradle',
     SWIFT: 'Package.resolved',
     CARTHAGE: 'Cartfile.resolved',
-    GO: 'go.mod'
+    GO: 'go.mod',
+    NUGET: ['packages.config', os.path.join('obj', 'package.assets.json'), os.path.join('obj', 'project.assets.json')]
 }
 
 # default android app name
