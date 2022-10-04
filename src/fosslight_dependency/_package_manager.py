@@ -23,9 +23,9 @@ except Exception:
 logger = logging.getLogger(constant.LOGGER_NAME)
 
 # binary url to check license text
-_license_scanner_linux = "third_party/nomos/nomossa"
-_license_scanner_macos = "third_party/askalono/askalono_macos"
-_license_scanner_windows = "third_party\\askalono\\askalono.exe"
+_license_scanner_linux = os.path.join('third_party', 'nomos', 'nomossa')
+_license_scanner_macos = os.path.join('third_party', 'askalono', 'askalono_macos')
+_license_scanner_windows = os.path.join('third_party', 'askalono', 'askalono.exe')
 
 
 class PackageManager:
