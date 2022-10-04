@@ -90,9 +90,9 @@ class Nuget(PackageManager):
                         proj_url_id = nupkg_metadata.find(f'{xmlns}projectUrl')
                         if proj_url_id is not None:
                             dn_loc = proj_url_id.text
-                    homepage = f'{self.dn_url}{oss_origin_name}/{oss_version}'
+                    homepage = f'{self.dn_url}{oss_origin_name}'
                     if dn_loc == '':
-                        dn_loc = homepage
+                        dn_loc = f'{homepage}/{oss_version}'
                     else:
                         if dn_loc.endswith('.git'):
                             dn_loc = dn_loc[:-4]
