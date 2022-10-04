@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.11.8 (04/10/2022)
+## Changes
+## 🚀 Features
+
+- Support nuget package manager @dd-jy (#100)
+
+## 🔧 Maintenance
+
+- Change log file name to fosslight_log_{datetime}.txt @dd-jy (#99)
+
+---
+
 ## v3.11.7 (15/09/2022)
 ## Changes
 ## 🔧 Maintenance
@@ -318,17 +330,3 @@
 ## 🔧 Maintenance
 
 - change user guide @dd-jy (#22)
-
----
-
-## v3.1.0 (10/06/2021)
-## Changes
-## 🐛 Hotfixes
-
-- fix the executable file import error @dd-jy (#20)
-
-## 🔧 Maintenance
-
-- Add files for reuse compliance. @soimkim (#19)
-- Update only CHANGELOG.md when releasing @soimkim (#18)
-- Apply Tox Configuration & Change help message @bjk7119 (#17)
