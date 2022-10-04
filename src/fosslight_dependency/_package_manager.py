@@ -257,12 +257,12 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
             else:
                 ret = subprocess.run(run_license_scanner, shell=True, stderr=subprocess.PIPE)
                 if ret.returncode != 0 or ret.stderr:
+                    os.remove(tmp_output_file_name)
                     return ""
 
             fp = open(tmp_output_file_name, "r", encoding='utf8')
             license_output = fp.read()
             fp.close()
-            os.remove(tmp_output_file_name)
 
             if platform == const.LINUX:
                 license_output_re = re.findall(r'.*contains license\(s\)\s(.*)', license_output)
@@ -275,6 +275,7 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
                     license_name = ""
             else:
                 license_name = ""
+            os.remove(tmp_output_file_name)
 
     except Exception as ex:
         logger.error(f"Failed to run license scan binary. {ex}")

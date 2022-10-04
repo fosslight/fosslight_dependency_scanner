@@ -97,3 +97,11 @@ License: Apache-2.0
 Files: tests/test_gradle2/*
 Copyright: 2014 Netflix
 License: Apache-2.0
+
+Files: tests/test_nuget/*
+Copyright: 2022 LG Electronics
+License: Apache-2.0
+
+Files: tests/test_nuget2/*
+Copyright: 2022 LG Electronics
+License: Apache-2.0
