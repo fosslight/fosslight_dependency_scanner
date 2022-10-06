@@ -1,6 +1,12 @@
 # Changelog
 
-## v3.11.8 (04/10/2022)
+## v3.12.1 (01/01/1970)
+## Changes
+* No changes
+
+---
+
+## v3.12.0 (04/10/2022)
 ## Changes
 ## 🚀 Features
 
@@ -8,6 +14,8 @@
 
 ## 🔧 Maintenance
 
+- Fix the path string for each platform @dd-jy (#102)
+- Add the additional infor for Nuget @dd-jy (#101)
 - Change log file name to fosslight_log_{datetime}.txt @dd-jy (#99)
 
 ---
@@ -318,15 +326,3 @@
 - Update nomos standalone binary @dd-jy (#25)
 - Update reuse related files @soimkim (#24)
 - Change name to FOSSLight Dependency Scanner @dd-jy (#23)
-
----
-
-## v3.2.0 (11/06/2021)
-## Changes
-## 🚀 Features
-
-- add android dependency scanning @dd-jy (#21)
-
-## 🔧 Maintenance
-
-- change user guide @dd-jy (#22)
