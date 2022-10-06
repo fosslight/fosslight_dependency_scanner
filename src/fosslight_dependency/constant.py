@@ -34,7 +34,7 @@ SUPPORT_PACKAE = {
     SWIFT: 'Package.resolved',
     CARTHAGE: 'Cartfile.resolved',
     GO: 'go.mod',
-    NUGET: ['packages.config', os.path.join('obj', 'package.assets.json'), os.path.join('obj', 'project.assets.json')]
+    NUGET: ['packages.config', os.path.join('obj', 'project.assets.json')]
 }
 
 # default android app name
