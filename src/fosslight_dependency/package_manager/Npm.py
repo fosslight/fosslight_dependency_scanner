@@ -44,7 +44,7 @@ class Npm(PackageManager):
     def start_license_checker(self):
         ret = True
         tmp_custom_json = 'custom.json'
-        license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
+        license_checker_cmd = f'license-checker --excludePrivatePackages --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
         npm_install_cmd = 'npm install --prod'
 
