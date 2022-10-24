@@ -72,13 +72,7 @@ jobs:
       run: |
         pyinstaller --onefile cli.py -n cli --additional-hooks-dir=hooks --add-binary "src/fosslight_dependency/third_party/askalono/askalono.exe;third_party/askalono"
         mkdir out
-        move dist/cli.exe out/fosslight_dependency.exe
-        
-    - name : Zip release file
-      run: |
-        move ./LICENSES/LicenseRef-3rd_party_licenses.txt out/
-        move ./LICENSE out/
-        Compress-Archive out fosslight_dependency_windows.zip
+        move dist/cli.exe fosslight_dependency.exe
                 
     - name: Upload release file
       uses: actions/upload-release-asset@v1.0.1
@@ -86,9 +80,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./fosslight_dependency_windows.zip
-        asset_name: fosslight_dependency_windows.zip
-        asset_content_type: application/zip
+        asset_path: ./fosslight_dependency_windows.exe
+        asset_name: fosslight_dependency_windows.exe
+        asset_content_type: application/octet-stream
 
   deploy:
     runs-on: ubuntu-18.04

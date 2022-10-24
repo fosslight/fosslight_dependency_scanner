@@ -35,6 +35,7 @@ _HELP_MESSAGE_DEPENDENCY = """
             -f <format>\t\t\t    Output file format (excel, csv, opossum, yaml)
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
                                 \t\tChoice 'True' or 'False'. (default:True)
+            --notice\t\t\t    Print the notice text.
 
         Required only for swift, carthage
             -t <token>\t\t\t    Enter the github personal access token.
