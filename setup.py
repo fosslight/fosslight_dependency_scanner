@@ -21,14 +21,17 @@ _LICENSE_DIR = 'LICENSES'
 
 if __name__ == "__main__":
     dest_path = os.path.join('src', _PACKAEG_NAME, _LICENSE_DIR)
-    if not os.path.exists(dest_path):
-        os.mkdir(dest_path)
-    if os.path.isfile(_LICENSE_FILE):
-        shutil.copy(_LICENSE_FILE, dest_path)
-    if os.path.isdir(_LICENSE_DIR):
-        license_f = [f_name for f_name in os.listdir(_LICENSE_DIR) if f_name.upper().startswith(_LICENSE_FILE)]
-        for lic_f in license_f:
-            shutil.copy(os.path.join(_LICENSE_DIR, lic_f), dest_path)
+    try:
+        if not os.path.exists(dest_path):
+            os.mkdir(dest_path)
+        if os.path.isfile(_LICENSE_FILE):
+            shutil.copy(_LICENSE_FILE, dest_path)
+        if os.path.isdir(_LICENSE_DIR):
+            license_f = [f_name for f_name in os.listdir(_LICENSE_DIR) if f_name.upper().startswith(_LICENSE_FILE)]
+            for lic_f in license_f:
+                shutil.copy(os.path.join(_LICENSE_DIR, lic_f), dest_path)
+    except Exception as e:
+        print(f'Warning: Fail to copy the license text: {e}')
 
     setup(
         name=_PACKAEG_NAME,
@@ -42,8 +45,12 @@ if __name__ == "__main__":
         author='LG Electronics',
         url='https://github.com/fosslight/fosslight_dependency_scanner',
         download_url='https://github.com/fosslight/fosslight_dependency_scanner',
-        classifiers=['Programming Language :: Python :: 3.6',
-                     'License :: OSI Approved :: Apache Software License'],
+        classifiers=['License :: OSI Approved :: Apache Software License',
+                     "Programming Language :: Python :: 3",
+                     "Programming Language :: Python :: 3.6",
+                     "Programming Language :: Python :: 3.7",
+                     "Programming Language :: Python :: 3.8",
+                     "Programming Language :: Python :: 3.9", ],
         install_requires=required,
         package_data={_PACKAEG_NAME: [os.path.join('third_party', 'nomos', 'nomossa'),
                                       os.path.join('third_party', 'askalono', 'askalono.exe'),

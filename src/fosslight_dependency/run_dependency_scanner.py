@@ -232,7 +232,7 @@ def main():
             base_path = os.path.dirname(__file__)
 
         data_path = os.path.join(base_path, 'LICENSES')
-        print(f"{_PKG_NAME} open source license notice")
+        print(f"*** {_PKG_NAME} open source license notice ***")
         for ff in os.listdir(data_path):
             f = open(os.path.join(data_path, ff), 'r', encoding='utf8')
             print(f.read())

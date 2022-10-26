@@ -70,7 +70,7 @@ jobs:
         
     - name: Build exe with PyInstaller for windows
       run: |
-        pyinstaller --onefile cli.py -n cli --additional-hooks-dir=hooks --add-binary "src/fosslight_dependency/third_party/askalono/askalono.exe;third_party/askalono"
+        pyinstaller --onefile cli.py -n cli --additional-hooks-dir=hooks --add-binary "src/fosslight_dependency/third_party/askalono/askalono.exe;third_party/askalono" --add-binary "LICENSE;LICENSES" --add-binary "LICENSES\LicenseRef-3rd_party_licenses.txt;LICENSES" --collect-datas fosslight_util
         mkdir out
         move dist/cli.exe fosslight_dependency.exe
                 
