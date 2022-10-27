@@ -190,6 +190,7 @@ def main():
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
     parser.add_argument('-f', '--format', nargs=1, type=str, required=False)
     parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
+    parser.add_argument('--notice', action='store_true', required=False)
 
     args = parser.parse_args()
 
@@ -224,6 +225,18 @@ def main():
             direct = True
         elif args.direct == 'false':
             direct = False
+    if args.notice:  # --notice option
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.dirname(__file__)
+
+        data_path = os.path.join(base_path, 'LICENSES')
+        print(f"*** {_PKG_NAME} open source license notice ***")
+        for ff in os.listdir(data_path):
+            f = open(os.path.join(data_path, ff), 'r', encoding='utf8')
+            print(f.read())
+        sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
                            output_custom_dir, app_name, github_token, format, direct)
