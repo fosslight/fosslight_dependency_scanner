@@ -1,8 +1,14 @@
 # Changelog
 
-## v3.12.1 (01/01/1970)
+## v3.12.1 (27/10/2022)
 ## Changes
-* No changes
+## 🚀 Features
+
+- Exclude private packages from NPM license-checker @Elastino (#103)
+
+## 🔧 Maintenance
+
+- Print license text through notice parameter @dd-jy (#104)
 
 ---
 
