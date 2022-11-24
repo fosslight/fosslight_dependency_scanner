@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.12.2 (24/11/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the gradle direct/transitive issue @dd-jy (#106)
+
+## 🔧 Maintenance
+
+- Fix duplicated output file if multi package manager @dd-jy (#105)
+
+---
+
 ## v3.12.1 (27/10/2022)
 ## Changes
 ## 🚀 Features
@@ -321,14 +333,3 @@
 ## 🐛 Hotfixes
 
 - Fix the pub parsing error @dd-jy (#29)
-
----
-
-## v3.2.1 (24/06/2021)
-## 🔧 Maintenance
-
-- Update PR action commands @soimkim (#28)
-- Update nomos standalone binary and source @dd-jy (#27)
-- Update nomos standalone binary @dd-jy (#25)
-- Update reuse related files @soimkim (#24)
-- Change name to FOSSLight Dependency Scanner @dd-jy (#23)
