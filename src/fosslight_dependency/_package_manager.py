@@ -27,6 +27,9 @@ _license_scanner_linux = os.path.join('third_party', 'nomos', 'nomossa')
 _license_scanner_macos = os.path.join('third_party', 'askalono', 'askalono_macos')
 _license_scanner_windows = os.path.join('third_party', 'askalono', 'askalono.exe')
 
+gradle_config = ['runtimeClasspath', 'runtime']
+android_config = ['releaseRuntimeClasspath']
+
 
 class PackageManager:
     input_package_list_file = []
@@ -104,9 +107,8 @@ class PackageManager:
 
     def add_allDeps_in_gradle(self):
         ret = False
-        configuration = 'project.configurations.runtimeClasspath, project.configurations.runtime'
-        if self.package_manager_name == 'android':
-            configuration = 'project.configurations.releaseRuntimeClasspath'
+        config = android_config if self.package_manager_name == 'android' else gradle_config
+        configuration = ','.join([f'project.configurations.{c}' for c in config])
 
         allDeps = f'''allprojects {{
                    task allDeps(type: DependencyReportTask) {{
@@ -140,15 +142,24 @@ class PackageManager:
         return ret
 
     def parse_dependency_tree(self, f_name):
+        config = android_config if self.package_manager_name == 'android' else gradle_config
         with open(f_name, 'r', encoding='utf8') as input_fp:
+            packages_in_config = False
             for i, line in enumerate(input_fp.readlines()):
                 try:
                     line_bk = copy.deepcopy(line)
-                    re_result = re.findall(r'\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
-                    if re_result:
-                        self.total_dep_list.append(re_result[0][0])
-                        if re.match(r'^[\+|\\]\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line_bk):
-                            self.direct_dep_list.append(re_result[0][0])
+                    if not packages_in_config:
+                        filtered = next(filter(lambda c: re.findall(rf'^{c}\s\-', line), config), None)
+                        if filtered:
+                            packages_in_config = True
+                    else:
+                        if line == '':
+                            packages_in_config = False
+                        re_result = re.findall(r'\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
+                        if re_result:
+                            self.total_dep_list.append(re_result[0][0])
+                            if re.match(r'^[\+|\\]\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line_bk):
+                                self.direct_dep_list.append(re_result[0][0])
                 except Exception as e:
                     logger.error(f"Failed to parse dependency tree: {e}")
 
