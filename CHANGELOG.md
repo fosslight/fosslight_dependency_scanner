@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.12.3 (22/12/2022)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the parsing bug for swift's Package.resolved @dd-jy (#107)
+
+---
+
 ## v3.12.2 (24/11/2022)
 ## Changes
 ## 🐛 Hotfixes
@@ -325,11 +333,3 @@
 ## 🐛 Hotfixes
 
 - Fix the windows executable file issue @dd-jy (#30)
-
----
-
-## v3.3.0 (24/06/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the pub parsing error @dd-jy (#29)
