@@ -70,12 +70,9 @@ class Swift(PackageManager):
 
             oss_name = f"{self.package_manager_name}:{oss_origin_name}"
 
-            revision = key['state']['revision']
-            version = key['state']['version']
-            if version is None:
-                oss_version = revision
-            else:
-                oss_version = version
+            oss_version = key['state'].get('version', None)
+            if oss_version is None:
+                oss_version = key['state'].get('revision', None)
 
             dn_loc = homepage
             license_name = ''
