@@ -7,7 +7,7 @@
 from codecs import open
 import os
 import shutil
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 with open('README.md', 'r', 'utf-8') as f:
     reamdme = f.read()
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         name=_PACKAEG_NAME,
         version='3.12.2',
         package_dir={"": "src"},
-        packages=find_packages(where='src'),
+        packages=find_namespace_packages(where='src'),
         description='FOSSLight Dependency Scanner',
         long_description=reamdme,
         long_description_content_type='text/markdown',
