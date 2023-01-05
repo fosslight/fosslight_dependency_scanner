@@ -1,5 +1,18 @@
 # Changelog
 
+## v3.12.4 (05/01/2023)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the npm multi license issue @dd-jy (#122)
+
+## 🔧 Maintenance
+
+- Change package to get release package @bjk7119 (#121)
+- Update version of packages for actions @bjk7119 (#120)
+
+---
+
 ## v3.12.3 (22/12/2022)
 ## Changes
 ## 🐛 Hotfixes
@@ -325,11 +338,3 @@
 - Move user-guide link to FOSSLight guide &  @dd-jy (#34)
 - Add tox test for windows and MacOS @bjk7119 (#34)
 - Add tox test for each package manger in Ubuntu environment @bjk7119 (#31)
-
----
-
-## v3.4.0 (02/07/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the windows executable file issue @dd-jy (#30)
