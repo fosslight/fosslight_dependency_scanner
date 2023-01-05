@@ -118,9 +118,9 @@ class Npm(PackageManager):
                     comment = 'root package'
 
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
-            multi_license, license_comment = check_multi_license(license_name, manifest_file_path)
+            multi_license, license_comment, multi_flag = check_multi_license(license_name, manifest_file_path)
 
-            if license_comment != '':
+            if multi_flag:
                 comment = f'{comment}, {license_comment}'
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   oss_name, oss_version, multi_license, dn_loc, homepage, '', '', comment])
@@ -160,22 +160,25 @@ def check_multi_license(license_name, manifest_file_path):
     multi_license_list = []
     multi_license = ''
     license_comment = ''
+    multi_flag = False
     try:
         if isinstance(license_name, list):
             for i in range(0, len(license_name)):
                 l_i = license_name[i].replace(",", "")
                 multi_license_list.append(check_unknown_license(l_i, manifest_file_path))
             multi_license = ','.join(multi_license_list)
+            multi_flag = True
         else:
             if license_name.startswith('(') and license_name.endswith(')'):
                 license_name = license_name.lstrip('(').rstrip(')')
                 license_comment = license_name
                 multi_license = ','.join(re.split(r'OR|AND', license_name))
+                multi_flag = True
     except Exception as e:
         multi_license = license_name
         logger.warning(f'Fail to parse multi license in npm: {e}')
 
-    return multi_license, license_comment
+    return multi_license, license_comment, multi_flag
 
 
 def check_unknown_license(license_name, manifest_file_path):
