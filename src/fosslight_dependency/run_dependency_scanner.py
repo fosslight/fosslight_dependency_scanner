@@ -199,7 +199,7 @@ def main():
 
     if args.version:  # -v option
         cur_version = pkg_resources.get_distribution(_PKG_NAME).version
-        print(f"FOSSLight Dependency Scanner Version : {cur_version}")
+        print(f"FOSSLight Dependency Scanner Version: {cur_version}")
         sys.exit(0)
 
     if args.manager:  # -m option
