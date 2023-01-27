@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.12.5 (27/01/2023)
+## Changes
+## 🔧 Maintenance
+
+- Unify version output format @bjk7119 (#123)
+
+---
+
 ## v3.12.4 (05/01/2023)
 ## Changes
 ## 🐛 Hotfixes
@@ -323,18 +331,3 @@
 - Update version in setup.py when released @bjk7119 (#38)
 - change the pypi license separator from ';' to ',' @dd-jy (#37)
 - Update CONTRIBUTING.md @bjk7119 (#36)
-
----
-
-## v3.5.0 (14/07/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the android scanning issues @dd-jy (#35)
-
-## 🔧 Maintenance
-
-- Fix the android scanning issues @dd-jy (#35)
-- Move user-guide link to FOSSLight guide &  @dd-jy (#34)
-- Add tox test for windows and MacOS @bjk7119 (#34)
-- Add tox test for each package manger in Ubuntu environment @bjk7119 (#31)
