@@ -8,7 +8,6 @@ import logging
 import json
 import yaml
 import re
-import traceback
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -99,8 +98,8 @@ class Cocoapods(PackageManager):
                     command = f"pod spec which --regex ^{search_oss_name}$"
                     spec_which = os.popen(command).readline()
                     if spec_which.startswith('[!]'):
-                        logger.error(f"This command({command}) returns an error")
-                        return ''
+                        logger.warning(f"This command({command}) returns an error")
+                        continue
 
                     file_path = spec_which.rstrip().split(os.path.sep)
                     if file_path[0] == '':
@@ -110,38 +109,49 @@ class Cocoapods(PackageManager):
                     spec_file_path = os.path.join(file_path_without_version, pod_oss[1], file_path[-1])
 
                 oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
+                if oss_name == '':
+                    continue
 
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
             except Exception as e:
-                logger.warning(f"It failed to get {pod_oss[0]}:{e}")
-                logger.warning(traceback.format_exc())
+                logger.warning(f"Fail to get {pod_oss[0]}:{e}")
 
         return sheet_list
 
     def get_oss_in_podspec(self, spec_file_path):
-        with open(spec_file_path, 'r', encoding='utf8') as json_file:
-            json_data = json.load(json_file)
+        oss_name = ''
+        oss_version = ''
+        license_name = ''
+        dn_loc = ''
+        homepage = ''
+        try:
+            with open(spec_file_path, 'r', encoding='utf8') as json_file:
+                json_data = json.load(json_file)
 
-            oss_origin_name = json_data['name']
-            oss_name = f"{self.package_manager_name}:{oss_origin_name}"
-            oss_version = json_data['version']
-            homepage = f"{self.dn_url}pods/{oss_origin_name}"
+                oss_origin_name = json_data['name']
+                oss_name = f"{self.package_manager_name}:{oss_origin_name}"
+                oss_version = json_data['version']
+                homepage = f"{self.dn_url}pods/{oss_origin_name}"
 
-            if not isinstance(json_data['license'], str):
-                if 'type' in json_data['license']:
-                    license_name = json_data['license']['type']
-            else:
-                license_name = json_data['license']
+                if 'license' in json_data:
+                    if not isinstance(json_data['license'], str):
+                        if 'type' in json_data['license']:
+                            license_name = json_data['license']['type']
+                    else:
+                        license_name = json_data['license']
+                else:
+                    license_name = ''
+                license_name = license_name.replace(",", "")
 
-            license_name = license_name.replace(",", "")
-
-            source_keys = [key for key in json_data['source']]
-            for src_type_i in _source_type:
-                if src_type_i in source_keys:
-                    dn_loc = json_data['source'][src_type_i]
-                    if dn_loc.endswith('.git'):
-                        dn_loc = dn_loc[:-4]
+                source_keys = [key for key in json_data['source']]
+                for src_type_i in _source_type:
+                    if src_type_i in source_keys:
+                        dn_loc = json_data['source'][src_type_i]
+                        if dn_loc.endswith('.git'):
+                            dn_loc = dn_loc[:-4]
+        except Exception as e:
+            logger.warning(f"Fail to get oss info in podspec:{e}")
 
         return oss_name, oss_version, license_name, dn_loc, homepage
 
