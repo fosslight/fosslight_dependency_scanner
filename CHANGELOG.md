@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.12.6 (23/02/2023)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the cocoapods issue @dd-jy (#124)
+
+## 🔧 Maintenance
+
+- Fix the cocoapods issue @dd-jy (#124)
+
+---
+
 ## v3.12.5 (27/01/2023)
 ## Changes
 ## 🔧 Maintenance
@@ -308,26 +320,3 @@
 ## 🚀 Features
 
 - Support carthage package manager @dd-jy (#48)
-
----
-
-## v3.6.1 (25/08/2021)
-## Changes
-## 🚀 Features
-
-- Support swift package manager @dd-jy (#45)
-
-## 🐛 Hotfixes
-
-- Fix the gradle license parsing error @dd-jy (#47)
-- Fix a bug related release actions @soimkim (#46)
-- Fix the maven license result parsing issue @dd-jy (#44)
-
-## 🔧 Maintenance
-
-- Fix the gradle license parsing error @dd-jy (#47)
-- Set condition to use FOSSLight Util v1.1.0 or later @bjk7119 (#43)
-- Merge init_log & init_log_item functiions @bjk7119 (#40)
-- Update version in setup.py when released @bjk7119 (#38)
-- change the pypi license separator from ';' to ',' @dd-jy (#37)
-- Update CONTRIBUTING.md @bjk7119 (#36)
