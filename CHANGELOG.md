@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.12.7 (09/03/2023)
+## Changes
+## 🚀 Features
+
+- Support Helm package manager @dd-jy (#125)
+
+## 🐛 Hotfixes
+
+- Fix the encoding issue @dd-jy (#127)
+
+---
+
 ## v3.12.6 (23/02/2023)
 ## Changes
 ## 🐛 Hotfixes
@@ -312,11 +324,3 @@
 
 - Add gitattributes to exclude test directory for languages @dd-jy (#52)
 - Update README.md @k2heart (#49)
-
----
-
-## v3.7.0 (27/08/2021)
-## Changes
-## 🚀 Features
-
-- Support carthage package manager @dd-jy (#48)
