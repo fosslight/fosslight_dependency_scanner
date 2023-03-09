@@ -82,7 +82,6 @@ class PackageManager:
         pass
 
     def run_gradle_task(self):
-        dependency_tree_fname = 'tmp_dependency_tree.txt'
         if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
             gradle_backup = f'{const.SUPPORT_PACKAE.get(self.package_manager_name)}_bk'
 
@@ -91,15 +90,20 @@ class PackageManager:
             if not ret:
                 return
 
-            ret = self.exeucte_gradle_task(dependency_tree_fname)
+            if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
+                if self.platform == const.WINDOWS:
+                    cmd_gradle = "gradlew.bat"
+                else:
+                    cmd_gradle = "./gradlew"
+            else:
+                return 1
+            cmd = f"{cmd_gradle} allDeps"
+            ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
             if ret != 0:
+                self.parse_dependency_tree(ret)
+            else:
                 self.set_direct_dependencies(False)
                 logger.warning("Failed to run allDeps task.")
-            else:
-                self.parse_dependency_tree(dependency_tree_fname)
-
-            if os.path.isfile(dependency_tree_fname):
-                os.remove(dependency_tree_fname)
 
             if os.path.isfile(gradle_backup):
                 os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
@@ -128,40 +132,26 @@ class PackageManager:
 
         return ret
 
-    def exeucte_gradle_task(self, dependency_tree_fname):
-        if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-            if self.platform == const.WINDOWS:
-                cmd_gradle = "gradlew.bat"
-            else:
-                cmd_gradle = "./gradlew"
-        else:
-            return 1
-        cmd = f"{cmd_gradle} allDeps > {dependency_tree_fname}"
-
-        ret = subprocess.call(cmd, shell=True)
-        return ret
-
-    def parse_dependency_tree(self, f_name):
+    def parse_dependency_tree(self, dependency_tree_fname):
         config = android_config if self.package_manager_name == 'android' else gradle_config
-        with open(f_name, 'r', encoding='utf8') as input_fp:
-            packages_in_config = False
-            for i, line in enumerate(input_fp.readlines()):
-                try:
-                    line_bk = copy.deepcopy(line)
-                    if not packages_in_config:
-                        filtered = next(filter(lambda c: re.findall(rf'^{c}\s\-', line), config), None)
-                        if filtered:
-                            packages_in_config = True
-                    else:
-                        if line == '':
-                            packages_in_config = False
-                        re_result = re.findall(r'\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
-                        if re_result:
-                            self.total_dep_list.append(re_result[0][0])
-                            if re.match(r'^[\+|\\]\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line_bk):
-                                self.direct_dep_list.append(re_result[0][0])
-                except Exception as e:
-                    logger.error(f"Failed to parse dependency tree: {e}")
+        packages_in_config = False
+        for line in dependency_tree_fname.split('\n'):
+            try:
+                line_bk = copy.deepcopy(line)
+                if not packages_in_config:
+                    filtered = next(filter(lambda c: re.findall(rf'^{c}\s\-', line), config), None)
+                    if filtered:
+                        packages_in_config = True
+                else:
+                    if line == '':
+                        packages_in_config = False
+                    re_result = re.findall(r'\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
+                    if re_result:
+                        self.total_dep_list.append(re_result[0][0])
+                        if re.match(r'^[\+|\\]\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line_bk):
+                            self.direct_dep_list.append(re_result[0][0])
+            except Exception as e:
+                logger.error(f"Failed to parse dependency tree: {e}")
 
 
 def version_refine(oss_version):
