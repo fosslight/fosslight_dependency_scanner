@@ -9,9 +9,6 @@ import subprocess
 import json
 import shutil
 import copy
-import requirements
-import ast
-import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -27,6 +24,7 @@ class Pypi(PackageManager):
     venv_tmp_dir = 'venv_osc_dep_tmp'
     tmp_file_name = "tmp_pip_license_output.json"
     tmp_pip_license_info_file_name = "tmp_pip_license_info_output.json"
+    tmp_deptree_file = "tmp_pipdeptree.json"
     pip_activate_cmd = ''
     pip_deactivate_cmd = ''
 
@@ -44,6 +42,9 @@ class Pypi(PackageManager):
             os.remove(self.tmp_pip_license_info_file_name)
 
         shutil.rmtree(self.venv_tmp_dir, ignore_errors=True)
+
+        if os.path.isfile(self.tmp_deptree_file):
+            os.remove(self.tmp_deptree_file)
 
     def set_pip_activate_cmd(self, pip_activate_cmd):
         self.pip_activate_cmd = pip_activate_cmd
@@ -131,10 +132,11 @@ class Pypi(PackageManager):
     def start_pip_licenses(self):
         ret = True
         pip_licenses = 'pip-licenses'
-        ptable = 'PTable'
+        prettytable = 'prettytable'
+        wcwidth = 'wcwidth'
+        pipdeptree = 'pipdeptree'
         pip_licenses_default_options = ' --from=mixed --with-url --format=json --with-license-file'
         pip_licenses_system_option = ' --with-system -p '
-        pip_license_dependency = [pip_licenses, ptable]
         tmp_pip_list = "tmp_list.txt"
 
         if self.pip_activate_cmd.startswith("source "):
@@ -173,7 +175,11 @@ class Pypi(PackageManager):
                 return False
 
         exists_pip_licenses = False
-        exists_ptable = False
+        exists_prettytable = False
+        exists_wcwidth = False
+        pip_license_pkg_list = []
+        uninstall_pkg_list = []
+        exists_pipdeptree = False
 
         if os.path.isfile(tmp_pip_list):
             try:
@@ -182,12 +188,28 @@ class Pypi(PackageManager):
                         pip_list_name = pip_list.split('==')[0]
                         if pip_list_name == pip_licenses:
                             exists_pip_licenses = True
-                        elif pip_list_name == ptable:
-                            exists_ptable = True
+                        if pip_list_name == prettytable:
+                            exists_prettytable = True
+                        if pip_list_name == wcwidth:
+                            exists_wcwidth = True
+                        if pip_list_name == pipdeptree:
+                            exists_pipdeptree = True
                 os.remove(tmp_pip_list)
             except Exception as e:
                 logger.error(f"Failed to read freezed package list file: {e}")
                 return False
+        if exists_pip_licenses:
+            pip_license_pkg_list.append(pip_licenses)
+        else:
+            uninstall_pkg_list.append(pip_licenses)
+        if exists_prettytable:
+            pip_license_pkg_list.append(prettytable)
+        else:
+            uninstall_pkg_list.append(prettytable)
+        if exists_wcwidth:
+            pip_license_pkg_list.append(wcwidth)
+        else:
+            uninstall_pkg_list.append(wcwidth)
 
         command_list = []
         command_list.append(activate_command)
@@ -198,23 +220,25 @@ class Pypi(PackageManager):
         pip_licenses_command = f"{pip_licenses}{pip_licenses_default_options} > {self.tmp_file_name}"
         command_list.append(pip_licenses_command)
 
-        if exists_ptable:
+        if len(pip_license_pkg_list) != 0:
             pip_licenses_info_command = pip_licenses + pip_licenses_default_options + pip_licenses_system_option
-            if exists_pip_licenses:
-                pip_licenses_info_command += " ".join(pip_license_dependency)
-            else:
-                pip_licenses_info_command += ptable
+            pip_licenses_info_command += " ".join(pip_license_pkg_list)
+
             pip_licenses_info_command += f" > {self.tmp_pip_license_info_file_name}"
             command_list.append(pip_licenses_info_command)
 
-        if not exists_pip_licenses:
+        if len(uninstall_pkg_list) > 0:
             uninstall_pip_command = "pip uninstall -y "
-            if exists_ptable:
-                uninstall_pip_command += pip_licenses
-            else:
-                uninstall_pip_command += " ".join(pip_license_dependency)
+            uninstall_pip_command += ' '.join(uninstall_pkg_list)
             command_list.append(uninstall_pip_command)
 
+        if not exists_pipdeptree:
+            install_deptree_command = f"pip install {pipdeptree}"
+            command_list.append(install_deptree_command)
+            uninstall_deptree_command = f"pip uninstall -y {pipdeptree}"
+        pipdeptree_command = f"{pipdeptree} --local-only --json-tree -e pipdeptree > {self.tmp_deptree_file}"
+        command_list.append(pipdeptree_command)
+        command_list.append(uninstall_deptree_command)
         command_list.append(deactivate_command)
         command = command_separator.join(command_list)
 
@@ -222,14 +246,14 @@ class Pypi(PackageManager):
             cmd_ret = subprocess.call(command, shell=True)
             if cmd_ret == 0:
                 self.append_input_package_list_file(self.tmp_file_name)
-                if exists_ptable:
+                if len(pip_license_pkg_list) != 0:
                     self.append_input_package_list_file(self.tmp_pip_license_info_file_name)
             else:
-                logger.error(f"Failed to run pip-licenses: {command}")
+                logger.error(f"Failed to run command: {command}")
                 ret = False
         except Exception as e:
             ret = False
-            logger.error(f"Failed to install/uninstall pip-licenses: {e}")
+            logger.error(f"Failed to install/uninstall pypi packages: {e}")
 
         return ret
 
@@ -243,7 +267,7 @@ class Pypi(PackageManager):
 
             for d in json_data:
                 oss_init_name = d['Name']
-                oss_name = self.package_manager_name + ":" + oss_init_name
+                oss_name = f"{self.package_manager_name}:{oss_init_name}"
                 license_name = check_UNKNOWN(d['License'])
                 homepage = check_UNKNOWN(d['URL'])
                 oss_version = d['Version']
@@ -260,12 +284,17 @@ class Pypi(PackageManager):
                 if license_name_with_license_scanner != "":
                     license_name = license_name_with_license_scanner
 
+                comment_list = []
                 if self.direct_dep_list:
-                    if oss_init_name in self.direct_dep_list:
-                        comment = 'direct'
+                    if f'{oss_init_name}({oss_version})' in self.direct_dep_list:
+                        comment_list.append('direct')
                     else:
-                        comment = 'transitive'
-
+                        comment_list.append('transitive')
+                    if f'{oss_init_name}({oss_version})' in self.relation_tree:
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
+                        comment_list.extend(rel_items)
+                comment = ', '.join(comment_list)
                 sheet_list.append([', '.join(self.manifest_file_name),
                                    oss_name, oss_version,
                                    license_name, dn_loc, homepage, '', '', comment])
@@ -275,35 +304,36 @@ class Pypi(PackageManager):
 
         return sheet_list
 
+    def get_dependencies(self, dependencies, package):
+        package_name = 'package_name'
+        deps = 'dependencies'
+        installed_ver = 'installed_version'
+
+        pkg_name = package[package_name]
+        pkg_ver = package[installed_ver]
+        dependency_list = package[deps]
+        dependencies[f"{pkg_name}({pkg_ver})"] = []
+        for dependency in dependency_list:
+            dep_name = dependency[package_name]
+            dep_version = dependency[installed_ver]
+            dependencies[f"{pkg_name}({pkg_ver})"].append(f"{dep_name}({dep_version})")
+            if dependency[deps] != []:
+                dependencies = self.get_dependencies(dependencies, dependency)
+        return dependencies
+
     def parse_direct_dependencies(self):
         self.direct_dep = True
-        requirements_f = 'requirements.txt'
-        setup_f = 'setup.py'
-        setup_key = 'setup'
-        install_dep_key = 'install_requires'
+        if not os.path.exists(self.tmp_deptree_file):
+            self.direct_dep = False
+            return
 
-        if requirements_f in self.manifest_file_name:
-            with open(requirements_f, 'r') as fd:
-                for req in requirements.parse(fd):
-                    self.direct_dep_list.append(req.name)
-
-        if setup_f in self.manifest_file_name:
-            parse_setup = ast.parse(open(setup_f).read())
-            for node in parse_setup.body:
-                if not isinstance(node, ast.Expr):
+        with open(self.tmp_deptree_file, 'r', encoding='utf8') as f:
+            json_f = json.load(f)
+            for package in json_f:
+                self.direct_dep_list.append(f"{package['package_name']}({package['installed_version']})")
+                if package['dependencies'] == []:
                     continue
-                if not isinstance(node.value, ast.Call):
-                    continue
-                if node.value.func.id != setup_key:
-                    continue
-                for keyword in node.value.keywords:
-                    if keyword.arg == install_dep_key:
-                        install_req_value = ast.literal_eval(keyword.value)
-                        for req_key in install_req_value:
-                            match_name = re.match(r'(?P<name>[\w\d]+)[\;\=\<\>]*|$', req_key)
-                            self.direct_dep_list.append(match_name.group('name'))
-                    if keyword.arg == 'name':
-                        self.direct_dep_list.append(ast.literal_eval(keyword.value))
+                self.relation_tree = self.get_dependencies(self.relation_tree, package)
 
 
 def check_UNKNOWN(text):

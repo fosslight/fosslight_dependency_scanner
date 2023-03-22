@@ -10,7 +10,6 @@ import shutil
 from bs4 import BeautifulSoup as bs
 from xml.etree.ElementTree import parse
 import re
-import copy
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -26,12 +25,10 @@ class Maven(PackageManager):
     input_file_name = os.path.join('target', 'generated-resources', 'licenses.xml')
     is_run_plugin = False
     output_custom_dir = ''
-    dependency_tree = {}
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
         self.is_run_plugin = False
-        self.dependency_tree = {}
 
         if output_custom_dir:
             self.output_custom_dir = output_custom_dir
@@ -154,26 +151,60 @@ class Maven(PackageManager):
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error(f"Failed to run: {cmd}")
-            self.set_direct_dependencies(True)
+            self.set_direct_dependencies(False)
         else:
             self.parse_dependency_tree(dependency_tree_fname)
             self.set_direct_dependencies(True)
             os.remove(dependency_tree_fname)
 
+    def create_dep_stack(self, dep_line):
+        dep_stack = []
+        cur_flag = ''
+        dep_level = -1
+        dep_level_plus = False
+        for line in dep_line.readlines():
+            try:
+                if not line.startswith('[INFO]'):
+                    continue
+                if len(line) <= 7:
+                    continue
+                line = line[7:]
+
+                prev_flag = cur_flag
+                prev_dep_level = dep_level
+                dep_level = line.count("|")
+
+                re_result = re.findall(r'([\+|\\]\-)\s([^\:\s]+\:[^\:\s]+)\:(?:[^\:\s]+)\:([^\:\s]+)\:([^\:\s]+)', line)
+                if re_result:
+                    cur_flag = re_result[0][0]
+                    if (prev_flag == '\\-') and (prev_dep_level == dep_level):
+                        dep_level_plus = True
+                    if dep_level_plus and (prev_flag == '\\-') and (prev_dep_level != dep_level):
+                        dep_level_plus = False
+                    if dep_level_plus:
+                        dep_level += 1
+                    if re_result[0][3] == 'test':
+                        continue
+                    dep_name = f'{re_result[0][1]}({re_result[0][2]})'
+                    dep_stack = dep_stack[:dep_level] + [dep_name]
+                    yield dep_stack[:dep_level], dep_name
+                else:
+                    cur_flag = ''
+            except Exception as e:
+                logger.warning(f"Failed to parse dependency tree: {e}")
+
     def parse_dependency_tree(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
-            for i, line in enumerate(input_fp.readlines()):
-                try:
-                    line_bk = copy.deepcopy(line)
-                    re_result = re.findall(r'[\+|\\]\-\s([^\:\s]+\:[^\:\s]+)\:(?:[^\:\s]+)\:([^\:\s]+)\:([^\:\s]+)', line)
-                    if re_result:
-                        dependency_key = re_result[0][0] + ':' + re_result[0][1]
-                        if self.direct_dep:
-                            if re.match(r'^\[\w+\]\s[\+\\]\-', line_bk):
-                                self.direct_dep_list.append(re_result[0][0])
-                        self.dependency_tree[dependency_key] = re_result[0][2]
-                except Exception as e:
-                    logger.error(f"Failed to parse dependency tree: {e}")
+            try:
+                for stack, name in self.create_dep_stack(input_fp):
+                    if len(stack) == 0:
+                        self.direct_dep_list.append(name)
+                    else:
+                        if stack[-1] not in self.relation_tree:
+                            self.relation_tree[stack[-1]] = []
+                        self.relation_tree[stack[-1]].append(name)
+            except Exception as e:
+                logger.warning(f'Fail to parse maven dependency tree:{e}')
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
@@ -183,6 +214,7 @@ class Maven(PackageManager):
         dependencies = root.find("dependencies")
 
         sheet_list = []
+        comment = ''
 
         for d in dependencies.iter("dependency"):
             groupid = d.findtext("groupId")
@@ -205,20 +237,18 @@ class Maven(PackageManager):
                 # Case that doesn't include License tag value.
                 license_name = ''
 
+            dep_key = f"{oss_name}({version})"
             comment_list = []
-            try:
-                dependency_tree_key = f"{oss_name}:{version}"
-                if dependency_tree_key in self.dependency_tree.keys():
-                    comment_list.append(self.dependency_tree[dependency_tree_key])
-            except Exception as e:
-                logger.error(f"Fail to find oss scope in dependency tree: {e}")
-
             if self.direct_dep:
-                if oss_name in self.direct_dep_list:
+                if dep_key in self.direct_dep_list:
                     comment_list.append('direct')
                 else:
                     comment_list.append('transitive')
-
+                try:
+                    if dep_key in self.relation_tree:
+                        comment_list.extend(self.relation_tree[dep_key])
+                except Exception as e:
+                    logger.error(f"Fail to find oss scope in dependency tree: {e}")
             comment = ', '.join(comment_list)
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),

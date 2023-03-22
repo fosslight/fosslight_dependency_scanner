@@ -23,13 +23,9 @@ class Npm(PackageManager):
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
     flag_tmp_node_modules = False
-    package_name = ''
-
-    direct_dep_dict = dict()
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
-        self.direct_dep_dict = dict()
 
     def __del__(self):
         if os.path.isfile(self.input_file_name):
@@ -78,6 +74,43 @@ class Npm(PackageManager):
                 "{\n\t\"name\": \"\",\n\t\"version\": \"\",\n\t\"licenses\": \"\",\n\t\"repository\": \
                 \"\",\n\t\"url\": \"\",\n\t\"copyright\": \"\",\n\t\"licenseText\": \"\"\n}\n".encode().decode("utf-8"))
 
+    def parse_rel_dependencies(self, rel_name, rel_ver, rel_dependencies):
+        _dependencies = 'dependencies'
+        _version = 'version'
+
+        for rel_dep_name in rel_dependencies.keys():
+            if f'{rel_name}({rel_ver})' not in self.relation_tree:
+                self.relation_tree[f'{rel_name}({rel_ver})'] = []
+            self.relation_tree[f'{rel_name}({rel_ver})'].append(f'{rel_dep_name}({rel_dependencies[rel_dep_name][_version]})')
+            if _dependencies in rel_dependencies[rel_dep_name]:
+                self.parse_rel_dependencies(rel_dep_name, rel_dependencies[rel_dep_name][_version],
+                                            rel_dependencies[rel_dep_name][_dependencies])
+
+    def parse_transitive_relationship(self):
+        _dependencies = 'dependencies'
+        _version = 'version'
+        _name = 'name'
+
+        cmd = 'npm ls -a --prod --json'
+        rel_tree = subprocess.check_output(cmd, shell=True, encoding='utf8')
+        if rel_tree is None:
+            logger.error(f"It returns the error: {cmd}")
+            logger.error(f"Fail to run {cmd}")
+            return False
+
+        try:
+            rel_json = json.loads(rel_tree)
+            self.package_name = f'{rel_json[_name]}({rel_json[_version]})'
+            self.parse_rel_dependencies(rel_json[_name], rel_json[_version], rel_json[_dependencies])
+        except Exception as e:
+            logger.error(f"Fail to parse transitive relationship: {e}")
+
+    def parse_direct_dependencies(self):
+        try:
+            self.parse_transitive_relationship()
+        except Exception as e:
+            logger.warning(f'Cannot print direct/transitive dependency: {e}')
+
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as json_file:
             json_data = json.load(json_file)
@@ -107,19 +140,24 @@ class Npm(PackageManager):
 
             homepage = self.dn_url + oss_init_name
 
-            if self.direct_dep_dict:
-                if oss_init_name in self.direct_dep_dict.keys():
-                    if oss_version in self.direct_dep_dict[oss_init_name]:
-                        comment = 'direct'
+            comment_list = []
+            if self.direct_dep:
+                if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
+                    comment_list.append('direct')
                 else:
-                    comment = 'transitive'
-            if self.package_name:
-                if self.package_name == oss_init_name:
-                    comment = 'root package'
+                    comment_list.append('transitive')
+
+                if self.package_name == f'{oss_init_name}({oss_version})':
+                    comment_list.append('root package')
+
+                if f'{oss_init_name}({oss_version})' in self.relation_tree:
+                    rel_items = [f'npm:{ri}' for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
+                    comment_list.extend(rel_items)
 
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             multi_license, license_comment, multi_flag = check_multi_license(license_name, manifest_file_path)
 
+            comment = ', '.join(comment_list)
             if multi_flag:
                 comment = f'{comment}, {license_comment}'
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
@@ -131,29 +169,6 @@ class Npm(PackageManager):
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
-
-    def parse_direct_dependencies(self):
-        tmp_oss_list = []
-        dependencies = 'dependencies'
-        version = 'version'
-        name = 'name'
-
-        manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
-        try:
-            with open(manifest_file, 'r') as lock_file:
-                json_lock = json.load(lock_file)
-                if name in json_lock:
-                    self.package_name = json_lock[name]
-                if dependencies in json_lock:
-                    for dep in json_lock[dependencies]:
-                        tmp_oss_list.append(dep)
-            for direct_oss in tmp_oss_list:
-                with open(os.path.join(node_modules, direct_oss, manifest_file)) as direct_file:
-                    json_direct = json.load(direct_file)
-                    if version in json_direct:
-                        self.direct_dep_dict[direct_oss] = json_direct[version]
-        except Exception as e:
-            logger.warning(f'Cannot print if it is direct dependency: {e}')
 
 
 def check_multi_license(license_name, manifest_file_path):

@@ -47,6 +47,7 @@ class Pub(PackageManager):
 
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
+
         os.mkdir(self.tmp_dir)
         shutil.copy(const.SUPPORT_PACKAE.get(self.package_manager_name),
                     os.path.join(self.tmp_dir, const.SUPPORT_PACKAE.get(self.package_manager_name)))
@@ -66,11 +67,6 @@ class Pub(PackageManager):
             logger.error(f"Failed to run: {cmd}")
             os.chdir(self.cur_path)
             return False
-        cmd = "flutter pub deps --no-dev"
-        ret = subprocess.check_output(cmd, shell=True)
-        if ret != 0:
-            pub_deps = ret.decode('utf8')
-            self.parse_no_deps_file(pub_deps)
 
         cmd = f"flutter pub run flutter_oss_licenses:generate.dart -o {self.input_file_name} --json"
         ret = subprocess.call(cmd, shell=True)
@@ -81,23 +77,34 @@ class Pub(PackageManager):
 
         return True
 
-    def parse_no_deps_file(self, f):
-        for line in f.split('\n'):
-            re_result = re.findall(r'\-\-\s(\S+[^.\s])[.|\s]', line)
-            if re_result:
-                self.total_dep_list.append(re_result[0])
-        self.total_dep_list = list(set(self.total_dep_list))
+    def parse_pub_deps_file(self, rel_json):
+        name_version_dict = {}
+        try:
+            for p in rel_json['packages']:
+                if p['kind'] == 'root':
+                    self.package_name = p['name']
+                name_version_dict[p['name']] = p['version']
+                if p['dependencies'] == []:
+                    continue
+                dep_key = f"{p['name']}({p['version']})"
+                if dep_key not in self.relation_tree:
+                    self.relation_tree[dep_key] = []
+                self.relation_tree[dep_key].extend(p['dependencies'])
+
+            for i in self.relation_tree:
+                tmp_dep = []
+                for d in self.relation_tree[i]:
+                    d_ver = name_version_dict[d]
+                    tmp_dep.append(f'{d}({d_ver})')
+                self.relation_tree[i] = []
+                self.relation_tree[i].extend(tmp_dep)
+        except Exception as e:
+            logger.error(f'Failed to parse dependency tree: {e}')
 
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
         json_data = ''
         comment = ''
-        tmp_no_deps_file = 'tmp_no_deps_result.txt'
-
-        if os.path.exists(tmp_no_deps_file):
-            with open(tmp_no_deps_file, 'r', encoding='utf8') as deps_f:
-                deps_l = deps_f.read()
-                self.parse_no_deps_file(deps_l)
 
         with open(f_name, 'r', encoding='utf8') as pub_file:
             json_f = json.load(pub_file)
@@ -107,7 +114,7 @@ class Pub(PackageManager):
 
             for json_data in json_f:
                 oss_origin_name = json_data['name']
-                if self.total_dep_list != [] and oss_origin_name not in self.total_dep_list:
+                if oss_origin_name not in self.total_dep_list:
                     continue
                 oss_name = f"{self.package_manager_name}:{oss_origin_name}"
                 oss_version = json_data['version']
@@ -128,12 +135,22 @@ class Pub(PackageManager):
                 else:
                     license_name = ''
 
+                comment_list = []
                 if self.direct_dep:
+                    if oss_origin_name not in self.total_dep_list:
+                        continue
                     if json_data['isDirectDependency']:
-                        comment = 'direct'
+                        comment_list.append('direct')
                     else:
-                        comment = 'transitive'
+                        comment_list.append('transitive')
+                    if self.package_name == f'{oss_origin_name}({oss_version})':
+                        comment_list.append('root package')
 
+                    if f'{oss_origin_name}({oss_version})' in self.relation_tree:
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
+                        comment_list.extend(rel_items)
+                comment = ', '.join(comment_list)
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
         except Exception as e:
@@ -144,5 +161,50 @@ class Pub(PackageManager):
 
         return sheet_list
 
+    def parse_no_dev_command_file(self, pub_deps):
+        for line in pub_deps.split('\n'):
+            re_result = re.findall(r'\-\s(\S+)\s', line)
+            if re_result:
+                self.total_dep_list.append(re_result[0])
+        self.total_dep_list = list(set(self.total_dep_list))
+
     def parse_direct_dependencies(self):
         self.direct_dep = True
+        tmp_pub_deps_file = 'tmp_deps.json'
+        tmp_no_dev_deps_file = 'tmp_no_dev_deps.txt'
+
+        if os.path.exists(tmp_pub_deps_file) and os.path.exists(tmp_no_dev_deps_file):
+            try:
+                with open(tmp_pub_deps_file, 'r', encoding='utf8') as deps_f:
+                    deps_l = json.load(deps_f)
+                    self.parse_pub_deps_file(deps_l)
+                with open(tmp_no_dev_deps_file, 'r', encoding='utf8') as no_dev_f:
+                    self.parse_no_dev_command_file(no_dev_f.read())
+                logger.info('Parse tmp pub deps file.')
+            except Exception as e:
+                logger.error(f'Fail to parse tmp pub deps result file: {e}')
+        else:
+            try:
+                cmd = "flutter pub get"
+                ret = subprocess.call(cmd, shell=True)
+                if ret != 0:
+                    logger.error(f"Failed to run: {cmd}")
+                    os.chdir(self.cur_path)
+                    return False
+
+                cmd = "flutter pub deps --json"
+                ret_txt = subprocess.check_output(cmd, text=True, shell=True)
+                if ret_txt is not None:
+                    deps_l = json.loads(ret_txt)
+                    self.parse_pub_deps_file(deps_l)
+                else:
+                    return False
+
+                cmd = "flutter pub deps --no-dev -s compact"
+                ret_no_dev = subprocess.check_output(cmd, text=True, shell=True, encoding='utf8')
+                if ret_no_dev != 0:
+                    self.parse_no_dev_command_file(ret_no_dev)
+
+            except Exception as e:
+                logger.error(f'Fail to run flutter command:{e}')
+        return True

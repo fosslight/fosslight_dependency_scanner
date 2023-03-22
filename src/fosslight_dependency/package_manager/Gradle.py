@@ -51,8 +51,9 @@ class Gradle(PackageManager):
                 oss_name, oss_ini_version = parse_oss_name_version_in_filename(filename)
                 used_filename = True
 
+            dep_key = f"{oss_name}({oss_ini_version})"
             if self.total_dep_list:
-                if oss_name not in self.total_dep_list:
+                if dep_key not in self.total_dep_list:
                     continue
 
             oss_version = version_refine(oss_ini_version)
@@ -73,11 +74,19 @@ class Gradle(PackageManager):
                 dn_loc = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
                 homepage = f"{self.dn_url}{group_id}/{artifact_id}"
 
+            comment_list = []
             if self.direct_dep:
-                if oss_name in self.direct_dep_list:
-                    comment = 'direct'
-                else:
-                    comment = 'transitive'
+                if len(self.direct_dep_list) > 0:
+                    if dep_key in self.direct_dep_list:
+                        comment_list.append('direct')
+                    else:
+                        comment_list.append('transitive')
+                try:
+                    if dep_key in self.relation_tree:
+                        comment_list.extend(self.relation_tree[dep_key])
+                except Exception as e:
+                    logger.error(f"Fail to find oss scope in dependency tree: {e}")
+            comment = ', '.join(comment_list)
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])

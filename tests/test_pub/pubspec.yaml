@@ -12,12 +12,9 @@ dependencies:
     sdk: flutter
   iamport_webview_flutter: ^3.0.1
   url_launcher: ^6.0.4
+dev_dependencies:
   dart_json_mapper: ^2.1.0
   uni_links: ^0.5.1
-
-dev_dependencies:
-  flutter_oss_licenses: ^2.0.1
-
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec
 

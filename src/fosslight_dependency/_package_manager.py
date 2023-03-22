@@ -11,7 +11,6 @@ import re
 import base64
 import subprocess
 import shutil
-import copy
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 
@@ -47,6 +46,8 @@ class PackageManager:
         self.output_dir = output_dir
         self.dn_url = dn_url
         self.manifest_file_name = []
+        self.relation_tree = {}
+        self.package_name = ''
 
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)
@@ -61,6 +62,8 @@ class PackageManager:
         self.output_dir = ''
         self.dn_url = ''
         self.manifest_file_name = []
+        self.relation_tree = {}
+        self.package_name = ''
 
     def run_plugin(self):
         if self.package_manager_name == const.GRADLE or self.package_manager_name == const.ANDROID:
@@ -87,23 +90,20 @@ class PackageManager:
 
             shutil.copy(const.SUPPORT_PACKAE.get(self.package_manager_name), gradle_backup)
             ret = self.add_allDeps_in_gradle()
-            if not ret:
-                return
+            if ret:
+                if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
+                    if self.platform == const.WINDOWS:
+                        cmd_gradle = "gradlew.bat"
+                    else:
+                        cmd_gradle = "./gradlew"
 
-            if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-                if self.platform == const.WINDOWS:
-                    cmd_gradle = "gradlew.bat"
-                else:
-                    cmd_gradle = "./gradlew"
-            else:
-                return 1
-            cmd = f"{cmd_gradle} allDeps"
-            ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
-            if ret != 0:
-                self.parse_dependency_tree(ret)
-            else:
-                self.set_direct_dependencies(False)
-                logger.warning("Failed to run allDeps task.")
+                    cmd = f"{cmd_gradle} allDeps"
+                    ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
+                    if ret != 0:
+                        self.parse_dependency_tree(ret)
+                    else:
+                        self.set_direct_dependencies(False)
+                        logger.warning("Failed to run allDeps task.")
 
             if os.path.isfile(gradle_backup):
                 os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
@@ -132,12 +132,14 @@ class PackageManager:
 
         return ret
 
-    def parse_dependency_tree(self, dependency_tree_fname):
-        config = android_config if self.package_manager_name == 'android' else gradle_config
+    def create_dep_stack(self, dep_line, config):
         packages_in_config = False
-        for line in dependency_tree_fname.split('\n'):
+        dep_stack = []
+        cur_flag = ''
+        dep_level = -1
+        dep_level_plus = False
+        for line in dep_line.split('\n'):
             try:
-                line_bk = copy.deepcopy(line)
                 if not packages_in_config:
                     filtered = next(filter(lambda c: re.findall(rf'^{c}\s\-', line), config), None)
                     if filtered:
@@ -145,13 +147,40 @@ class PackageManager:
                 else:
                     if line == '':
                         packages_in_config = False
-                    re_result = re.findall(r'\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
+                    prev_flag = cur_flag
+                    prev_dep_level = dep_level
+                    dep_level = line.count("|")
+
+                    re_result = re.findall(r'([\+|\\])\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line)
                     if re_result:
-                        self.total_dep_list.append(re_result[0][0])
-                        if re.match(r'^[\+|\\]\-\-\-\s([^\:\s]+\:[^\:\s]+)\:([^\:\s]+)', line_bk):
-                            self.direct_dep_list.append(re_result[0][0])
+                        cur_flag = re_result[0][0]
+                        if (prev_flag == '\\') and (prev_dep_level == dep_level):
+                            dep_level_plus = True
+                        if dep_level_plus and (prev_flag == '\\') and (prev_dep_level != dep_level):
+                            dep_level_plus = False
+                        if dep_level_plus:
+                            dep_level += 1
+                        dep_name = f'{re_result[0][1]}({re_result[0][2]})'
+                        dep_stack = dep_stack[:dep_level] + [dep_name]
+                        yield dep_stack[:dep_level], dep_name
+                    else:
+                        cur_flag = ''
             except Exception as e:
-                logger.error(f"Failed to parse dependency tree: {e}")
+                logger.warning(f"Failed to parse dependency tree: {e}")
+
+    def parse_dependency_tree(self, f_name):
+        config = android_config if self.package_manager_name == 'android' else gradle_config
+        try:
+            for stack, name in self.create_dep_stack(f_name, config):
+                self.total_dep_list.append(name)
+                if len(stack) == 0:
+                    self.direct_dep_list.append(name)
+                else:
+                    if stack[-1] not in self.relation_tree:
+                        self.relation_tree[stack[-1]] = []
+                    self.relation_tree[stack[-1]].append(name)
+        except Exception as e:
+            logger.warning(f'Fail to parse gradle dependency tree:{e}')
 
 
 def version_refine(oss_version):

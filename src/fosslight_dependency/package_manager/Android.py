@@ -50,15 +50,22 @@ class Android(PackageManager):
                 else:
                     continue
 
-                if self.total_dep_list:
-                    if oss_name not in self.total_dep_list:
-                        continue
-
+                comment_list = []
                 if self.direct_dep:
-                    if oss_name in self.direct_dep_list:
-                        comment = 'direct'
+                    dep_key = f"{oss_name}({oss_version})"
+                    if self.total_dep_list:
+                        if dep_key not in self.total_dep_list:
+                            continue
+                    if dep_key in self.direct_dep_list:
+                        comment_list.append('direct')
                     else:
-                        comment = 'transitive'
+                        comment_list.append('transitive')
+                    try:
+                        if dep_key in self.relation_tree:
+                            comment_list.extend(self.relation_tree[dep_key])
+                    except Exception as e:
+                        logger.error(f"Fail to find oss scope in dependency tree: {e}")
+                comment = ', '.join(comment_list)
 
                 sheet_list.append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
