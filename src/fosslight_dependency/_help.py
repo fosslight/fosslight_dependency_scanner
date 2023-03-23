@@ -22,13 +22,14 @@ _HELP_MESSAGE_DEPENDENCY = """
         Carthage (Swift/Obj-C)
         Go (Go)
         Nuget (.NET)
+        Helm (Kubernetes)
 
     Options:
         Optional
             -h\t\t\t\t    Print help message.
             -v\t\t\t\t    Print the version of the script.
             -m <package_manager>\t    Enter the package manager.
-                                        \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage, go, nuget)
+                                        \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage, go, nuget, helm)
             -p <input_path>\t\t    Enter the path where the script will be run.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
