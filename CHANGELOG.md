@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.13.0 (22/03/2023)
+## Changes
+## 🚀 Features
+
+- Print the dependencies of each package in comment @dd-jy (#128)
+  - Implemented : gradle(java, android), maven, npm, pypi, pub
+  - Not implemented yet : cocoapods, go, nuget
+
+---
+
 ## v3.12.7 (09/03/2023)
 ## Changes
 ## 🚀 Features
@@ -310,17 +320,3 @@
 ## 🔧 Maintenance
 
 - Refactoring the code @dd-jy (#53)
-
----
-
-## v3.7.1 (16/09/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Print pip-licenses, PTable packages if it already exists @dd-jy (#51)
-- Fix the pypi windows venv command error without virtualenv package @dd-jy (#50)
-
-## 🔧 Maintenance
-
-- Add gitattributes to exclude test directory for languages @dd-jy (#52)
-- Update README.md @k2heart (#49)
