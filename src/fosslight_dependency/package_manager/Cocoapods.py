@@ -34,8 +34,6 @@ class Cocoapods(PackageManager):
         with open(f_name, 'r', encoding='utf8') as input_fp:
             podfile_yaml = yaml.load(input_fp, Loader=yaml.FullLoader)
 
-        pod_in_sepc_list = []
-        pod_not_in_spec_list = []
         spec_repo_list = []
         external_source_list = []
         comment = ''
@@ -93,8 +91,11 @@ class Cocoapods(PackageManager):
                     else:
                         comment_list.append('transitive')
                     if f'{pod_oss_name_origin}({oss_version})' in self.relation_tree:
-                        rel_items = [f'cocoapods:{ri}' for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
+                        rel_items = [f'{self.package_manager_name}:{ri}' for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
                         comment_list.extend(rel_items)
+                comment = ', '.join(comment_list)
+
+                pod_oss_name = pod_oss_name_origin
                 if '/' in pod_oss_name_origin:
                     pod_oss_name = pod_oss_name_origin.split('/')[0]
                 if pod_oss_name in external_source_list:
@@ -124,11 +125,12 @@ class Cocoapods(PackageManager):
                 oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
                 if oss_name == '':
                     continue
-
+                if pod_oss_version != oss_version:
+                    logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version}) with spec version({oss_version})')
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                                  f'{self.package_manager_name}:{pod_oss_name_origin}', pod_oss_version, license_name, dn_loc, homepage, '', '', comment])
             except Exception as e:
-                logger.warning(f"Fail to get {pod_oss_name}:{e}")
+                logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
 
         return sheet_list
 
