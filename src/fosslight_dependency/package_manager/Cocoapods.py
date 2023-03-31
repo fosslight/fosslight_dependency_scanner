@@ -67,7 +67,7 @@ class Cocoapods(PackageManager):
             else:
                 oss_name, oss_version = get_pods_info(pods_i)
                 pod_item_list[oss_name] = oss_version
-        
+
         for rel_key in self.relation_tree:
             try:
                 tmp_item_list = []
@@ -91,7 +91,8 @@ class Cocoapods(PackageManager):
                     else:
                         comment_list.append('transitive')
                     if f'{pod_oss_name_origin}({oss_version})' in self.relation_tree:
-                        rel_items = [f'{self.package_manager_name}:{ri}' for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
                         comment_list.extend(rel_items)
                 comment = ', '.join(comment_list)
 
@@ -126,9 +127,11 @@ class Cocoapods(PackageManager):
                 if oss_name == '':
                     continue
                 if pod_oss_version != oss_version:
-                    logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version}) with spec version({oss_version})')
+                    logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version})\
+                                   with spec version({oss_version})')
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  f'{self.package_manager_name}:{pod_oss_name_origin}', pod_oss_version, license_name, dn_loc, homepage, '', '', comment])
+                                  f'{self.package_manager_name}:{pod_oss_name_origin}',
+                                   pod_oss_version, license_name, dn_loc, homepage, '', '', comment])
             except Exception as e:
                 logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
 
