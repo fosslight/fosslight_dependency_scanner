@@ -9,6 +9,7 @@ import subprocess
 import json
 from bs4 import BeautifulSoup
 import urllib.request
+import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -33,6 +34,18 @@ class Go(PackageManager):
         if os.path.isfile(self.tmp_file_name):
             os.remove(self.tmp_file_name)
 
+    def parse_dependency_tree(self, go_deptree_txt):
+        for line in go_deptree_txt.split('\n'):
+            re_result = re.findall(r'(\S+)@v(\S+)\s(\S+)@v(\S+)', line)
+            if len(re_result) > 0 and len(re_result[0]) >= 4:
+                oss_name = re_result[0][0]
+                oss_ver = re_result[0][1]
+                pkg_name = re_result[0][2]
+                pkg_ver = re_result[0][3]
+                if f'{oss_name}({oss_ver})' not in self.relation_tree:
+                    self.relation_tree[f'{oss_name}({oss_ver})'] = []
+                self.relation_tree[f'{oss_name}({oss_ver})'].append(f'{pkg_name}({pkg_ver})')
+
     def run_plugin(self):
         ret = True
 
@@ -45,6 +58,11 @@ class Go(PackageManager):
             ret = False
 
         self.append_input_package_list_file(self.tmp_file_name)
+
+        cmd_tree = "go mod graph"
+        ret_cmd_tree = subprocess.check_output(cmd_tree, shell=True, text=True, encoding='utf-8')
+        if ret_cmd_tree != 0:
+            self.parse_dependency_tree(ret_cmd_tree)
 
         return ret
 
@@ -67,31 +85,35 @@ class Go(PackageManager):
                         continue
                 package_path = dep_item['Path']
                 oss_name = f"{self.package_manager_name}:{package_path}"
-                oss_version = dep_item['Version']
+                oss_origin_version = dep_item['Version']
+                if oss_origin_version.startswith('v'):
+                    oss_version = oss_origin_version[1:]
 
-                comment = []
+                comment_list = []
                 if self.direct_dep:
                     if indirect in dep_item:
                         if dep_item[indirect]:
-                            comment.append('transitive')
+                            comment_list.append('transitive')
                         else:
-                            comment.append('direct')
+                            comment_list.append('direct')
                     else:
-                        comment.append('direct')
+                        comment_list.append('direct')
+
+                if f'{package_path}({oss_version})' in self.relation_tree:
+                    rel_items = [f'{self.package_manager_name}:{ri}'
+                                 for ri in self.relation_tree[f'{package_path}({oss_version})']]
+                    comment_list.extend(rel_items)
 
                 homepage_set = []
                 homepage = self.dn_url + package_path
 
-                if oss_version:
-                    tmp_homepage = f"{homepage}@{oss_version}"
+                if oss_origin_version:
+                    tmp_homepage = f"{homepage}@{oss_origin_version}"
                     homepage_set.append(tmp_homepage)
                 homepage_set.append(homepage)
 
                 license_name = ''
                 dn_loc = ''
-
-                if oss_version.startswith('v'):
-                    oss_version = oss_version[1:]
 
                 for homepage_i in homepage_set:
                     try:
@@ -100,7 +122,7 @@ class Go(PackageManager):
                             urlopen_success = True
                             if homepage_i == homepage:
                                 if oss_version:
-                                    comment.append(f'Cannot connect {tmp_homepage}, get info from the latest version.')
+                                    comment_list.append(f'Cannot connect {tmp_homepage}, get info from the latest version.')
                             break
                     except Exception:
                         continue
@@ -123,7 +145,7 @@ class Go(PackageManager):
                 logging.warning(f"Fail to parse {package_path} in go mod : {e}")
                 continue
 
-            comment = ', '.join(comment)
+            comment = ', '.join(comment_list)
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                               oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
