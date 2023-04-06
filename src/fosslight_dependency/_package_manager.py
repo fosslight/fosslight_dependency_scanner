@@ -91,19 +91,24 @@ class PackageManager:
             shutil.copy(const.SUPPORT_PACKAE.get(self.package_manager_name), gradle_backup)
             ret = self.add_allDeps_in_gradle()
             if ret:
-                if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-                    if self.platform == const.WINDOWS:
-                        cmd_gradle = "gradlew.bat"
-                    else:
-                        cmd_gradle = "./gradlew"
+                try:
+                    if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
+                        if self.platform == const.WINDOWS:
+                            cmd_gradle = "gradlew.bat"
+                        else:
+                            cmd_gradle = "./gradlew"
 
-                    cmd = f"{cmd_gradle} allDeps"
-                    ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
-                    if ret != 0:
-                        self.parse_dependency_tree(ret)
-                    else:
-                        self.set_direct_dependencies(False)
-                        logger.warning("Failed to run allDeps task.")
+                        cmd = f"{cmd_gradle} allDeps"
+                        ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
+                        if ret != 0:
+                            self.parse_dependency_tree(ret)
+                        else:
+                            self.set_direct_dependencies(False)
+                            logger.warning("Failed to run allDeps task.")
+                except Exception as e:
+                    self.set_direct_dependencies(False)
+                    logger.error(f'Fail to run allDeps: {e}')
+                    logger.warning(f'It cannot print the direct/transitive dependencies relationship.')
 
             if os.path.isfile(gradle_backup):
                 os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
