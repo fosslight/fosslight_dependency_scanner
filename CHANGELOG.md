@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.13.1 (07/04/2023)
+## Changes
+## 🚀 Features
+
+- Add dependencies of cocoapods, go, nuget package in comment @dd-jy (#130)
+
+## 🐛 Hotfixes
+
+- Add dependencies of cocoapods, go, nuget package in comment @dd-jy (#130)
+
+## 🔧 Maintenance
+
+- Add the helm in help meesage @dd-jy (#129)
+
+---
+
 ## v3.13.0 (22/03/2023)
 ## Changes
 ## 🚀 Features
@@ -308,15 +324,3 @@
 ## 🔧 Maintenance
 
 - Modify -o option to add output file name(.csv, .xlsx) @dd-jy (#55)
-
----
-
-## v3.7.2 (30/09/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Add test scope in excludedScopes for maven plugin @dd-jy (#54)
-
-## 🔧 Maintenance
-
-- Refactoring the code @dd-jy (#53)
