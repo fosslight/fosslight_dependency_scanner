@@ -24,6 +24,7 @@ class Nuget(PackageManager):
     dn_url = "https://nuget.org/packages/"
     packageReference = False
     nuget_api_url = 'https://api.nuget.org/v3-flatcontainer/'
+    dotnet_ver = []
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -40,14 +41,13 @@ class Nuget(PackageManager):
             sheet_list = []
             package_list = []
             if self.packageReference:
-                package_list = self.get_package_list_in_packages_assets(input_fp)
-                self.get_direct_package_in_packagereference()
+                package_list = self.get_package_info_in_packagereference(input_fp)
             else:
                 package_list = self.get_package_list_in_packages_config(input_fp)
 
         for oss_origin_name, oss_version in package_list:
             try:
-                oss_name = self.package_manager_name + ":" + oss_origin_name
+                oss_name = f'{self.package_manager_name}:{oss_origin_name}'
 
                 comment = []
                 dn_loc = ''
@@ -105,8 +105,13 @@ class Nuget(PackageManager):
                     else:
                         comment.append('transitive')
 
+                    if f'{oss_origin_name}({oss_version})' in self.relation_tree:
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
+                        comment.extend(rel_items)
+
                 sheet_list.append([','.join(self.input_package_list_file),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ','.join(comment)])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ', '.join(comment)])
 
             except Exception as e:
                 logger.warning(f"Failed to parse oss information: {e}")
@@ -123,14 +128,49 @@ class Nuget(PackageManager):
             package_list.append([p.get("id"), p.get("version")])
         return package_list
 
-    def get_package_list_in_packages_assets(self, input_fp):
-        package_list = []
+    def get_package_info_in_packagereference(self, input_fp):
         json_f = json.load(input_fp)
+
+        self.get_dotnet_ver_list(json_f)
+        package_list = self.get_package_list_in_packages_assets(json_f)
+        self.get_dependency_tree(json_f)
+        self.get_direct_package_in_packagereference()
+
+        return package_list
+
+    def get_package_list_in_packages_assets(self, json_f):
+        package_list = []
         for item in json_f['libraries']:
             if json_f['libraries'][item]['type'] == 'package':
                 oss_info = item.split('/')
                 package_list.append([oss_info[0], oss_info[1]])
         return package_list
+
+    def get_dotnet_ver_list(self, json_f):
+        json_project_group = json_f['projectFileDependencyGroups']
+        for dotnet_ver in json_project_group:
+            self.dotnet_ver.append(dotnet_ver)
+
+    def get_dependency_tree(self, json_f):
+        json_target = json_f['targets']
+        for item in json_target:
+            if item not in self.dotnet_ver:
+                continue
+            json_item = json_target[item]
+            for pkg in json_item:
+                json_pkg = json_item[pkg]
+                if 'type' not in json_pkg:
+                    continue
+                if 'dependencies' not in json_pkg:
+                    continue
+                if json_pkg['type'] != 'package':
+                    continue
+                oss_info = pkg.split('/')
+                self.relation_tree[f'{oss_info[0]}({oss_info[1]})'] = []
+                for dep in json_pkg['dependencies']:
+                    oss_name = dep
+                    oss_ver = json_pkg['dependencies'][dep]
+                    self.relation_tree[f'{oss_info[0]}({oss_info[1]})'].append(f'{oss_name}({oss_ver})')
 
     def get_direct_package_in_packagereference(self):
         for f in os.listdir(self.input_dir):

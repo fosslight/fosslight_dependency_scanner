@@ -34,8 +34,6 @@ class Cocoapods(PackageManager):
         with open(f_name, 'r', encoding='utf8') as input_fp:
             podfile_yaml = yaml.load(input_fp, Loader=yaml.FullLoader)
 
-        pod_in_sepc_list = []
-        pod_not_in_spec_list = []
         spec_repo_list = []
         external_source_list = []
         comment = ''
@@ -49,47 +47,64 @@ class Cocoapods(PackageManager):
                 external_source_list.append(external_sources_key)
                 spec_repo_list.append(external_sources_key)
         if len(spec_repo_list) == 0:
-            logger.error("Cannot fint SPEC REPOS or EXTERNAL SOURCES in Podfile.lock.")
+            logger.error("Cannot find SPEC REPOS or EXTERNAL SOURCES in Podfile.lock.")
             return ''
 
         for dep_key in podfile_yaml[_dependencies]:
             dep_key_re = re.findall(r'(^\S*)', dep_key)
-            dep_name = dep_key_re[0]
-            if '/' in dep_name:
-                dep_name = dep_name.split('/')[0]
-            self.direct_dep_list.append(dep_name)
+            self.direct_dep_list.append(dep_key_re[0])
 
-        for pods_list in podfile_yaml['PODS']:
-            if not isinstance(pods_list, str):
-                for pods_list_key, pods_list_item in pods_list.items():
-                    pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = \
-                        compile_pods_item(pods_list_key, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
+        pod_item_list = {}
+        for pods_i in podfile_yaml['PODS']:
+            if not isinstance(pods_i, str):
+                for key, items in pods_i.items():
+                    k_name, k_ver = get_pods_info(key)
+                    pod_item_list[k_name] = k_ver
+                    self.relation_tree[f'{k_name}({k_ver})'] = []
+                    for item in items:
+                        i_name, _ = get_pods_info(item)
+                        self.relation_tree[f'{k_name}({k_ver})'].append(i_name)
             else:
-                pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list = \
-                    compile_pods_item(pods_list, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list)
+                oss_name, oss_version = get_pods_info(pods_i)
+                pod_item_list[oss_name] = oss_version
 
-        if len(spec_repo_list) != 0:
-            for spec_in_item in spec_repo_list:
-                spec_oss_name_adding_core = spec_in_item + "/Core"
-                for pod_not_item in pod_not_in_spec_list:
-                    if spec_oss_name_adding_core == pod_not_item[0]:
-                        pod_in_sepc_list.append([spec_in_item, pod_not_item[1]])
+        for rel_key in self.relation_tree:
+            try:
+                tmp_item_list = []
+                for ri in self.relation_tree[rel_key]:
+                    ri_version = pod_item_list[ri]
+                    tmp_item_list.append(f'{ri}({ri_version})')
+                self.relation_tree[rel_key] = []
+                self.relation_tree[rel_key].extend(tmp_item_list)
+            except Exception as e:
+                logger.warning(f'Fail to check packages of {rel_key}: {e}')
+                if rel_key in self.relation_tree:
+                    self.relation_tree[rel_key] = []
 
         sheet_list = []
-
-        for pod_oss in pod_in_sepc_list:
+        for pod_oss_name_origin, pod_oss_version in pod_item_list.items():
             try:
+                comment_list = []
                 if self.direct_dep:
-                    if pod_oss[0] in self.direct_dep_list:
-                        comment = 'direct'
+                    if pod_oss_name_origin in self.direct_dep_list:
+                        comment_list.append('direct')
                     else:
-                        comment = 'transitive'
-                if pod_oss[0] in external_source_list:
-                    podspec_filename = pod_oss[0] + '.podspec.json'
+                        comment_list.append('transitive')
+                    if f'{pod_oss_name_origin}({oss_version})' in self.relation_tree:
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
+                        comment_list.extend(rel_items)
+                comment = ', '.join(comment_list)
+
+                pod_oss_name = pod_oss_name_origin
+                if '/' in pod_oss_name_origin:
+                    pod_oss_name = pod_oss_name_origin.split('/')[0]
+                if pod_oss_name in external_source_list:
+                    podspec_filename = pod_oss_name + '.podspec.json'
                     spec_file_path = os.path.join("Pods", "Local Podspecs", podspec_filename)
                 else:
                     search_oss_name = ""
-                    for alphabet_oss in pod_oss[0]:
+                    for alphabet_oss in pod_oss_name:
                         if not alphabet_oss.isalnum():
                             search_oss_name += f"\\\\{alphabet_oss}"
                         else:
@@ -106,16 +121,19 @@ class Cocoapods(PackageManager):
                         file_path_without_version = os.path.join(os.sep, *file_path[:-2])
                     else:
                         file_path_without_version = os.path.join(*file_path[:-2])
-                    spec_file_path = os.path.join(file_path_without_version, pod_oss[1], file_path[-1])
+                    spec_file_path = os.path.join(file_path_without_version, pod_oss_version, file_path[-1])
 
                 oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
                 if oss_name == '':
                     continue
-
+                if pod_oss_version != oss_version:
+                    logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version})\
+                                   with spec version({oss_version})')
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                                  f'{self.package_manager_name}:{pod_oss_name_origin}',
+                                   pod_oss_version, license_name, dn_loc, homepage, '', '', comment])
             except Exception as e:
-                logger.warning(f"Fail to get {pod_oss[0]}:{e}")
+                logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
 
         return sheet_list
 
@@ -159,20 +177,10 @@ class Cocoapods(PackageManager):
         self.direct_dep = True
 
 
-def compile_pods_item(pods_item, spec_repo_list, pod_in_sepc_list, pod_not_in_spec_list):
-    pods_item_re = re.findall(r'(\S*)\s{1}\((.*)\)', pods_item)
+def get_pods_info(pods_item):
+    pods_item_re = re.findall(r'(\S*)(?:\s{1}\((.*)\))?', pods_item)
 
     oss_name = pods_item_re[0][0]
     oss_version = pods_item_re[0][1]
 
-    oss_info = []
-    oss_info.append(oss_name)
-    oss_info.append(oss_version)
-
-    if oss_name in spec_repo_list:
-        pod_in_sepc_list.append(oss_info)
-        spec_repo_list.remove(oss_name)
-    else:
-        pod_not_in_spec_list.append(oss_info)
-
-    return pod_in_sepc_list, spec_repo_list, pod_not_in_spec_list
+    return oss_name, oss_version
