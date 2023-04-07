@@ -47,7 +47,7 @@ class Nuget(PackageManager):
 
         for oss_origin_name, oss_version in package_list:
             try:
-                oss_name = self.package_manager_name + ":" + oss_origin_name
+                oss_name = f'{self.package_manager_name}:{oss_origin_name}'
 
                 comment = []
                 dn_loc = ''
@@ -106,7 +106,9 @@ class Nuget(PackageManager):
                         comment.append('transitive')
 
                     if f'{oss_origin_name}({oss_version})' in self.relation_tree:
-                        comment.extend(self.relation_tree[f'{oss_origin_name}({oss_version})'])
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
+                        comment.extend(rel_items)
 
                 sheet_list.append([','.join(self.input_package_list_file),
                                   oss_name, oss_version, license_name, dn_loc, homepage, '', '', ', '.join(comment)])
