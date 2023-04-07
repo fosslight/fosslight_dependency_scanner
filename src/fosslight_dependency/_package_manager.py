@@ -108,7 +108,7 @@ class PackageManager:
                 except Exception as e:
                     self.set_direct_dependencies(False)
                     logger.error(f'Fail to run allDeps: {e}')
-                    logger.warning(f'It cannot print the direct/transitive dependencies relationship.')
+                    logger.warning('It cannot print the direct/transitive dependencies relationship.')
 
             if os.path.isfile(gradle_backup):
                 os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
