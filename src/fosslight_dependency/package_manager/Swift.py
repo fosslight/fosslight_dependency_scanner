@@ -61,9 +61,7 @@ class Swift(PackageManager):
                     except Exception as e:
                         logger.warning(f'Fail to load swift dependency tree json: {e}')
         else:
-            logger.info("It cannot print direct/transitive dependency.")
-            logger.info(f"because it doesn't contain the Package.swift or\
-                        {self.tmp_dep_tree_fname}(swift package show-dependencies --format json result file)")
+            logger.info(f"No Package.swift or {self.tmp_dep_tree_fname}, skip to print direct/transitive.")
         if not ret:
             self.direct_dep = False
 
