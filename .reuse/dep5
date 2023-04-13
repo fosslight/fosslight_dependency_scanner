@@ -109,3 +109,7 @@ License: Apache-2.0
 Files: tests/test_helm/*
 Copyright: 2023 LG Electronics
 License: Apache-2.0
+
+Files: tests/test_swift3/*
+Copyright: 2023 LG Electronics
+License: Apache-2.0

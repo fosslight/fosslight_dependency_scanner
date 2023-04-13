@@ -1,0 +1,94 @@
+{
+  "name": "MarkdownUI",
+  "url": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui",
+  "version": "unspecified",
+  "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui",
+  "dependencies": [
+    {
+      "name": "SwiftCommonMark",
+      "url": "https://github.com/gonzalezreal/SwiftCommonMark",
+      "version": "0.1.0",
+      "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/SwiftCommonMark",
+      "dependencies": [
+        {
+          "name": "cmark",
+          "url": "https://github.com/SwiftDocOrg/swift-cmark.git",
+          "version": "0.29.0+20210102.9c8096a",
+          "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/swift-cmark",
+          "dependencies": [
+
+          ]
+        }
+      ]
+    },
+    {
+      "name": "AttributedText",
+      "url": "https://github.com/gonzalezreal/AttributedText",
+      "version": "0.3.1",
+      "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/AttributedText",
+      "dependencies": [
+
+      ]
+    },
+    {
+      "name": "NetworkImage",
+      "url": "https://github.com/gonzalezreal/NetworkImage",
+      "version": "3.1.2",
+      "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/NetworkImage",
+      "dependencies": [
+        {
+          "name": "combine-schedulers",
+          "url": "https://github.com/pointfreeco/combine-schedulers",
+          "version": "0.5.3",
+          "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/combine-schedulers",
+          "dependencies": [
+            {
+              "name": "xctest-dynamic-overlay",
+              "url": "https://github.com/pointfreeco/xctest-dynamic-overlay",
+              "version": "0.2.1",
+              "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/xctest-dynamic-overlay",
+              "dependencies": [
+              ]
+            }
+          ]
+        },
+        {
+          "name": "xctest-dynamic-overlay",
+          "url": "https://github.com/pointfreeco/xctest-dynamic-overlay",
+          "version": "0.2.1",
+          "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/xctest-dynamic-overlay",
+          "dependencies": [
+
+          ]
+        }
+      ]
+    },
+    {
+      "name": "combine-schedulers",
+      "url": "https://github.com/pointfreeco/combine-schedulers",
+      "version": "0.5.3",
+      "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/combine-schedulers",
+      "dependencies": [
+        {
+          "name": "xctest-dynamic-overlay",
+          "url": "https://github.com/pointfreeco/xctest-dynamic-overlay",
+          "version": "0.2.1",
+          "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/xctest-dynamic-overlay",
+          "dependencies": [
+
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SnapshotTesting",
+      "url": "https://github.com/pointfreeco/swift-snapshot-testing",
+      "version": "1.9.0",
+      "path": "/Users/osc/Downloads/swift_test_proeject/swift-markdown-ui/.build/checkouts/swift-snapshot-testing",
+      "dependencies": [
+
+      ]
+    }
+  ]
+}
+

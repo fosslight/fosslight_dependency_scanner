@@ -48,6 +48,7 @@ Because we utilizes the different open source software to analyze the dependenci
 | [Carthage](https://github.com/Carthage/Carthage) (Swift/Obj-C)        | Yes, if the following conditions are met. <br /> - installed the packages of the project (in other words, downloadeded the sources in 'Carthgae/Checkouts' directory). |
 | [Go](https://pkg.go.dev/) (Go)              | No, it can't.                              |
 | [Nuget](https://www.nuget.org/) (.NET)      | No, it can't.                              |
+| [Helm](https://helm.sh/) (Kubernetes)      | No, it can't.                              |
 
 
 ## 👏 Contributing Guide
