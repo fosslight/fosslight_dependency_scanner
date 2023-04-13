@@ -110,6 +110,7 @@ class Npm(PackageManager):
             self.parse_transitive_relationship()
         except Exception as e:
             logger.warning(f'Cannot print direct/transitive dependency: {e}')
+            self.direct_dep = False
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as json_file:
