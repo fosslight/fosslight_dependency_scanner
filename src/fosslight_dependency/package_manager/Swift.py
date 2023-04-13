@@ -6,6 +6,7 @@
 import os
 import logging
 import json
+import subprocess
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -19,6 +20,7 @@ class Swift(PackageManager):
     package_manager_name = const.SWIFT
 
     input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
+    tmp_dep_tree_fname = 'show-dep.json'
 
     def __init__(self, input_dir, output_dir, github_token):
         super().__init__(self.package_manager_name, '', input_dir, output_dir)
@@ -38,6 +40,62 @@ class Swift(PackageManager):
                         if os.path.isfile(input_file_name_in_xcodeproj):
                             self.input_file_name = input_file_name_in_xcodeproj
                             logger.info(f"It uses the manifest file: {self.input_file_name}")
+
+    def parse_direct_dependencies(self):
+        ret = False
+        if os.path.isfile('Package.swift') or os.path.isfile(self.tmp_dep_tree_fname):
+            if not os.path.isfile(self.tmp_dep_tree_fname):
+                cmd = "swift package show-dependencies --format json"
+                try:
+                    ret_txt = subprocess.check_output(cmd, text=True, shell=True)
+                    if ret_txt is not None:
+                        deps_l = json.loads(ret_txt)
+                        ret = self.parse_dep_tree_json(deps_l)
+                except Exception as e:
+                    logger.warning(f'Fail to get swift dependency tree information: {e}')
+            else:
+                with open(self.tmp_dep_tree_fname) as f:
+                    try:
+                        deps_l = json.load(f)
+                        ret = self.parse_dep_tree_json(deps_l)
+                    except Exception as e:
+                        logger.warning(f'Fail to load swift dependency tree json: {e}')
+        else:
+            logger.info("It cannot print direct/transitive dependency.")
+            logger.info(f"because it doesn't contain the Package.swift or\
+                        {self.tmp_dep_tree_fname}(swift package show-dependencies --format json result file)")
+        if not ret:
+            self.direct_dep = False
+
+    def get_dependencies(self, dependencies, package):
+        package_name = 'name'
+        deps = 'dependencies'
+        version = 'version'
+
+        pkg_name = package[package_name]
+        pkg_ver = package[version]
+        dependency_list = package[deps]
+        dependencies[f"{pkg_name}({pkg_ver})"] = []
+        for dependency in dependency_list:
+            dep_name = dependency[package_name]
+            dep_version = dependency[version]
+            dependencies[f"{pkg_name}({pkg_ver})"].append(f"{dep_name}({dep_version})")
+            if dependency[deps] != []:
+                dependencies = self.get_dependencies(dependencies, dependency)
+        return dependencies
+
+    def parse_dep_tree_json(self, rel_json):
+        ret = True
+        try:
+            for p in rel_json['dependencies']:
+                self.direct_dep_list.append(p['name'])
+                if p['dependencies'] == []:
+                    continue
+                self.relation_tree = self.get_dependencies(self.relation_tree, p)
+        except Exception as e:
+            logger.error(f'Failed to parse dependency tree: {e}')
+            ret = False
+        return ret
 
     def parse_oss_information(self, f_name):
         sheet_list = []
@@ -80,7 +138,19 @@ class Swift(PackageManager):
             github_repo = "/".join(homepage.split('/')[-2:])
             license_name = get_github_license(g, github_repo, self.platform, self.license_scanner_bin)
 
+            comment_list = []
+            if self.direct_dep and len(self.direct_dep_list) > 0:
+                if oss_origin_name in self.direct_dep_list:
+                    comment_list.append('direct')
+                else:
+                    comment_list.append('transitive')
+
+                if f'{oss_origin_name}({oss_version})' in self.relation_tree:
+                    rel_items = [f'{self.package_manager_name}:{ri}'
+                                 for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
+                    comment_list.extend(rel_items)
+            comment = ', '.join(comment_list)
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', ''])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
 
         return sheet_list
