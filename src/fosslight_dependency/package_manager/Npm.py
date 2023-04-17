@@ -79,6 +79,9 @@ class Npm(PackageManager):
         _version = 'version'
 
         for rel_dep_name in rel_dependencies.keys():
+            # Optional, non-installed dependencies are listed as empty objects
+            if rel_dependencies[rel_dep_name] == {}:
+                continue
             if f'{rel_name}({rel_ver})' not in self.relation_tree:
                 self.relation_tree[f'{rel_name}({rel_ver})'] = []
             self.relation_tree[f'{rel_name}({rel_ver})'].append(f'{rel_dep_name}({rel_dependencies[rel_dep_name][_version]})')
@@ -91,12 +94,16 @@ class Npm(PackageManager):
         _version = 'version'
         _name = 'name'
 
-        cmd = 'npm ls -a --prod --json'
-        rel_tree = subprocess.check_output(cmd, shell=True, encoding='utf8')
+        cmd = 'npm ls -a --prod --json -s'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        rel_tree = result.stdout
         if rel_tree is None:
             logger.error(f"It returns the error: {cmd}")
-            logger.error(f"Fail to run {cmd}")
+            logger.error(f"No output for {cmd}")
             return False
+
+        if result.returncode == 1:
+            logger.warning(f'npm ls returns an error code: {result.stderr}')
 
         try:
             rel_json = json.loads(rel_tree)
