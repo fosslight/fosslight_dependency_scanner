@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.13.2 (18/04/2023)
+## Changes
+## 🚀 Features
+
+- Add dependencies of swift in comment @dd-jy (#133)
+
+## 🐛 Hotfixes
+
+- Fix the breaking script when npm ls returns error @dd-jy, @RHeynsZa (#132)
+
+---
+
 ## v3.13.1 (07/04/2023)
 ## Changes
 ## 🚀 Features
@@ -22,7 +34,7 @@
 
 - Print the dependencies of each package in comment @dd-jy (#128)
   - Implemented : gradle(java, android), maven, npm, pypi, pub
-  - Not implemented yet : cocoapods, go, nuget
+  - Not implemented yet : cocoapods, go, nuget, swift
 
 ---
 
@@ -316,11 +328,3 @@
 - Change sheet name to SRC_FL_Dependency from SRC @soimkim (#57)
 - Run PR action for all branches @soimkim (#58)
 - Return sheet_list from main @soimkim (#56)
-
----
-
-## v3.7.3 (07/10/2021)
-## Changes
-## 🔧 Maintenance
-
-- Modify -o option to add output file name(.csv, .xlsx) @dd-jy (#55)
