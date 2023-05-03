@@ -149,14 +149,14 @@ class Npm(PackageManager):
             homepage = self.dn_url + oss_init_name
 
             comment_list = []
-            if self.direct_dep:
-                if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
-                    comment_list.append('direct')
-                else:
-                    comment_list.append('transitive')
-
+            if self.direct_dep and len(self.relation_tree) > 0:
                 if self.package_name == f'{oss_init_name}({oss_version})':
                     comment_list.append('root package')
+                else:
+                    if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
+                        comment_list.append('direct')
+                    else:
+                        comment_list.append('transitive')
 
                 if f'{oss_init_name}({oss_version})' in self.relation_tree:
                     rel_items = [f'npm:{ri}' for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]

@@ -18,6 +18,7 @@ import fosslight_util.constant as constant
 from fosslight_dependency._help import print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_format, write_output_file
+from fosslight_util.write_spdx import write_spdx
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
@@ -82,10 +83,13 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             output_path = os.path.abspath(output_path)
 
         if output_file == "":
-            if output_extension == _json_ext:
-                output_file = f"fosslight_opossum_dep_{_start_time}"
+            if format.startswith('spdx'):
+                output_file = f"fosslight_spdx_dep_{_start_time}"
             else:
-                output_file = f"fosslight_report_dep_{_start_time}"
+                if output_extension == _json_ext:
+                    output_file = f"fosslight_opossum_dep_{_start_time}"
+                else:
+                    output_file = f"fosslight_report_dep_{_start_time}"
     else:
         logger.error(msg)
         sys.exit(1)
@@ -150,7 +154,12 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                     found_package_manager[const.ANDROID] = pass_key
 
     output_file_without_ext = os.path.join(output_path, output_file)
-    success_to_write, writing_msg, result_file = write_output_file(output_file_without_ext, output_extension,
+    if format.startswith('spdx'):
+        success_to_write, writing_msg, result_file = write_spdx(output_file_without_ext, output_extension, sheet_list,
+                                                   _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
+                                                   spdx_version = (2, 3))
+    else:
+        success_to_write, writing_msg, result_file = write_output_file(output_file_without_ext, output_extension,
                                                                    sheet_list)
     if success_to_write:
         if result_file:

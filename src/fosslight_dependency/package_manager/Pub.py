@@ -139,12 +139,13 @@ class Pub(PackageManager):
                 if self.direct_dep:
                     if oss_origin_name not in self.total_dep_list:
                         continue
-                    if json_data['isDirectDependency']:
-                        comment_list.append('direct')
-                    else:
-                        comment_list.append('transitive')
                     if self.package_name == f'{oss_origin_name}({oss_version})':
                         comment_list.append('root package')
+                    else:
+                        if json_data['isDirectDependency']:
+                            comment_list.append('direct')
+                        else:
+                            comment_list.append('transitive')
 
                     if f'{oss_origin_name}({oss_version})' in self.relation_tree:
                         rel_items = [f'{self.package_manager_name}:{ri}'

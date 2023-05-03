@@ -275,14 +275,13 @@ class Pypi(PackageManager):
 
                 if license_name is not None:
                     license_name = license_name.replace(';', ',')
-
-                license_file_dir = d['LicenseFile']
-                license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
+                else:
+                    license_file_dir = d['LicenseFile']
+                    license_name_with_lic_scanner = check_and_run_license_scanner(self.platform,
                                                                                   self.license_scanner_bin,
                                                                                   license_file_dir)
-
-                if license_name_with_license_scanner != "":
-                    license_name = license_name_with_license_scanner
+                    if license_name_with_lic_scanner != "":
+                        license_name = license_name_with_lic_scanner
 
                 comment_list = []
                 if self.direct_dep_list:
