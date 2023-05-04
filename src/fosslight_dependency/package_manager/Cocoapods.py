@@ -85,6 +85,7 @@ class Cocoapods(PackageManager):
         for pod_oss_name_origin, pod_oss_version in pod_item_list.items():
             try:
                 comment_list = []
+                deps_list = []
                 if self.direct_dep:
                     if pod_oss_name_origin in self.direct_dep_list:
                         comment_list.append('direct')
@@ -93,8 +94,9 @@ class Cocoapods(PackageManager):
                     if f'{pod_oss_name_origin}({oss_version})' in self.relation_tree:
                         rel_items = [f'{self.package_manager_name}:{ri}'
                                      for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
-                        comment_list.extend(rel_items)
-                comment = ', '.join(comment_list)
+                        deps_list.extend(rel_items)
+                comment = ','.join(comment_list)
+                deps = ','.join(deps_list)
 
                 pod_oss_name = pod_oss_name_origin
                 if '/' in pod_oss_name_origin:
@@ -131,7 +133,7 @@ class Cocoapods(PackageManager):
                                    with spec version({oss_version})')
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
                                   f'{self.package_manager_name}:{pod_oss_name_origin}',
-                                   pod_oss_version, license_name, dn_loc, homepage, '', '', comment])
+                                   pod_oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
             except Exception as e:
                 logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
 

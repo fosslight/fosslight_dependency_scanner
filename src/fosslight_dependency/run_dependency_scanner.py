@@ -11,7 +11,6 @@ import warnings
 from datetime import datetime
 import logging
 import fosslight_dependency.constant as const
-import traceback
 from collections import defaultdict
 from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
@@ -25,6 +24,10 @@ _PKG_NAME = "fosslight_dependency"
 logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
 _sheet_name = "SRC_FL_Dependency"
+EXTENDED_HEADER = {_sheet_name: ['ID', 'Source Name or Path', 'OSS Name',
+                                       'OSS Version', 'License', 'Download Location',
+                                       'Homepage', 'Copyright Text', 'Exclude',
+                                       'Comment', 'Dependencies']}
 
 
 def find_package_manager():
@@ -131,8 +134,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         try:
             ret, found_package_manager = find_package_manager()
         except Exception as e:
-            logger.error(str(e))
-            logger.error(traceback.format_exc())
+            logger.error(f'Fail to find package manager: {e}')
             ret = False
         finally:
             if not ret:
@@ -159,7 +161,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                                                          _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
                                                          spdx_version=(2, 3))
     else:
-        success_write, err_msg, result_file = write_output_file(output_file_without_ext, output_extension, sheet_list)
+        success_write, err_msg, result_file = write_output_file(output_file_without_ext, output_extension,
+                                                                sheet_list, EXTENDED_HEADER)
     if success_write:
         if result_file:
             logger.info(f"Writing Output file({result_file}), success:{success_write}")

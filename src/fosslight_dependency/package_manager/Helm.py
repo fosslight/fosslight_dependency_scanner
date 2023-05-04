@@ -90,6 +90,6 @@ class Helm(PackageManager):
                 continue
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, ''])
 
         return sheet_list

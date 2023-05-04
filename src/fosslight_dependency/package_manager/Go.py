@@ -90,6 +90,7 @@ class Go(PackageManager):
                     oss_version = oss_origin_version[1:]
 
                 comment_list = []
+                deps_list = []
                 if self.direct_dep:
                     if indirect in dep_item:
                         if dep_item[indirect]:
@@ -102,7 +103,7 @@ class Go(PackageManager):
                 if f'{package_path}({oss_version})' in self.relation_tree:
                     rel_items = [f'{self.package_manager_name}:{ri}'
                                  for ri in self.relation_tree[f'{package_path}({oss_version})']]
-                    comment_list.extend(rel_items)
+                    deps_list.extend(rel_items)
 
                 homepage_set = []
                 homepage = self.dn_url + package_path
@@ -145,8 +146,9 @@ class Go(PackageManager):
                 logging.warning(f"Fail to parse {package_path} in go mod : {e}")
                 continue
 
-            comment = ', '.join(comment_list)
+            comment = ','.join(comment_list)
+            deps = ','.join(deps_list)
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
         return sheet_list

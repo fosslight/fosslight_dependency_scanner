@@ -49,7 +49,7 @@ class Nuget(PackageManager):
             try:
                 oss_name = f'{self.package_manager_name}:{oss_origin_name}'
 
-                comment = []
+                comment_list = []
                 dn_loc = ''
                 homepage = ''
                 license_name = ''
@@ -67,7 +67,7 @@ class Nuget(PackageManager):
                     if license_name_id is not None:
                         license_name, license_comment = self.check_multi_license(license_name_id.text)
                         if license_comment != '':
-                            comment.append(license_comment)
+                            comment_list.append(license_comment)
                     else:
                         license_url = nupkg_metadata.find(f'{xmlns}licenseUrl')
                         if license_url is not None:
@@ -97,21 +97,24 @@ class Nuget(PackageManager):
                         if dn_loc.endswith('.git'):
                             dn_loc = dn_loc[:-4]
                 else:
-                    comment.append('Fail to response for nuget api')
+                    comment_list.append('Fail to response for nuget api')
 
+                deps_list = []
                 if self.direct_dep and self.packageReference:
                     if oss_origin_name in self.direct_dep_list:
-                        comment.append('direct')
+                        comment_list.append('direct')
                     else:
-                        comment.append('transitive')
+                        comment_list.append('transitive')
 
                     if f'{oss_origin_name}({oss_version})' in self.relation_tree:
                         rel_items = [f'{self.package_manager_name}:{ri}'
                                      for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
-                        comment.extend(rel_items)
+                        deps_list.extend(rel_items)
 
+                comment = ','.join(comment_list)
+                deps = ','.join(deps_list)
                 sheet_list.append([','.join(self.input_package_list_file),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', ', '.join(comment)])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
             except Exception as e:
                 logger.warning(f"Failed to parse oss information: {e}")

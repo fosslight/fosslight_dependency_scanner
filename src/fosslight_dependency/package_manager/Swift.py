@@ -137,6 +137,7 @@ class Swift(PackageManager):
             license_name = get_github_license(g, github_repo, self.platform, self.license_scanner_bin)
 
             comment_list = []
+            deps_list = []
             if self.direct_dep and len(self.direct_dep_list) > 0:
                 if oss_origin_name in self.direct_dep_list:
                     comment_list.append('direct')
@@ -146,9 +147,10 @@ class Swift(PackageManager):
                 if f'{oss_origin_name}({oss_version})' in self.relation_tree:
                     rel_items = [f'{self.package_manager_name}:{ri}'
                                  for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
-                    comment_list.extend(rel_items)
-            comment = ', '.join(comment_list)
+                    deps_list.extend(rel_items)
+            comment = ','.join(comment_list)
+            deps = ','.join(deps_list)
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
         return sheet_list

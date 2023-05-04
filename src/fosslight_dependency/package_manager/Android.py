@@ -51,6 +51,7 @@ class Android(PackageManager):
                     continue
 
                 comment_list = []
+                deps_list = []
                 if self.direct_dep:
                     dep_key = f"{oss_name}({oss_version})"
                     if self.total_dep_list:
@@ -62,11 +63,12 @@ class Android(PackageManager):
                         comment_list.append('transitive')
                     try:
                         if dep_key in self.relation_tree:
-                            comment_list.extend(self.relation_tree[dep_key])
+                            deps_list.extend(self.relation_tree[dep_key])
                     except Exception as e:
                         logger.error(f"Fail to find oss scope in dependency tree: {e}")
-                comment = ', '.join(comment_list)
+                comment = ','.join(comment_list)
+                deps = ','.join(deps_list)
 
-                sheet_list.append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                sheet_list.append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
         return sheet_list

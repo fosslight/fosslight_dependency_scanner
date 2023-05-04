@@ -239,6 +239,7 @@ class Maven(PackageManager):
 
             dep_key = f"{oss_name}({version})"
             comment_list = []
+            deps_list = []
             if self.direct_dep:
                 if dep_key in self.direct_dep_list:
                     comment_list.append('direct')
@@ -246,12 +247,13 @@ class Maven(PackageManager):
                     comment_list.append('transitive')
                 try:
                     if dep_key in self.relation_tree:
-                        comment_list.extend(self.relation_tree[dep_key])
+                        deps_list.extend(self.relation_tree[dep_key])
                 except Exception as e:
                     logger.error(f"Fail to find oss scope in dependency tree: {e}")
-            comment = ', '.join(comment_list)
+            comment = ','.join(comment_list)
+            deps = ','.join(deps_list)
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
         return sheet_list

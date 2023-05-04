@@ -75,6 +75,7 @@ class Gradle(PackageManager):
                 homepage = f"{self.dn_url}{group_id}/{artifact_id}"
 
             comment_list = []
+            deps_list = []
             if self.direct_dep:
                 if len(self.direct_dep_list) > 0:
                     if dep_key in self.direct_dep_list:
@@ -83,13 +84,14 @@ class Gradle(PackageManager):
                         comment_list.append('transitive')
                 try:
                     if dep_key in self.relation_tree:
-                        comment_list.extend(self.relation_tree[dep_key])
+                        deps_list.extend(self.relation_tree[dep_key])
                 except Exception as e:
                     logger.error(f"Fail to find oss scope in dependency tree: {e}")
-            comment = ', '.join(comment_list)
+            comment = ','.join(comment_list)
+            deps = ','.join(deps_list)
 
             sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
         return sheet_list
 
