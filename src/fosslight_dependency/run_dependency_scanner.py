@@ -155,20 +155,19 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     output_file_without_ext = os.path.join(output_path, output_file)
     if format.startswith('spdx'):
-        success_to_write, writing_msg, result_file = write_spdx(output_file_without_ext, output_extension, sheet_list,
-                                                   _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
-                                                   spdx_version = (2, 3))
+        success_write, err_msg, result_file = write_spdx(output_file_without_ext, output_extension, sheet_list,
+                                                         _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
+                                                         spdx_version=(2, 3))
     else:
-        success_to_write, writing_msg, result_file = write_output_file(output_file_without_ext, output_extension,
-                                                                   sheet_list)
-    if success_to_write:
+        success_write, err_msg, result_file = write_output_file(output_file_without_ext, output_extension, sheet_list)
+    if success_write:
         if result_file:
-            logger.info(f"Writing Output file({result_file}), success:{success_to_write}")
+            logger.info(f"Writing Output file({result_file}), success:{success_write}")
         else:
-            logger.warning(f"{writing_msg}")
+            logger.warning(f"{err_msg}")
     else:
         ret = False
-        logger.error(f"Fail to generate result file. msg:({writing_msg})")
+        logger.error(f"Fail to generate result file. msg:({err_msg})")
 
     logger.warning("### FINISH ###")
     return ret, sheet_list
