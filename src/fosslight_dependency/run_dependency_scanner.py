@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import platform
 import sys
 import argparse
 import pkg_resources
@@ -17,7 +18,8 @@ import fosslight_util.constant as constant
 from fosslight_dependency._help import print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_format, write_output_file
-from fosslight_util.write_spdx import write_spdx
+if platform.system() != 'Windows':
+    from fosslight_util.write_spdx import write_spdx
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
@@ -87,7 +89,11 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
         if output_file == "":
             if format.startswith('spdx'):
-                output_file = f"fosslight_spdx_dep_{_start_time}"
+                if platform.system() != 'Windows':
+                    output_file = f"fosslight_spdx_dep_{_start_time}"
+                else:
+                    logger.error('Windows not support spdx format.')
+                    sys.exit(0)
             else:
                 if output_extension == _json_ext:
                     output_file = f"fosslight_opossum_dep_{_start_time}"
@@ -157,9 +163,12 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     output_file_without_ext = os.path.join(output_path, output_file)
     if format.startswith('spdx'):
-        success_write, err_msg, result_file = write_spdx(output_file_without_ext, output_extension, sheet_list,
-                                                         _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
-                                                         spdx_version=(2, 3))
+        if platform.system() != 'Windows':
+            success_write, err_msg, result_file = write_spdx(output_file_without_ext, output_extension, sheet_list,
+                                                             _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
+                                                             spdx_version=(2, 3))
+        else:
+            logger.error('Windows not support spdx format.')
     else:
         success_write, err_msg, result_file = write_output_file(output_file_without_ext, output_extension,
                                                                 sheet_list, EXTENDED_HEADER)
