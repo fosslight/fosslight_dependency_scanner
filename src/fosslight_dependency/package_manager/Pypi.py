@@ -275,16 +275,16 @@ class Pypi(PackageManager):
 
                 if license_name is not None:
                     license_name = license_name.replace(';', ',')
-
-                license_file_dir = d['LicenseFile']
-                license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
+                else:
+                    license_file_dir = d['LicenseFile']
+                    license_name_with_lic_scanner = check_and_run_license_scanner(self.platform,
                                                                                   self.license_scanner_bin,
                                                                                   license_file_dir)
-
-                if license_name_with_license_scanner != "":
-                    license_name = license_name_with_license_scanner
+                    if license_name_with_lic_scanner != "":
+                        license_name = license_name_with_lic_scanner
 
                 comment_list = []
+                deps_list = []
                 if self.direct_dep_list:
                     if f'{oss_init_name}({oss_version})' in self.direct_dep_list:
                         comment_list.append('direct')
@@ -293,11 +293,12 @@ class Pypi(PackageManager):
                     if f'{oss_init_name}({oss_version})' in self.relation_tree:
                         rel_items = [f'{self.package_manager_name}:{ri}'
                                      for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
-                        comment_list.extend(rel_items)
-                comment = ', '.join(comment_list)
+                        deps_list.extend(rel_items)
+                comment = ','.join(comment_list)
+                deps = ','.join(deps_list)
                 sheet_list.append([', '.join(self.manifest_file_name),
                                    oss_name, oss_version,
-                                   license_name, dn_loc, homepage, '', '', comment])
+                                   license_name, dn_loc, homepage, '', '', comment, deps])
 
         except Exception as ex:
             logger.warning(f"Fail to parse oss information: {oss_init_name}({ex})")

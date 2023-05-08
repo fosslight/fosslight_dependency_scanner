@@ -136,23 +136,26 @@ class Pub(PackageManager):
                     license_name = ''
 
                 comment_list = []
+                deps_list = []
                 if self.direct_dep:
                     if oss_origin_name not in self.total_dep_list:
                         continue
-                    if json_data['isDirectDependency']:
-                        comment_list.append('direct')
-                    else:
-                        comment_list.append('transitive')
                     if self.package_name == f'{oss_origin_name}({oss_version})':
                         comment_list.append('root package')
+                    else:
+                        if json_data['isDirectDependency']:
+                            comment_list.append('direct')
+                        else:
+                            comment_list.append('transitive')
 
                     if f'{oss_origin_name}({oss_version})' in self.relation_tree:
                         rel_items = [f'{self.package_manager_name}:{ri}'
                                      for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
-                        comment_list.extend(rel_items)
-                comment = ', '.join(comment_list)
+                        deps_list.extend(rel_items)
+                comment = ','.join(comment_list)
+                deps = ','.join(deps_list)
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
         except Exception as e:
             logger.error(f"Fail to parse pub oss information: {e}")
 

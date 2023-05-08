@@ -149,32 +149,34 @@ class Npm(PackageManager):
             homepage = self.dn_url + oss_init_name
 
             comment_list = []
-            if self.direct_dep:
-                if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
-                    comment_list.append('direct')
-                else:
-                    comment_list.append('transitive')
-
+            deps_list = []
+            if self.direct_dep and len(self.relation_tree) > 0:
                 if self.package_name == f'{oss_init_name}({oss_version})':
                     comment_list.append('root package')
+                else:
+                    if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
+                        comment_list.append('direct')
+                    else:
+                        comment_list.append('transitive')
 
                 if f'{oss_init_name}({oss_version})' in self.relation_tree:
                     rel_items = [f'npm:{ri}' for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
-                    comment_list.extend(rel_items)
+                    deps_list.extend(rel_items)
 
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             multi_license, license_comment, multi_flag = check_multi_license(license_name, manifest_file_path)
 
-            comment = ', '.join(comment_list)
+            comment = ','.join(comment_list)
+            deps = ','.join(deps_list)
             if multi_flag:
                 comment = f'{comment}, {license_comment}'
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, multi_license, dn_loc, homepage, '', '', comment])
+                                  oss_name, oss_version, multi_license, dn_loc, homepage, '', '', comment, deps])
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
                 sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment])
+                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
         return sheet_list
 
