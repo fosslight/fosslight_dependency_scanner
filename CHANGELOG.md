@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.13.3 (08/05/2023)
+## Changes
+## 🚀 Features
+
+- Support spdx format result @dd-jy (#136)
+
+---
+
 ## v3.13.2 (18/04/2023)
 ## Changes
 ## 🚀 Features
@@ -312,19 +320,3 @@
 ## 🔧 Maintenance
 
 - Add maven scope into comment of FOSSLight report @dd-jy (#62)
-
----
-
-## v3.7.4 (21/10/2021)
-## Changes
-## 🐛 Hotfixes
-
-- Fix a bug related to return sheet_list in main @soimkim (#59)
-
-## 🔧 Maintenance
-
-- Add '-f(format)' option and modify '-o' option. @dd-jy (#61)
-- Return sheet_list and change sheet name to SRC_FL_Dependency @soimkim (#60)
-- Change sheet name to SRC_FL_Dependency from SRC @soimkim (#57)
-- Run PR action for all branches @soimkim (#58)
-- Return sheet_list from main @soimkim (#56)
