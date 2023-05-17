@@ -30,6 +30,9 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Source Name or Path', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Dependencies']}
+CUSTOMIZED_FORMAT = {'excel': '.xlsx', 'csv': '.csv', 'opossum': '.json', 'yaml': '.yaml',
+                     'spdx-yaml': '.yaml', 'spdx-json': '.json', 'spdx-xml': '.xml',
+                     'spdx-tag': '.tag'}
 
 
 def find_package_manager():
@@ -80,7 +83,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     _json_ext = ".json"
     _start_time = datetime.now().strftime('%y%m%d_%H%M')
 
-    success, msg, output_path, output_file, output_extension = check_output_format(output_dir_file, format)
+    success, msg, output_path, output_file, output_extension = check_output_format(output_dir_file, format, CUSTOMIZED_FORMAT)
     if success:
         if output_path == "":
             output_path = os.getcwd()
