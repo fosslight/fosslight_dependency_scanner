@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.13.4 (19/05/2023)
+## Changes
+## 🐛 Hotfixes
+
+- Fix to use customized output format @dd-jy (#137)
+
+---
+
 ## v3.13.3 (08/05/2023)
 ## Changes
 ## 🚀 Features
@@ -312,11 +320,3 @@
 
 - Change the log when it fails to detect the package manager @dd-jy (#65)
 - Fix url for User Guide @JustinWonjaePark (#64)
-
----
-
-## v3.7.5 (04/11/2021)
-## Changes
-## 🔧 Maintenance
-
-- Add maven scope into comment of FOSSLight report @dd-jy (#62)
