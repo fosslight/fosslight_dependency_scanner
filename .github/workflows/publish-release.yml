@@ -32,7 +32,8 @@ jobs:
         echo Last version: ${last_version}
         new_version=$(echo ${NEW_TAG//v/""})
         echo New version: ${new_version}
-        git config --local user.name "github-actions[bot]"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "fosslight-dev@lge.com"
         bumpversion --current-version $last_version --new-version $new_version setup.py
     - name: update changelog with gren
       env:
@@ -42,7 +43,8 @@ jobs:
         node_modules/.bin/gren changelog --override
     - name: Commit files
       run: |
-        git config --local user.name "github-actions[bot]"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "fosslight-dev@lge.com"
         git add CHANGELOG.md
         git commit -m "Update ChangeLog"
     - name: Push changes
