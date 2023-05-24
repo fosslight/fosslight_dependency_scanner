@@ -119,6 +119,10 @@ class Pub(PackageManager):
                 oss_name = f"{self.package_manager_name}:{oss_origin_name}"
                 oss_version = json_data['version']
                 homepage = json_data['homepage']
+                if homepage is None:
+                    homepage = json_data['repository']
+                if homepage is None:
+                    homepage = ''
                 dn_loc = f"{self.dn_url}{oss_origin_name}/versions/{oss_version}"
                 license_txt = json_data['license']
 
