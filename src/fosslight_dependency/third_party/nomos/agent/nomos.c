@@ -117,7 +117,7 @@ void arsNomos(cacheroot_t* cacheroot, bool ignoreFilesWithMimeType) {
     for (i = 0; i < numrows; i++)
     {
       initializeCurScan(&cur);
-      strcpy(cur.pFile, PQgetvalue(result, i, 1));
+      strncpy(cur.pFile, PQgetvalue(result, i, 1), sizeof(cur.pFile)-1);
       cur.pFileFk = atoi(PQgetvalue(result, i, 0));
       repFile = fo_RepMkPath("files", cur.pFile);
       if (!repFile)
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
 
   COMMIT_HASH = fo_sysconfig("nomos", "COMMIT_HASH");
   VERSION = fo_sysconfig("nomos", "VERSION");
-  sprintf(agent_rev, "%s.%s", VERSION, COMMIT_HASH);
+  snprintf(agent_rev, sizeof(agent_rev), "%s.%s", VERSION, COMMIT_HASH);
 
   gl.agentPk = fo_GetAgentKey(gl.pgConn, basename(argv[0]), 0, agent_rev, agent_desc);
 

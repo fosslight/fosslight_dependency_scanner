@@ -6,8 +6,7 @@
 import logging
 import re
 import os
-from xml.etree.ElementTree import parse
-from xml.etree.ElementTree import fromstring
+from defusedxml.ElementTree import parse, fromstring
 import json
 import requests
 import fosslight_util.constant as constant

@@ -80,6 +80,7 @@ char *unescapePathSeparator(const char* json)
   char *tmp;
   char *tempjson;
   int count;
+  char *strtok_str;
   if (!json)
   {
     return NULL;
@@ -94,9 +95,14 @@ char *unescapePathSeparator(const char* json)
 
   resultLength = strlen(tempjson) - ((escPathLen - pathSepLen) * count);
 
+  strtok_str = strtok(tempjson, escapedSeparator);
+  if (strtok_str == NULL)
+  {
+    return NULL;
+  }
   result = (char*) calloc(resultLength + 1, sizeof(char));
 
-  strncpy(result, strtok(tempjson, escapedSeparator), resultLength);
+  strncpy(result, strtok_str, resultLength);
   remainingLength = resultLength - strlen(result);
 
   while (count-- && remainingLength > 0)

@@ -98,7 +98,7 @@ int lineInFile(char *pathname, char *regex)
   traceFunc("== lineInFile(%s, \"%s\")\n", pathname, regex);
 #endif  /* PROC_TRACE */
 
-  (void) sprintf(buf, "^%s$", regex);
+  (void) snprintf(buf, sizeof(buf), "^%s$", regex);
   return (textInFile(pathname, buf, REG_NEWLINE));
 }
 

@@ -8,7 +8,7 @@ import logging
 import subprocess
 import shutil
 from bs4 import BeautifulSoup as bs
-from xml.etree.ElementTree import parse
+from defusedxml.ElementTree import parse
 import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const

@@ -571,7 +571,7 @@ char* createRelativePath(item_t *p, scanres_t *scp)
   char* cp;
   if (*(p->str) == '/')
   {
-    strcpy(scp->fullpath, p->str);
+    strncpy(scp->fullpath, p->str, sizeof(scp->fullpath)-1);
     scp->nameOffset = (size_t) (cur.targetLen + 1);
     cp = scp->fullpath; /* full pathname */
   }
@@ -848,7 +848,7 @@ static void noLicenseFound() {
   traceFunc("== noLicenseFound\n");
 #endif	/* PROC_TRACE */
 
-  (void) strcpy(cur.compLic, LS_NOSUM);
+  (void) strncpy(cur.compLic, LS_NOSUM, sizeof(cur.compLic)-1);
   return;
 }
 
@@ -1286,7 +1286,7 @@ static void makeLicenseSummary(list_t *l, int highScore, char *target, int size)
 #endif	/* PROC_TRACE */
 
   if (l->used == 0) { /* zero/nothing */
-    (void) strcpy(target, LS_NOSUM);
+    (void) strncpy(target, LS_NOSUM, sizeof(target)-1);
     return;
   }
   /*

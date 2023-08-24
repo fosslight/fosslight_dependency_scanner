@@ -7,3 +7,4 @@ lastversion
 fosslight_util>=1.4.24
 PyGithub
 requirements-parser
+defusedxml

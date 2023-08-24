@@ -793,13 +793,13 @@ FUNCTION void processFile(char *fileToScan)
 
   /* printf("   LOG: nomos scanning file %s.\n", fileToScan);  DEBUG */
 
-  (void) strcpy(cur.cwd, gl.initwd);
+  (void) strncpy(cur.cwd, gl.initwd, sizeof(cur.cwd)-1);
 
-  strcpy(cur.filePath, fileToScan);
+  strncpy(cur.filePath, fileToScan, sizeof(cur.filePath)-1);
   pathcopy = g_strdup(fileToScan);
-  strcpy(cur.targetDir, dirname(pathcopy));
+  strncpy(cur.targetDir, dirname(pathcopy), sizeof(cur.targetDir)-1);
   g_free(pathcopy);
-  strcpy(cur.targetFile, fileToScan);
+  strncpy(cur.targetFile, fileToScan, sizeof(cur.targetFile)-1);
   cur.targetLen = strlen(cur.targetDir);
 
   if (!isFILE(fileToScan))
