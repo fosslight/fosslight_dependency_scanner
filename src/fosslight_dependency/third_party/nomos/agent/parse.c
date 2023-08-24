@@ -7321,7 +7321,7 @@ char *parseLicenses(char *filetext, int size, scanres_t *scp,
     if (!pd &&
         checkUnclassified(filetext, size, scp->score, isML,
             isPS, nw)) {
-      strcpy(name, LS_UNCL);
+      strncpy(name, LS_UNCL, sizeof(name)-1);
       if (isPS) {
         strcat(name, "(PS)");
       }
@@ -8735,8 +8735,8 @@ int findPhrase(int index, char *filetext, int size, int isML, int isPS,
     sp->refCount--;
 #ifdef  PARSE_STOPWATCH
     END_TIMER;      /* stop the timer */
-    (void) strcat(timerName, "Cache-NO - ");
-    (void) strcat(timerName, ltp->tseed);
+    (void) strncat(timerName, "Cache-NO - ", sizeof(timerName)-1);
+    (void) strncat(timerName, ltp->tseed, sizeof(timerName)-1);
     PRINT_TIMER(timerName, 0);
 #endif  /* PARSE_STOPWATCH */
     return(0);
@@ -8769,7 +8769,7 @@ int findPhrase(int index, char *filetext, int size, int isML, int isPS,
 #ifdef  PARSE_STOPWATCH
       END_TIMER;      /* stop the timer */
       (void) strcat(timerName, "tseed-NO - ");
-      (void) strcat(timerName, ltp->tseed);
+      (void) strncat(timerName, ltp->tseed, sizeof(timerName)-1);
       PRINT_TIMER(timerName, 0);
 #endif  /* PARSE_STOPWATCH */
       return(0);      /* known !match */
@@ -8942,9 +8942,6 @@ int findPhrase(int index, char *filetext, int size, int isML, int isPS,
         else if (strNbuf(sp->buf+sso, "version 2")) {
           if (sp->buf + sso + cur.regm.rm_eo <
               sp->buf + seo) {
-            if (lDiags) {
-              printf("... v%c!\n", *cp);
-            }
             ret = 0;
             *q = LTSR_NO;
           }

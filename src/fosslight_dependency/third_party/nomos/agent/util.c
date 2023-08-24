@@ -255,7 +255,7 @@ char *memAllocTagged(int size, char *name)
 #endif /* DEBUG > 3 || MEM_ACCT */
   memcache[memlast].mmPtr = ptr;
   memcache[memlast].size = size;
-  (void) strcpy(memcache[memlast].label, name);
+  (void) strncpy(memcache[memlast].label, name, sizeof(memcache[memlast].label)-1);
 #ifdef MEM_ACCT
   printf("memAllocTagged(%d, \"%s\") == %p [entry %04d]\n", size, name, ptr,
       memlast);
@@ -293,7 +293,7 @@ void memFreeTagged(void *ptr, char *note)
   }
   free(ptr);
 #if DEBUG > 3 || defined(MEM_ACCT)
-  printf("-%p=(%d)\n", ptr, mmp->size);
+  printf("(%d)\n", mmp->size);
 #endif /* DEBUG > 3 || MEM_ACCT */
   if (i != memlast) {
     (void) memmove(&memcache[i], &memcache[i+1],
@@ -1141,7 +1141,7 @@ char *mmapFile(char *pathname) /* read-only for now */
     Bail(14);
   }
 
-  (void) strcpy(mmp->label, pathname);
+  (void) strncpy(mmp->label, pathname, sizeof(mmp->label)-1);
   if (cur.stbuf.st_size)
   {
     mmp->size = cur.stbuf.st_size + 1;
@@ -1316,7 +1316,7 @@ int mySystem(const char *fmt, ...)
 {
   int ret;
   va_start(ap, fmt);
-  (void) vsprintf(cmdBuf, fmt, ap);
+  (void) vsnprintf(cmdBuf, sizeof(cmdBuf), fmt, ap);
   va_end(ap);
 
 #if defined(PROC_TRACE) || defined(UNPACK_DEBUG)
@@ -1408,7 +1408,7 @@ void Assert(int fatalFlag, const char *fmt, ...)
 {
   va_start(ap, fmt);
   (void) sprintf(utilbuf, "ASSERT: ");
-  (void) vsprintf(utilbuf+strlen(utilbuf), fmt, ap);
+  (void) vsnprintf(utilbuf+strlen(utilbuf), sizeof(utilbuf+strlen(utilbuf)), fmt, ap);
   va_end(ap);
 
 #ifdef  PROC_TRACE
