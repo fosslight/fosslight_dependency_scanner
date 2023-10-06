@@ -131,8 +131,6 @@ class Maven(PackageManager):
             shutil.rmtree(top_path)
 
     def run_maven_plugin(self):
-        dependency_tree_fname = 'tmp_dependency_tree.txt'
-
         logger.info('Run maven license scanning plugin with temporary pom.xml')
         if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
             if self.platform == const.WINDOWS:
@@ -147,24 +145,23 @@ class Maven(PackageManager):
         if ret != 0:
             logger.error(f"Failed to run maven plugin: {cmd}")
 
-        cmd = f"{cmd_mvn} dependency:tree > {dependency_tree_fname}"
-        ret = subprocess.call(cmd, shell=True)
-        if ret != 0:
+        cmd = f"{cmd_mvn} dependency:tree"
+        ret_txt = subprocess.check_output(cmd, text=True, shell=True)
+        if ret_txt is not None:
+            self.parse_dependency_tree(ret_txt)
+            self.set_direct_dependencies(True)
+        else:
             logger.error(f"Failed to run: {cmd}")
             self.set_direct_dependencies(False)
-        else:
-            self.parse_dependency_tree(dependency_tree_fname)
-            self.set_direct_dependencies(True)
-            os.remove(dependency_tree_fname)
 
     def create_dep_stack(self, dep_line):
         dep_stack = []
         cur_flag = ''
         dep_level = -1
         dep_level_plus = False
-        for line in dep_line.readlines():
+        for line in dep_line.split('\n'):
             try:
-                if not line.startswith('[INFO]'):
+                if not re.search(r'[.*INFO.*]', line):
                     continue
                 if len(line) <= 7:
                     continue
@@ -194,17 +191,16 @@ class Maven(PackageManager):
                 logger.warning(f"Failed to parse dependency tree: {e}")
 
     def parse_dependency_tree(self, f_name):
-        with open(f_name, 'r', encoding='utf8') as input_fp:
-            try:
-                for stack, name in self.create_dep_stack(input_fp):
-                    if len(stack) == 0:
-                        self.direct_dep_list.append(name)
-                    else:
-                        if stack[-1] not in self.relation_tree:
-                            self.relation_tree[stack[-1]] = []
-                        self.relation_tree[stack[-1]].append(name)
-            except Exception as e:
-                logger.warning(f'Fail to parse maven dependency tree:{e}')
+        try:
+            for stack, name in self.create_dep_stack(f_name):
+                if len(stack) == 0:
+                    self.direct_dep_list.append(name)
+                else:
+                    if stack[-1] not in self.relation_tree:
+                        self.relation_tree[stack[-1]] = []
+                    self.relation_tree[stack[-1]].append(name)
+        except Exception as e:
+            logger.warning(f'Fail to parse maven dependency tree:{e}')
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
