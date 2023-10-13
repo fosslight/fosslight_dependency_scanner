@@ -64,8 +64,6 @@ class Npm(PackageManager):
         else:
             self.append_input_package_list_file(self.input_file_name)
 
-        if self.flag_tmp_node_modules:
-            shutil.rmtree(node_modules, ignore_errors=True)
         os.remove(tmp_custom_json)
 
         return ret
@@ -123,11 +121,7 @@ class Npm(PackageManager):
     def parse_direct_dependencies(self):
         try:
             if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
-                if not self.flag_tmp_node_modules:
-                    shutil.move(node_modules, f'tmp_fl_{node_modules}')
                 self.parse_transitive_relationship()
-                if not self.flag_tmp_node_modules:
-                    shutil.move(f'tmp_fl_{node_modules}', node_modules)
             else:
                 logger.info('Direct/transitive support is not possible because the package.json file does not exist.')
                 self.direct_dep = False
