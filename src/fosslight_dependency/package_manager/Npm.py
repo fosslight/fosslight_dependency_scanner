@@ -42,7 +42,7 @@ class Npm(PackageManager):
         tmp_custom_json = 'custom.json'
         license_checker_cmd = f'license-checker --excludePrivatePackages --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
-        npm_install_cmd = 'npm install --prod'
+        npm_install_cmd = 'npm install --omit=dev'
 
         if os.path.isdir(node_modules) != 1:
             logger.info("node_modules directory is not existed. So it executes 'npm install'.")
@@ -64,6 +64,8 @@ class Npm(PackageManager):
         else:
             self.append_input_package_list_file(self.input_file_name)
 
+        if self.flag_tmp_node_modules:
+            shutil.rmtree(node_modules, ignore_errors=True)
         os.remove(tmp_custom_json)
 
         return ret
@@ -77,13 +79,19 @@ class Npm(PackageManager):
     def parse_rel_dependencies(self, rel_name, rel_ver, rel_dependencies):
         _dependencies = 'dependencies'
         _version = 'version'
+        _peer = 'peerMissing'
 
         for rel_dep_name in rel_dependencies.keys():
             # Optional, non-installed dependencies are listed as empty objects
             if rel_dependencies[rel_dep_name] == {}:
                 continue
+            if _peer in rel_dependencies[rel_dep_name]:
+                if rel_dependencies[rel_dep_name][_peer]:
+                    continue
             if f'{rel_name}({rel_ver})' not in self.relation_tree:
                 self.relation_tree[f'{rel_name}({rel_ver})'] = []
+            elif f'{rel_dep_name}({rel_dependencies[rel_dep_name][_version]})' in self.relation_tree[f'{rel_name}({rel_ver})']:
+                continue
             self.relation_tree[f'{rel_name}({rel_ver})'].append(f'{rel_dep_name}({rel_dependencies[rel_dep_name][_version]})')
             if _dependencies in rel_dependencies[rel_dep_name]:
                 self.parse_rel_dependencies(rel_dep_name, rel_dependencies[rel_dep_name][_version],
@@ -94,7 +102,7 @@ class Npm(PackageManager):
         _version = 'version'
         _name = 'name'
 
-        cmd = 'npm ls -a --prod --json -s'
+        cmd = 'npm ls -a --omit=dev --json -s'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         rel_tree = result.stdout
         if rel_tree is None:
@@ -114,7 +122,15 @@ class Npm(PackageManager):
 
     def parse_direct_dependencies(self):
         try:
-            self.parse_transitive_relationship()
+            if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
+                if not self.flag_tmp_node_modules:
+                    shutil.move(node_modules, f'tmp_fl_{node_modules}')
+                self.parse_transitive_relationship()
+                if not self.flag_tmp_node_modules:
+                    shutil.move(f'tmp_fl_{node_modules}', node_modules)
+            else:
+                logger.info('Direct/transitive support is not possible because the package.json file does not exist.')
+                self.direct_dep = False
         except Exception as e:
             logger.warning(f'Cannot print direct/transitive dependency: {e}')
             self.direct_dep = False
