@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.13.5 (13/10/2023)
+## Changes
+
+## 🐛 Hotfixes
+
+- Fix the bug of direct/transitive npm packages @dd-jy (#176, #177)
+- Fix the maven direct/transitive comment @dd-jy (#175)
+
+## 🔧 Maintenance
+
+- Update readme @dd-jy (#174)
+- Fix the vulnerability @dd-jy (#171)
+- Change None string to N/A for pub homepage @dd-jy (#139)
+
+---
+
 ## v3.13.4 (19/05/2023)
 ## Changes
 ## 🐛 Hotfixes
@@ -303,20 +319,3 @@
 - Fix typo @syleeeee (#70)
 - Update README.md @syleeeee (#68)
 - Update LicenseRef-3rd_party_licenses.txt @dd-jy (#67)
-
----
-
-## v3.7.6 (18/11/2021)
-## Changes
-## 🚀 Features
-
-- Add setup.py installation for pypi @dd-jy (#63)
-
-## 🐛 Hotfixes
-
-- Fix the pypi result when pip-licenses package exists @dd-jy (#66)
-
-## 🔧 Maintenance
-
-- Change the log when it fails to detect the package manager @dd-jy (#65)
-- Fix url for User Guide @JustinWonjaePark (#64)
