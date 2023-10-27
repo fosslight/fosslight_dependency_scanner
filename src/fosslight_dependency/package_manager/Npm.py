@@ -45,7 +45,7 @@ class Npm(PackageManager):
         npm_install_cmd = 'npm install --omit=dev'
 
         if os.path.isdir(node_modules) != 1:
-            logger.info("node_modules directory is not existed. So it executes 'npm install'.")
+            logger.info(f"node_modules directory is not existed. So it executes '{npm_install_cmd}'.")
             self.flag_tmp_node_modules = True
             cmd_ret = subprocess.call(npm_install_cmd, shell=True)
             if cmd_ret != 0:
@@ -99,6 +99,8 @@ class Npm(PackageManager):
         _dependencies = 'dependencies'
         _version = 'version'
         _name = 'name'
+        ret = True
+        err_msg = ''
 
         cmd = 'npm ls -a --omit=dev --json -s'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -106,22 +108,30 @@ class Npm(PackageManager):
         if rel_tree is None:
             logger.error(f"It returns the error: {cmd}")
             logger.error(f"No output for {cmd}")
-            return False
+            ret = False
+        if ret:
+            if result.returncode == 1:
+                logger.warning(f'npm ls returns an error code: {result.stderr}')
 
-        if result.returncode == 1:
-            logger.warning(f'npm ls returns an error code: {result.stderr}')
-
-        try:
-            rel_json = json.loads(rel_tree)
-            self.package_name = f'{rel_json[_name]}({rel_json[_version]})'
-            self.parse_rel_dependencies(rel_json[_name], rel_json[_version], rel_json[_dependencies])
-        except Exception as e:
-            logger.error(f"Fail to parse transitive relationship: {e}")
+            try:
+                rel_json = json.loads(rel_tree)
+                if len(rel_json) < 1:
+                    ret = False
+                else:
+                    self.package_name = f'{rel_json[_name]}({rel_json[_version]})'
+                    self.parse_rel_dependencies(rel_json[_name], rel_json[_version], rel_json[_dependencies])
+            except Exception as e:
+                ret = False
+                err_msg = e
+        return ret, err_msg
 
     def parse_direct_dependencies(self):
         try:
             if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
-                self.parse_transitive_relationship()
+                ret, err_msg = self.parse_transitive_relationship()
+                if not ret:
+                    self.direct_dep = False
+                    logger.warning(f'It cannot print direct/transitive dependency: {err_msg}')
             else:
                 logger.info('Direct/transitive support is not possible because the package.json file does not exist.')
                 self.direct_dep = False
