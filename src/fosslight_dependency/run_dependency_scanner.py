@@ -25,7 +25,7 @@ if platform.system() != 'Windows':
 _PKG_NAME = "fosslight_dependency"
 logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
-_sheet_name = "SRC_FL_Dependency"
+_sheet_name = "DEP_FL_Dependency"
 EXTENDED_HEADER = {_sheet_name: ['ID', 'Source Name or Path', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
