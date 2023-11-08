@@ -33,9 +33,10 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Source Name or Path', 'OSS Name',
 CUSTOMIZED_FORMAT = {'excel': '.xlsx', 'csv': '.csv', 'opossum': '.json', 'yaml': '.yaml',
                      'spdx-yaml': '.yaml', 'spdx-json': '.json', 'spdx-xml': '.xml',
                      'spdx-tag': '.tag'}
+_exclude_dir = ['node_moduels', 'venv']
 
 
-def find_package_manager():
+def find_package_manager(input_dir):
     ret = True
     manifest_file_name = []
     for value in const.SUPPORT_PACKAE.values():
@@ -45,10 +46,17 @@ def find_package_manager():
             manifest_file_name.append(value)
 
     found_manifest_file = []
-    for f in manifest_file_name:
-        if os.path.isfile(f):
-            found_manifest_file.append(f)
-
+    for (parent, _, files) in os.walk(input_dir):
+        if len(files) < 1:
+            continue
+        if os.path.basename(parent) in _exclude_dir:
+            continue
+        for file in files:
+            if file in manifest_file_name:
+                found_manifest_file.append(file)
+        if len(found_manifest_file) > 0:
+            input_dir = parent
+            break
     found_package_manager = defaultdict(list)
     for f_idx in found_manifest_file:
         for key, value in const.SUPPORT_PACKAE.items():
@@ -64,13 +72,14 @@ def find_package_manager():
                     found_package_manager[key] = [f_idx]
 
     if len(found_package_manager) >= 1:
-        logger.info(f"Found the manifest file({','.join(found_manifest_file)}) automatically.")
+        manifest_file_w_path = map(lambda x: os.path.join(input_dir, x), found_manifest_file)
+        logger.info(f"Found the manifest file({','.join(manifest_file_w_path)}) automatically.")
         logger.warning(f"### Set Package Manager = {', '.join(found_package_manager.keys())}")
     else:
         ret = False
         logger.info("It cannot find the manifest file.")
 
-    return ret, found_package_manager
+    return ret, found_package_manager, input_dir
 
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='', pip_deactivate_cmd='',
@@ -141,7 +150,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     found_package_manager = {}
     if autodetect:
         try:
-            ret, found_package_manager = find_package_manager()
+            ret, found_package_manager, input_dir = find_package_manager(input_dir)
+            os.chdir(input_dir)
         except Exception as e:
             logger.error(f'Fail to find package manager: {e}')
             ret = False
