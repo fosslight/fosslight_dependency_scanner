@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.13.6 (09/11/2023)
+## Changes
+## 🚀 Features
+
+- Find the top directory where the manifest file is located @dd-jy (#180)
+
+## 🐛 Hotfixes
+
+- Fix the direct/transitive bug @dd-jy (#178)
+
+## 🔧 Maintenance
+
+- Change the sheet name @dd-jy (#179)
+
+---
+
 ## v3.13.5 (13/10/2023)
 ## Changes
 
@@ -304,18 +320,3 @@
 ## 🔧 Maintenance
 
 - Update the README to add 'how it works without Internet' @dd-jy (#74)
-
----
-
-## v3.8.0 (24/12/2021)
-## Changes
-## 🚀 Features
-
-- Support GO package manager @dd-jy (#71)
-
-## 🔧 Maintenance
-
-- Update CONTRIBUTING guide @dd-jy (#72)
-- Fix typo @syleeeee (#70)
-- Update README.md @syleeeee (#68)
-- Update LicenseRef-3rd_party_licenses.txt @dd-jy (#67)
