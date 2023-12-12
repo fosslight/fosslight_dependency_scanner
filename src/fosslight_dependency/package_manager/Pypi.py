@@ -9,6 +9,7 @@ import subprocess
 import json
 import shutil
 import copy
+import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -267,6 +268,7 @@ class Pypi(PackageManager):
 
             for d in json_data:
                 oss_init_name = d['Name']
+                oss_init_name = re.sub(r"[-_.]+", "-", oss_init_name).lower()
                 oss_name = f"{self.package_manager_name}:{oss_init_name}"
                 license_name = check_UNKNOWN(d['License'])
                 homepage = check_UNKNOWN(d['URL'])

@@ -103,7 +103,7 @@ class Npm(PackageManager):
         err_msg = ''
 
         cmd = 'npm ls -a --omit=dev --json -s'
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoidng='utf-8')
         rel_tree = result.stdout
         if rel_tree is None:
             logger.error(f"It returns the error: {cmd}")
