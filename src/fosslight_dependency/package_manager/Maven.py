@@ -146,12 +146,16 @@ class Maven(PackageManager):
             logger.error(f"Failed to run maven plugin: {cmd}")
 
         cmd = f"{cmd_mvn} dependency:tree"
-        ret_txt = subprocess.check_output(cmd, text=True, shell=True)
-        if ret_txt is not None:
-            self.parse_dependency_tree(ret_txt)
-            self.set_direct_dependencies(True)
-        else:
-            logger.error(f"Failed to run: {cmd}")
+        try:
+            ret_txt = subprocess.check_output(cmd, text=True, shell=True)
+            if ret_txt is not None:
+                self.parse_dependency_tree(ret_txt)
+                self.set_direct_dependencies(True)
+            else:
+                logger.error(f"Failed to run: {cmd}")
+                self.set_direct_dependencies(False)
+        except Exception as e:
+            logger.error(f"Failed to run '{cmd}': {e}")
             self.set_direct_dependencies(False)
 
     def create_dep_stack(self, dep_line):
