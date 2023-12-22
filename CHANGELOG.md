@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.13.7 (22/12/2023)
+## Changes
+## 🐛 Hotfixes
+
+- Add the exception when the maven subprocess raises the error @dd-jy (#182)
+
+## 🔧 Maintenance
+
+- Normalize pypi package name (PEP 0503) @dd-jy (#181)
+
+---
+
 ## v3.13.6 (09/11/2023)
 ## Changes
 ## 🚀 Features
@@ -308,15 +320,3 @@
 ## 🔧 Maintenance
 
 - Modify to print output file name @bjk7119 (#75)
-
----
-
-## v3.9.0 (13/01/2022)
-## Changes
-## 🚀 Features
-
-- Modify to analyze the license name for carthage @dd-jy (#73)
-
-## 🔧 Maintenance
-
-- Update the README to add 'how it works without Internet' @dd-jy (#74)
