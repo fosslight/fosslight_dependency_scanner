@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.13.8 (27/12/2023)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the typo @dd-jy (#184)
+
+
+---
+
 ## v3.13.7 (22/12/2023)
 ## Changes
 ## 🐛 Hotfixes
@@ -312,11 +321,3 @@
 ## 🐛 Hotfixes
 
 - Support local scm package for Cocoapods @dd-jy (#76)
-
----
-
-## v3.9.1 (10/02/2022)
-## Changes
-## 🔧 Maintenance
-
-- Modify to print output file name @bjk7119 (#75)
