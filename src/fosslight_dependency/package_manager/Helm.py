@@ -44,25 +44,32 @@ class Helm(PackageManager):
                 logger.error(f"Failed to build helm dependency: {cmd}")
                 ret = False
             else:
-                shutil.copytree(charts_dir, self.tmp_charts_dir)
-                shutil.rmtree(charts_dir, ignore_errors=True)
-
-        ret = extract_compressed_dir(self.tmp_charts_dir, self.tmp_charts_dir, False)
-        if not ret:
-            logger.error(f'Fail to extract compressed dir: {self.tmp_charts_dir}')
-        else:
-            logger.warning('Success to extract compressed dir')
+                if not os.path.isdir(charts_dir):
+                    logger.warning(f"Cannot create {charts_dir} because of no dependencies in Chart.yaml. "
+                                   f"So you don't need to analyze dependency.")
+                    return True
+                else:
+                    shutil.copytree(charts_dir, self.tmp_charts_dir)
+                    shutil.rmtree(charts_dir, ignore_errors=True)
+        if ret:
+            ret = extract_compressed_dir(self.tmp_charts_dir, self.tmp_charts_dir, False)
+            if not ret:
+                logger.error(f'Fail to extract compressed dir: {self.tmp_charts_dir}')
+            else:
+                logger.warning('Success to extract compressed dir')
 
         return ret
 
     def parse_oss_information(self, f_name):
         dep_item_list = []
         sheet_list = []
+        _dependencies = 'dependencies'
 
         with open(f_name, 'r', encoding='utf8') as yaml_fp:
             yaml_f = yaml.safe_load(yaml_fp)
-            for dep in yaml_f['dependencies']:
-                dep_item_list.append(dep['name'])
+            if _dependencies in yaml_f:
+                for dep in yaml_f[_dependencies]:
+                    dep_item_list.append(dep['name'])
         for dep in dep_item_list:
             try:
                 f_path = os.path.join(self.tmp_charts_dir, dep, f_name)
