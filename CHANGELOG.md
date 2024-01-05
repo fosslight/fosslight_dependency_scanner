@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.13.9 (05/01/2024)
+## Changes
+## 🐛 Hotfixes
+
+- Add exception when no dependencies in Chart.yaml @dd-jy (#186)
+- Fix the npm issue (no dependencies in package.json) @dd-jy (#185)
+
+---
+
 ## v3.13.8 (27/12/2023)
 ## Changes
 ## 🐛 Hotfixes
@@ -313,11 +322,3 @@
 
 - Apply f-string format @bjk7119 (#78)
 - Comment out some sentences in the PR template @soimkim (#77)
-
----
-
-## v3.9.2 (14/02/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Support local scm package for Cocoapods @dd-jy (#76)
