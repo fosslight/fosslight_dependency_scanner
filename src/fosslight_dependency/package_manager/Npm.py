@@ -22,6 +22,7 @@ class Npm(PackageManager):
 
     dn_url = 'https://www.npmjs.com/package/'
     input_file_name = 'tmp_npm_license_output.json'
+    tmp_custom_json = 'custom.json'
     flag_tmp_node_modules = False
 
     def __init__(self, input_dir, output_dir):
@@ -32,6 +33,8 @@ class Npm(PackageManager):
             os.remove(self.input_file_name)
         if self.flag_tmp_node_modules:
             shutil.rmtree(node_modules, ignore_errors=True)
+        if os.path.exists(self.tmp_custom_json):
+            os.remove(self.tmp_custom_json)
 
     def run_plugin(self):
         ret = self.start_license_checker()
@@ -39,10 +42,9 @@ class Npm(PackageManager):
 
     def start_license_checker(self):
         ret = True
-        tmp_custom_json = 'custom.json'
-        license_checker_cmd = f'license-checker --excludePrivatePackages --production --json --out {self.input_file_name}'
+        license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
-        npm_install_cmd = 'npm install --omit=dev'
+        npm_install_cmd = 'npm install --production'
 
         if os.path.isdir(node_modules) != 1:
             logger.info(f"node_modules directory is not existed. So it executes '{npm_install_cmd}'.")
@@ -53,18 +55,18 @@ class Npm(PackageManager):
                 return False
 
         # customized json file for obtaining specific items with license-checker
-        self.make_custom_json(tmp_custom_json)
+        self.make_custom_json(self.tmp_custom_json)
 
-        cmd = license_checker_cmd + custom_path_option + tmp_custom_json
+        cmd = license_checker_cmd + custom_path_option + self.tmp_custom_json
         cmd_ret = subprocess.call(cmd, shell=True)
         if cmd_ret != 0:
             logger.error(f"It returns the error: {cmd}")
             logger.error("Please check if the license-checker is installed.(sudo npm install -g license-checker)")
-            return False
+            ret = False
         else:
             self.append_input_package_list_file(self.input_file_name)
-
-        os.remove(tmp_custom_json)
+        if os.path.exists(self.tmp_custom_json):
+            os.remove(self.tmp_custom_json)
 
         return ret
 
@@ -111,7 +113,7 @@ class Npm(PackageManager):
             ret = False
         if ret:
             if result.returncode == 1:
-                logger.warning(f'npm ls returns an error code: {result.stderr}')
+                logger.warning(f"'{cmd}' returns error code: {result.stderr}")
 
             try:
                 rel_json = json.loads(rel_tree)
@@ -119,13 +121,16 @@ class Npm(PackageManager):
                     ret = False
                 else:
                     self.package_name = f'{rel_json[_name]}({rel_json[_version]})'
-                    self.parse_rel_dependencies(rel_json[_name], rel_json[_version], rel_json[_dependencies])
+                    if _dependencies in rel_json:
+                        self.parse_rel_dependencies(rel_json[_name], rel_json[_version], rel_json[_dependencies])
             except Exception as e:
                 ret = False
                 err_msg = e
         return ret, err_msg
 
     def parse_direct_dependencies(self):
+        if not self.direct_dep:
+            return
         try:
             if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
                 ret, err_msg = self.parse_transitive_relationship()
@@ -145,6 +150,9 @@ class Npm(PackageManager):
 
         sheet_list = []
         comment = ''
+        _licenses = 'licenses'
+        _repository = 'repository'
+        _private = 'private'
 
         keys = [key for key in json_data]
 
@@ -153,31 +161,38 @@ class Npm(PackageManager):
             oss_init_name = d['name']
             oss_name = self.package_manager_name + ":" + oss_init_name
 
-            if d['licenses']:
-                license_name = d['licenses']
+            if d[_licenses]:
+                license_name = d[_licenses]
             else:
                 license_name = ''
 
             oss_version = d['version']
             package_path = d['path']
 
-            if d['repository']:
-                dn_loc = d['repository']
-            else:
-                dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_version}"
+            private_pkg = False
+            if _private in d:
+                if d[_private]:
+                    private_pkg = True
 
             homepage = self.dn_url + oss_init_name
+            dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_version}"
+            if d[_repository]:
+                dn_loc = d[_repository]
+            elif private_pkg:
+                dn_loc = ''
 
             comment_list = []
             deps_list = []
-            if self.direct_dep and len(self.relation_tree) > 0:
-                if self.package_name == f'{oss_init_name}({oss_version})':
-                    comment_list.append('root package')
+            if private_pkg:
+                homepage = dn_loc
+                comment_list.append('private')
+            if self.package_name == f'{oss_init_name}({oss_version})':
+                comment_list.append('root package')
+            elif self.direct_dep and len(self.relation_tree) > 0:
+                if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
+                    comment_list.append('direct')
                 else:
-                    if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
-                        comment_list.append('direct')
-                    else:
-                        comment_list.append('transitive')
+                    comment_list.append('transitive')
 
                 if f'{oss_init_name}({oss_version})' in self.relation_tree:
                     rel_items = [f'npm:{ri}' for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
