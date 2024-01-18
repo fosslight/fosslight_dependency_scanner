@@ -25,7 +25,7 @@ HELM = 'helm'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
-    PYPI: ['requirements.txt', 'setup.py'],
+    PYPI: ['requirements.txt', 'setup.py', 'pyproject.toml'],
     NPM: 'package.json',
     MAVEN: 'pom.xml',
     GRADLE: 'build.gradle',
