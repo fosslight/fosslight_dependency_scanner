@@ -75,10 +75,10 @@ class Pypi(PackageManager):
         install_cmd_list = []
         for manifest_file in manifest_files:
             if os.path.exists(manifest_file):
-                if manifest_file == 'setup.py':
-                    install_cmd_list.append("pip install .")
-                elif manifest_file == 'requirements.txt':
+                if manifest_file == 'requirements.txt':
                     install_cmd_list.append("pip install -r requirements.txt")
+                else:
+                    install_cmd_list.append("pip install .")
             else:
                 manifest_files.remove(manifest_file)
                 self.set_manifest_file(manifest_files)
@@ -237,7 +237,7 @@ class Pypi(PackageManager):
             install_deptree_command = f"pip install {pipdeptree}"
             command_list.append(install_deptree_command)
             uninstall_deptree_command = f"pip uninstall -y {pipdeptree}"
-        pipdeptree_command = f"{pipdeptree} --local-only --json-tree -e pipdeptree > {self.tmp_deptree_file}"
+        pipdeptree_command = f"{pipdeptree} --json-tree -e 'pipdeptree,pip,wheel,setuptools' > {self.tmp_deptree_file}"
         command_list.append(pipdeptree_command)
         command_list.append(uninstall_deptree_command)
         command_list.append(deactivate_command)
@@ -247,8 +247,16 @@ class Pypi(PackageManager):
             cmd_ret = subprocess.call(command, shell=True)
             if cmd_ret == 0:
                 self.append_input_package_list_file(self.tmp_file_name)
+                with open(self.tmp_file_name, 'r', encoding='utf-8') as json_f:
+                    json_data = json.load(json_f)
+                    for d in json_data:
+                        self.total_dep_list.append(re.sub(r"[-_.]+", "-", d['Name']).lower())
                 if len(pip_license_pkg_list) != 0:
                     self.append_input_package_list_file(self.tmp_pip_license_info_file_name)
+                    with open(self.tmp_pip_license_info_file_name, 'r', encoding='utf-8') as json_f:
+                        json_data = json.load(json_f)
+                        for d in json_data:
+                            self.total_dep_list.append(re.sub(r"[-_.]+", "-", d['Name']).lower())
             else:
                 logger.error(f"Failed to run command: {command}")
                 ret = False
@@ -287,7 +295,9 @@ class Pypi(PackageManager):
 
                 comment_list = []
                 deps_list = []
-                if self.direct_dep_list:
+                if oss_init_name == self.package_name:
+                    comment_list.append('root package')
+                elif self.direct_dep and len(self.direct_dep_list) > 0:
                     if f'{oss_init_name}({oss_version})' in self.direct_dep_list:
                         comment_list.append('direct')
                     else:
@@ -312,12 +322,12 @@ class Pypi(PackageManager):
         deps = 'dependencies'
         installed_ver = 'installed_version'
 
-        pkg_name = package[package_name]
+        pkg_name = re.sub(r"[-_.]+", "-", package[package_name]).lower()
         pkg_ver = package[installed_ver]
         dependency_list = package[deps]
         dependencies[f"{pkg_name}({pkg_ver})"] = []
         for dependency in dependency_list:
-            dep_name = dependency[package_name]
+            dep_name = re.sub(r"[-_.]+", "-", dependency[package_name]).lower()
             dep_version = dependency[installed_ver]
             dependencies[f"{pkg_name}({pkg_ver})"].append(f"{dep_name}({dep_version})")
             if dependency[deps] != []:
@@ -332,8 +342,20 @@ class Pypi(PackageManager):
 
         with open(self.tmp_deptree_file, 'r', encoding='utf8') as f:
             json_f = json.load(f)
-            for package in json_f:
-                self.direct_dep_list.append(f"{package['package_name']}({package['installed_version']})")
+            root_package = json_f
+            if ('pyproject.toml' in self.manifest_file_name) or ('setup.py' in self.manifest_file_name):
+                direct_without_system_package = 0
+                for package in root_package:
+                    package_name = re.sub(r"[-_.]+", "-", package['package_name']).lower()
+                    if package_name in self.total_dep_list:
+                        direct_without_system_package += 1
+                if direct_without_system_package == 1:
+                    self.package_name = re.sub(r"[-_.]+", "-", json_f[0]['package_name']).lower()
+                    root_package = json_f[0]['dependencies']
+
+            for package in root_package:
+                package_name = re.sub(r"[-_.]+", "-", package['package_name']).lower()
+                self.direct_dep_list.append(f"{package_name}({package['installed_version']})")
                 if package['dependencies'] == []:
                     continue
                 self.relation_tree = self.get_dependencies(self.relation_tree, package)
