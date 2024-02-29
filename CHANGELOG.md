@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.14.0 (29/02/2024)
+## Changes
+## 🚀 Features
+
+- Fix the pypi direct/transitive bug, Support pyproject.toml @dd-jy (#187)
+
+## 🐛 Hotfixes
+
+- Fix the pypi direct/transitive bug, Support pyproject.toml @dd-jy (#187)
+
+## 🔧 Maintenance
+
+- Modify the oss info for local package of cocoapods @dd-jy (#189)
+- Use common github actions @bjk7119 (#188)
+
+---
+
 ## v3.13.9 (05/01/2024)
 ## Changes
 ## 🐛 Hotfixes
@@ -313,12 +330,3 @@
 ## 🔧 Maintenance
 
 - Add a commit message checker @soimkim (#82)
-
----
-
-## v3.9.3 (11/03/2022)
-## Changes
-## 🔧 Maintenance
-
-- Apply f-string format @bjk7119 (#78)
-- Comment out some sentences in the PR template @soimkim (#77)
