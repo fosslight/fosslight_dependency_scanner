@@ -86,7 +86,7 @@ class Cocoapods(PackageManager):
             try:
                 comment_list = []
                 deps_list = []
-                if self.direct_dep:
+                if self.direct_dep and (len(self.direct_dep_list) > 0):
                     if pod_oss_name_origin in self.direct_dep_list:
                         comment_list.append('direct')
                     else:
@@ -98,10 +98,12 @@ class Cocoapods(PackageManager):
                 comment = ','.join(comment_list)
                 deps = ','.join(deps_list)
 
+                oss_name_report = f'{self.package_manager_name}:{pod_oss_name_origin}'
                 pod_oss_name = pod_oss_name_origin
                 if '/' in pod_oss_name_origin:
                     pod_oss_name = pod_oss_name_origin.split('/')[0]
                 if pod_oss_name in external_source_list:
+                    oss_name_report = pod_oss_name_origin
                     podspec_filename = pod_oss_name + '.podspec.json'
                     spec_file_path = os.path.join("Pods", "Local Podspecs", podspec_filename)
                 else:
@@ -126,13 +128,14 @@ class Cocoapods(PackageManager):
                     spec_file_path = os.path.join(file_path_without_version, pod_oss_version, file_path[-1])
 
                 oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
+                if pod_oss_name in external_source_list:
+                    homepage = dn_loc
                 if oss_name == '':
                     continue
                 if pod_oss_version != oss_version:
                     logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version})\
                                    with spec version({oss_version})')
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  f'{self.package_manager_name}:{pod_oss_name_origin}',
+                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name), oss_name_report,
                                    pod_oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
             except Exception as e:
                 logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
