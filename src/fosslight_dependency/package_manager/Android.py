@@ -7,7 +7,7 @@ import os
 import logging
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager
+from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -49,6 +49,8 @@ class Android(PackageManager):
                     idx, manifest_file, oss_name, oss_version, license_name, dn_loc, homepage = split_str
                 else:
                     continue
+                purl = get_url_to_purl(dn_loc, 'maven')
+                self.purl_dict[f'{oss_name}({oss_version})'] = purl
 
                 comment_list = []
                 deps_list = []
@@ -69,6 +71,7 @@ class Android(PackageManager):
                 comment = ','.join(comment_list)
                 deps = ','.join(deps_list)
 
-                sheet_list.append([manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                                  '', '', comment, deps])
 
         return sheet_list

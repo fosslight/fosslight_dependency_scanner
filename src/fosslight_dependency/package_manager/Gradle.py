@@ -9,7 +9,7 @@ import json
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import version_refine
+from fosslight_dependency._package_manager import version_refine, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -59,6 +59,7 @@ class Gradle(PackageManager):
             oss_version = version_refine(oss_ini_version)
 
             license_names = []
+            purl = ''
             try:
                 for licenses in d['licenses']:
                     if licenses['name'] != '':
@@ -73,6 +74,8 @@ class Gradle(PackageManager):
             else:
                 dn_loc = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
                 homepage = f"{self.dn_url}{group_id}/{artifact_id}"
+                purl = get_url_to_purl(dn_loc, 'maven')
+                self.purl_dict[f'{oss_name}({oss_ini_version})'] = purl
 
             comment_list = []
             deps_list = []
@@ -90,8 +93,8 @@ class Gradle(PackageManager):
             comment = ','.join(comment_list)
             deps = ','.join(deps_list)
 
-            sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                              '', '', comment, deps])
 
         return sheet_list
 

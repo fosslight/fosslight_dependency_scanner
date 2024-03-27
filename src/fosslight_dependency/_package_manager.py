@@ -13,6 +13,7 @@ import subprocess
 import shutil
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
+from packageurl.contrib import url2purl
 
 try:
     from github import Github
@@ -48,6 +49,7 @@ class PackageManager:
         self.manifest_file_name = []
         self.relation_tree = {}
         self.package_name = ''
+        self.purl_dict = {}
 
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)
@@ -186,6 +188,38 @@ class PackageManager:
                     self.relation_tree[stack[-1]].append(name)
         except Exception as e:
             logger.warning(f'Fail to parse gradle dependency tree:{e}')
+
+
+def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
+    purl_prefix = f'pkg:{pkg_manager}'
+    purl = str(url2purl.get_purl(url))
+    if not re.match(purl_prefix, purl):
+        match = re.match(constant.PKG_PATTERN.get(pkg_manager, 'not_support'), url)
+        try:
+            if match and (match != ''):
+                if pkg_manager == 'maven':
+                    purl = f'{purl_prefix}/{match.group(1)}/{match.group(2)}@{match.group(3)}'
+                elif pkg_manager == 'pub':
+                    purl = f'{purl_prefix}/{match.group(1)}@{match.group(2)}'
+                elif pkg_manager == 'cocoapods':
+                    match = re.match(r'([^\/]+)\/?([^\/]*)', oss_name)  # ex, GoogleUtilities/NSData+zlib
+                    purl = f'{purl_prefix}/{match.group(1)}@{oss_version}'
+                    if match.group(2):
+                        purl = f'{purl}#{match.group(2)}'
+                elif pkg_manager == 'go':
+                    purl = f'{purl_prefix}lang/{match.group(1)}@{match.group(2)}'
+            else:
+                if pkg_manager == 'swift':
+                    if oss_version:
+                        purl = f'{purl_prefix}/{oss_name}@{oss_version}'
+                    else:
+                        purl = f'{purl_prefix}/{oss_name}'
+                elif pkg_manager == 'carthage':
+                    if oss_version:
+                        purl = f'{purl}@{oss_version}'
+        except Exception:
+            logger.debug('Fail to get purl. So use the link purl({purl}).')
+    return purl
 
 
 def version_refine(oss_version):
