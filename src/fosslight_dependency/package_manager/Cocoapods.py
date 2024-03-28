@@ -10,7 +10,7 @@ import yaml
 import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager
+from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -128,6 +128,8 @@ class Cocoapods(PackageManager):
                     spec_file_path = os.path.join(file_path_without_version, pod_oss_version, file_path[-1])
 
                 oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
+                purl = get_url_to_purl(homepage, self.package_manager_name, pod_oss_name_origin, oss_version)
+                self.purl_dict[f'{pod_oss_name_origin}({oss_version})'] = purl
                 if pod_oss_name in external_source_list:
                     homepage = dn_loc
                 if oss_name == '':
@@ -135,8 +137,8 @@ class Cocoapods(PackageManager):
                 if pod_oss_version != oss_version:
                     logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version})\
                                    with spec version({oss_version})')
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name), oss_name_report,
-                                   pod_oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+                sheet_list.append([purl, oss_name_report, pod_oss_version, license_name, dn_loc, homepage,
+                                  '', '', comment, deps])
             except Exception as e:
                 logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
 

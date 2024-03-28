@@ -10,7 +10,7 @@ import yaml
 import shutil
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager
+from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 from fosslight_util.download import extract_compressed_dir
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -73,6 +73,7 @@ class Helm(PackageManager):
         for dep in dep_item_list:
             try:
                 f_path = os.path.join(self.tmp_charts_dir, dep, f_name)
+                purl = ''
                 with open(f_path, 'r', encoding='utf8') as yaml_fp:
                     yaml_f = yaml.safe_load(yaml_fp)
                     oss_name = f'{self.package_manager_name}:{yaml_f["name"]}'
@@ -85,6 +86,8 @@ class Helm(PackageManager):
                     if yaml_f.get('sources', '') != '':
                         dn_loc = yaml_f.get('sources', '')[0]
 
+                    purl = get_url_to_purl(dn_loc if dn_loc else homepage, self.package_manager_name)
+
                     license_name = ''
                     if yaml_f.get('annotations', '') != '':
                         license_name = yaml_f['annotations'].get('licenses', '')
@@ -96,7 +99,7 @@ class Helm(PackageManager):
                 logging.warning(f"Fail to parse chart info {dep}: {e}")
                 continue
 
-            sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, ''])
+            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                              '', '', comment, ''])
 
         return sheet_list

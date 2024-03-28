@@ -12,7 +12,7 @@ import requests
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner
+from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -95,8 +95,11 @@ class Nuget(PackageManager):
                     else:
                         if dn_loc.endswith('.git'):
                             dn_loc = dn_loc[:-4]
+                    purl = get_url_to_purl(f'{homepage}/{oss_version}', self.package_manager_name)
                 else:
                     comment_list.append('Fail to response for nuget api')
+                    purl = f'pkg:nuget/{oss_origin_name}@{oss_version}'
+                self.purl_dict[f'{oss_origin_name}({oss_version})'] = purl
 
                 deps_list = []
                 if self.direct_dep and self.packageReference:
@@ -112,8 +115,7 @@ class Nuget(PackageManager):
 
                 comment = ','.join(comment_list)
                 deps = ','.join(deps_list)
-                sheet_list.append([','.join(self.input_package_list_file),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
             except Exception as e:
                 logger.warning(f"Failed to parse oss information: {e}")

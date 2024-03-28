@@ -12,7 +12,7 @@ import urllib.request
 import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager
+from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -107,6 +107,8 @@ class Go(PackageManager):
 
                 homepage_set = []
                 homepage = self.dn_url + package_path
+                purl = get_url_to_purl(f"{homepage}@{oss_version}", self.package_manager_name)
+                self.purl_dict[f'{package_path}({oss_version})'] = purl
 
                 if oss_origin_version:
                     tmp_homepage = f"{homepage}@{oss_origin_version}"
@@ -148,7 +150,7 @@ class Go(PackageManager):
 
             comment = ','.join(comment_list)
             deps = ','.join(deps_list)
-            sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                              oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                              '', '', comment, deps])
 
         return sheet_list

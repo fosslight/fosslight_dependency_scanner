@@ -13,7 +13,7 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner
+from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -90,7 +90,7 @@ class Pypi(PackageManager):
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
             cmd_separator = "&"
         else:
-            create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
+            create_venv_cmd = f"python3 -m venv {self.venv_tmp_dir}"
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
@@ -139,6 +139,7 @@ class Pypi(PackageManager):
         pip_licenses_default_options = ' --from=mixed --with-url --format=json --with-license-file'
         pip_licenses_system_option = ' --with-system -p '
         tmp_pip_list = "tmp_list.txt"
+        python_cmd = "python -m"
 
         if self.pip_activate_cmd.startswith("source "):
             tmp_activate = self.pip_activate_cmd[7:]
@@ -156,7 +157,7 @@ class Pypi(PackageManager):
             command_separator = ";"
 
         activate_command = pip_activate_cmd
-        pip_list_command = f"pip freeze > {tmp_pip_list}"
+        pip_list_command = f"{python_cmd} pip freeze > {tmp_pip_list}"
         deactivate_command = self.pip_deactivate_cmd
 
         command_list = [activate_command, pip_list_command, deactivate_command]
@@ -215,28 +216,28 @@ class Pypi(PackageManager):
         command_list = []
         command_list.append(activate_command)
         if not exists_pip_licenses:
-            install_pip_command = f"pip install {pip_licenses}"
+            install_pip_command = f"{python_cmd} pip install {pip_licenses}"
             command_list.append(install_pip_command)
 
         pip_licenses_command = f"{pip_licenses}{pip_licenses_default_options} > {self.tmp_file_name}"
         command_list.append(pip_licenses_command)
 
         if len(pip_license_pkg_list) != 0:
-            pip_licenses_info_command = pip_licenses + pip_licenses_default_options + pip_licenses_system_option
+            pip_licenses_info_command = f"{pip_licenses}{pip_licenses_default_options}{pip_licenses_system_option}"
             pip_licenses_info_command += " ".join(pip_license_pkg_list)
 
             pip_licenses_info_command += f" > {self.tmp_pip_license_info_file_name}"
             command_list.append(pip_licenses_info_command)
 
         if len(uninstall_pkg_list) > 0:
-            uninstall_pip_command = "pip uninstall -y "
+            uninstall_pip_command = f"{python_cmd} pip uninstall -y "
             uninstall_pip_command += ' '.join(uninstall_pkg_list)
             command_list.append(uninstall_pip_command)
 
         if not exists_pipdeptree:
-            install_deptree_command = f"pip install {pipdeptree}"
+            install_deptree_command = f"{python_cmd} pip install {pipdeptree}"
             command_list.append(install_deptree_command)
-            uninstall_deptree_command = f"pip uninstall -y {pipdeptree}"
+            uninstall_deptree_command = f"{python_cmd} pip uninstall -y {pipdeptree}"
         pipdeptree_command = f"{pipdeptree} --json-tree -e 'pipdeptree,pip,wheel,setuptools' > {self.tmp_deptree_file}"
         command_list.append(pipdeptree_command)
         command_list.append(uninstall_deptree_command)
@@ -282,7 +283,8 @@ class Pypi(PackageManager):
                 homepage = check_UNKNOWN(d['URL'])
                 oss_version = d['Version']
                 dn_loc = f"{self.dn_url}{oss_init_name}/{oss_version}"
-
+                purl = get_url_to_purl(dn_loc, self.package_manager_name)
+                self.purl_dict[f'{oss_init_name}({oss_version})'] = purl
                 if license_name is not None:
                     license_name = license_name.replace(';', ',')
                 else:
@@ -308,8 +310,7 @@ class Pypi(PackageManager):
                         deps_list.extend(rel_items)
                 comment = ','.join(comment_list)
                 deps = ','.join(deps_list)
-                sheet_list.append([', '.join(self.manifest_file_name),
-                                   oss_name, oss_version,
+                sheet_list.append([purl, oss_name, oss_version,
                                    license_name, dn_loc, homepage, '', '', comment, deps])
 
         except Exception as ex:
@@ -339,26 +340,28 @@ class Pypi(PackageManager):
         if not os.path.exists(self.tmp_deptree_file):
             self.direct_dep = False
             return
+        try:
+            with open(self.tmp_deptree_file, 'r', encoding='utf8') as f:
+                json_f = json.load(f)
+                root_package = json_f
+                if ('pyproject.toml' in self.manifest_file_name) or ('setup.py' in self.manifest_file_name):
+                    direct_without_system_package = 0
+                    for package in root_package:
+                        package_name = re.sub(r"[-_.]+", "-", package['package_name']).lower()
+                        if package_name in self.total_dep_list:
+                            direct_without_system_package += 1
+                    if direct_without_system_package == 1:
+                        self.package_name = re.sub(r"[-_.]+", "-", json_f[0]['package_name']).lower()
+                        root_package = json_f[0]['dependencies']
 
-        with open(self.tmp_deptree_file, 'r', encoding='utf8') as f:
-            json_f = json.load(f)
-            root_package = json_f
-            if ('pyproject.toml' in self.manifest_file_name) or ('setup.py' in self.manifest_file_name):
-                direct_without_system_package = 0
                 for package in root_package:
                     package_name = re.sub(r"[-_.]+", "-", package['package_name']).lower()
-                    if package_name in self.total_dep_list:
-                        direct_without_system_package += 1
-                if direct_without_system_package == 1:
-                    self.package_name = re.sub(r"[-_.]+", "-", json_f[0]['package_name']).lower()
-                    root_package = json_f[0]['dependencies']
-
-            for package in root_package:
-                package_name = re.sub(r"[-_.]+", "-", package['package_name']).lower()
-                self.direct_dep_list.append(f"{package_name}({package['installed_version']})")
-                if package['dependencies'] == []:
-                    continue
-                self.relation_tree = self.get_dependencies(self.relation_tree, package)
+                    self.direct_dep_list.append(f"{package_name}({package['installed_version']})")
+                    if package['dependencies'] == []:
+                        continue
+                    self.relation_tree = self.get_dependencies(self.relation_tree, package)
+        except Exception as e:
+            logger.warning(f'Fail to parse direct dependency: {e}')
 
 
 def check_UNKNOWN(text):

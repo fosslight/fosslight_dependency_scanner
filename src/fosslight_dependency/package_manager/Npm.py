@@ -11,7 +11,7 @@ import shutil
 import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager
+from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 node_modules = 'node_modules'
@@ -176,6 +176,8 @@ class Npm(PackageManager):
 
             homepage = self.dn_url + oss_init_name
             dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_version}"
+            purl = get_url_to_purl(dn_loc, self.package_manager_name)
+            self.purl_dict[f'{oss_init_name}({oss_version})'] = purl
             if d[_repository]:
                 dn_loc = d[_repository]
             elif private_pkg:
@@ -205,13 +207,13 @@ class Npm(PackageManager):
             deps = ','.join(deps_list)
             if multi_flag:
                 comment = f'{comment}, {license_comment}'
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, multi_license, dn_loc, homepage, '', '', comment, deps])
+                sheet_list.append([purl, oss_name, oss_version, multi_license, dn_loc, homepage,
+                                  '', '', comment, deps])
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                                  '', '', comment, deps])
 
         return sheet_list
 

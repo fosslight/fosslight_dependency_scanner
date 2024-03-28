@@ -13,7 +13,7 @@ import subprocess
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner
+from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -124,6 +124,8 @@ class Pub(PackageManager):
                 if homepage is None:
                     homepage = ''
                 dn_loc = f"{self.dn_url}{oss_origin_name}/versions/{oss_version}"
+                purl = get_url_to_purl(dn_loc, self.package_manager_name)
+                self.purl_dict[f'{oss_origin_name}({oss_version})'] = purl
                 license_txt = json_data['license']
 
                 tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
@@ -158,8 +160,8 @@ class Pub(PackageManager):
                         deps_list.extend(rel_items)
                 comment = ','.join(comment_list)
                 deps = ','.join(deps_list)
-                sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                  oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
+                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                                  '', '', comment, deps])
         except Exception as e:
             logger.error(f"Fail to parse pub oss information: {e}")
 

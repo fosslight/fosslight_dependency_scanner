@@ -9,9 +9,8 @@ import os
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import connect_github
-from fosslight_dependency._package_manager import get_github_license
-from fosslight_dependency._package_manager import check_and_run_license_scanner
+from fosslight_dependency._package_manager import connect_github, get_github_license, check_and_run_license_scanner
+from fosslight_dependency._package_manager import get_url_to_purl
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -60,8 +59,9 @@ class Carthage(PackageManager):
                     else:
                         homepage = oss_path
                     dn_loc = homepage
-
                     oss_version = re_result[0][2]
+
+                    purl = get_url_to_purl(homepage, self.package_manager_name, oss_origin_name, oss_version)
 
                     license_name = ''
                     find_license = False
@@ -96,8 +96,8 @@ class Carthage(PackageManager):
                         else:
                             comment = 'transitive'
 
-                    sheet_list.append([const.SUPPORT_PACKAE.get(self.package_manager_name),
-                                      oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, ''])
+                    sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                                      '', '', comment, ''])
 
                 except Exception as e:
                     logger.warning(f"Failed to parse oss information: {e}")
