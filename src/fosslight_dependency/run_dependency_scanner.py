@@ -20,6 +20,7 @@ from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_format, write_output_file
 if platform.system() != 'Windows':
     from fosslight_util.write_spdx import write_spdx
+from fosslight_util.cover import CoverItem
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
@@ -158,21 +159,40 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         finally:
             if not ret:
                 logger.warning("Dependency scanning terminated because the package manager was not found.")
-                return False, sheet_list
+                ret = False
     else:
         found_package_manager[package_manager] = ''
 
     pass_key = 'PASS'
+    success_pm = []
+    fail_pm = []
     for pm, manifest_file_name in found_package_manager.items():
         if manifest_file_name == pass_key:
             continue
         ret, package_sheet_list = analyze_dependency(pm, input_dir, output_path, pip_activate_cmd, pip_deactivate_cmd,
                                                      output_custom_dir, app_name, github_token, manifest_file_name, direct)
         if ret:
+            success_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
             sheet_list[_sheet_name].extend(package_sheet_list)
             if pm == const.GRADLE:
                 if const.ANDROID in found_package_manager.keys():
                     found_package_manager[const.ANDROID] = pass_key
+        else:
+            fail_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
+    cover = CoverItem(tool_name=_PKG_NAME,
+                      start_time=_start_time,
+                      input_path=input_dir)
+    cover_comment_arr = []
+    if len(found_package_manager.keys()) > 0:
+        if len(success_pm) > 0:
+            cover_comment_arr.append(f"Analyzed Package manager: {', '.join(success_pm)}")
+        if len(fail_pm) > 0:
+            info_msg = 'Check https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
+            cover_comment_arr.append(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
+    else:
+        cover_comment_arr.append("No Package manager detected.")
+
+    cover.comment = ' / '.join(cover_comment_arr)
 
     output_file_without_ext = os.path.join(output_path, output_file)
     if format.startswith('spdx'):
@@ -184,12 +204,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             logger.error('Windows not support spdx format.')
     else:
         success_write, err_msg, result_file = write_output_file(output_file_without_ext, output_extension,
-                                                                sheet_list, EXTENDED_HEADER)
+                                                                sheet_list, EXTENDED_HEADER, '', cover)
     if success_write:
         if result_file:
-            logger.info(f"Writing Output file({result_file}), success:{success_write}")
+            logger.info(f"Output file: {result_file}")
         else:
             logger.warning(f"{err_msg}")
+        for i in cover_comment_arr:
+            logger.info(i.strip())
     else:
         ret = False
         logger.error(f"Fail to generate result file. msg:({err_msg})")
