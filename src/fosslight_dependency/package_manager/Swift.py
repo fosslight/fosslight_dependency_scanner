@@ -147,12 +147,9 @@ class Swift(PackageManager):
                     comment_list.append('transitive')
 
                 if f'{oss_origin_name}({oss_version})' in self.relation_tree:
-                    rel_items = [f'{self.package_manager_name}:{ri}'
-                                 for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
-                    deps_list.extend(rel_items)
+                    deps_list.extend(self.relation_tree[f'{oss_origin_name}({oss_version})'])
             comment = ','.join(comment_list)
-            deps = ','.join(deps_list)
             sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps])
-
+                              '', '', comment, deps_list])
+        sheet_list = self.change_dep_to_purl(sheet_list)
         return sheet_list

@@ -92,11 +92,8 @@ class Cocoapods(PackageManager):
                     else:
                         comment_list.append('transitive')
                     if f'{pod_oss_name_origin}({oss_version})' in self.relation_tree:
-                        rel_items = [f'{self.package_manager_name}:{ri}'
-                                     for ri in self.relation_tree[f'{pod_oss_name_origin}({oss_version})']]
-                        deps_list.extend(rel_items)
+                        deps_list.extend(self.relation_tree[f'{pod_oss_name_origin}({oss_version})'])
                 comment = ','.join(comment_list)
-                deps = ','.join(deps_list)
 
                 oss_name_report = f'{self.package_manager_name}:{pod_oss_name_origin}'
                 pod_oss_name = pod_oss_name_origin
@@ -138,10 +135,10 @@ class Cocoapods(PackageManager):
                     logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version})\
                                    with spec version({oss_version})')
                 sheet_list.append([purl, oss_name_report, pod_oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, deps])
+                                  '', '', comment, deps_list])
             except Exception as e:
                 logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
-
+        sheet_list = self.change_dep_to_purl(sheet_list)
         return sheet_list
 
     def get_oss_in_podspec(self, spec_file_path):
