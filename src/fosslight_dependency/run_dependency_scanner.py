@@ -30,7 +30,7 @@ _sheet_name = "DEP_FL_Dependency"
 EXTENDED_HEADER = {_sheet_name: ['ID', 'Purl', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
-                                       'Comment', 'Dependencies']}
+                                       'Comment', 'DEPENDS_ON']}
 CUSTOMIZED_FORMAT = {'excel': '.xlsx', 'csv': '.csv', 'opossum': '.json', 'yaml': '.yaml',
                      'spdx-yaml': '.yaml', 'spdx-json': '.json', 'spdx-xml': '.xml',
                      'spdx-tag': '.tag'}
