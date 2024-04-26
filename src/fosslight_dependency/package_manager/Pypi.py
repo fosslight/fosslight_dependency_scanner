@@ -305,14 +305,17 @@ class Pypi(PackageManager):
                     else:
                         comment_list.append('transitive')
                     if f'{oss_init_name}({oss_version})' in self.relation_tree:
-                        deps_list.extend(self.relation_tree[f'{oss_init_name}({oss_version})'])
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
+                        deps_list.extend(rel_items)
                 comment = ','.join(comment_list)
+                deps = ','.join(deps_list)
                 sheet_list.append([purl, oss_name, oss_version,
-                                   license_name, dn_loc, homepage, '', '', comment, deps_list])
+                                   license_name, dn_loc, homepage, '', '', comment, deps])
 
         except Exception as ex:
             logger.warning(f"Fail to parse oss information: {oss_init_name}({ex})")
-        sheet_list = self.change_dep_to_purl(sheet_list)
+
         return sheet_list
 
     def get_dependencies(self, dependencies, package):

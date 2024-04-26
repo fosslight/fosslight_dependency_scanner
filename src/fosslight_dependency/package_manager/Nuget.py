@@ -109,14 +109,17 @@ class Nuget(PackageManager):
                         comment_list.append('transitive')
 
                     if f'{oss_origin_name}({oss_version})' in self.relation_tree:
-                        deps_list.extend(self.relation_tree[f'{oss_origin_name}({oss_version})'])
+                        rel_items = [f'{self.package_manager_name}:{ri}'
+                                     for ri in self.relation_tree[f'{oss_origin_name}({oss_version})']]
+                        deps_list.extend(rel_items)
 
                 comment = ','.join(comment_list)
-                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps_list])
+                deps = ','.join(deps_list)
+                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps])
 
             except Exception as e:
                 logger.warning(f"Failed to parse oss information: {e}")
-        sheet_list = self.change_dep_to_purl(sheet_list)
+
         if os.path.isfile(tmp_license_txt_file_name):
             os.remove(tmp_license_txt_file_name)
 

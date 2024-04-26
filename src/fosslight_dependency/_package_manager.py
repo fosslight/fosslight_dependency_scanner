@@ -189,18 +189,6 @@ class PackageManager:
         except Exception as e:
             logger.warning(f'Fail to parse gradle dependency tree:{e}')
 
-    def change_dep_to_purl(self, sheet_list):
-        try:
-            for oss_item in sheet_list:
-                if len(oss_item) < 10:
-                    break
-                deps_list = oss_item[9]
-                deps_purl = list(map(lambda x: self.purl_dict.get(x, ''), deps_list))
-                oss_item[9] = ','.join(deps_purl)
-        except Exception as e:
-            logger.warning(f'Fail to change depend_on to purl:{e}')
-        return sheet_list
-
 
 def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
     purl_prefix = f'pkg:{pkg_manager}'
