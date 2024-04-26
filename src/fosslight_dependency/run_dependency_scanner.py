@@ -27,10 +27,10 @@ _PKG_NAME = "fosslight_dependency"
 logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
 _sheet_name = "DEP_FL_Dependency"
-EXTENDED_HEADER = {_sheet_name: ['ID', 'Purl', 'OSS Name',
+EXTENDED_HEADER = {_sheet_name: ['ID', 'purl', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
-                                       'Comment', 'DEPENDS_ON']}
+                                       'Comment', 'Depends On']}
 CUSTOMIZED_FORMAT = {'excel': '.xlsx', 'csv': '.csv', 'opossum': '.json', 'yaml': '.yaml',
                      'spdx-yaml': '.yaml', 'spdx-json': '.json', 'spdx-xml': '.xml',
                      'spdx-tag': '.tag'}
