@@ -69,9 +69,7 @@ class Android(PackageManager):
                     except Exception as e:
                         logger.error(f"Fail to find oss scope in dependency tree: {e}")
                 comment = ','.join(comment_list)
-                deps = ','.join(deps_list)
-
                 sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, deps])
-
+                                  '', '', comment, deps_list])
+        sheet_list = self.change_dep_to_purl(sheet_list)
         return sheet_list
