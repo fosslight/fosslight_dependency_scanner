@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.14.1 (26/04/2024)
+## Changes
+
+## 🚀 Features
+
+- Add detection summary message (cover sheet) @dd-jy (#191)
+- Change manifest col to purl col @dd-jy (#190)
+
+## 🔧 Maintenance
+
+- Change col name @dd-jy (#193)
+
+---
+
 ## v3.14.0 (29/02/2024)
 ## Changes
 ## 🚀 Features
@@ -313,20 +327,3 @@
 ## 🚀 Features
 
 - Support to comment direct/transitive type @dd-jy (#83)
-
----
-
-## v3.9.4 (11/04/2022)
-## Changes
-## 🚀 Features
-
-- Support Package.resolved v2 (swift) @dd-jy (#84)
-
-## 🐛 Hotfixes
-
-- Fix to show npm package license even if not spdx @dd-jy (#80)
-- Fix the npm issue (no packages to install) @dd-jy (#79)
-
-## 🔧 Maintenance
-
-- Add a commit message checker @soimkim (#82)
