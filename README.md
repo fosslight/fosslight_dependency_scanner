@@ -104,7 +104,7 @@ In this user guide, you can see how to install the FOSSLight Dependency Scanner 
   <tr>
     <td>Python</td>
     <td>Pypi</td>
-    <td>requirements.txt, setup.py</td>
+    <td>requirements.txt, setup.py, pyproject.toml</td>
     <td>O</td>
     <td>O</td>
     <td>O</td>
