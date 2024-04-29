@@ -177,6 +177,13 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             if pm == const.GRADLE:
                 if const.ANDROID in found_package_manager.keys():
                     found_package_manager[const.ANDROID] = pass_key
+                    if f"{const.ANDROID} ({', '.join(manifest_file_name)})" in fail_pm:
+                        fail_pm.remove(f"{const.ANDROID} ({', '.join(manifest_file_name)})")
+            elif pm == const.ANDROID:
+                if const.GRADLE in found_package_manager.keys():
+                    found_package_manager[const.GRADLE] = pass_key
+                    if f"{const.GRADLE} ({', '.join(manifest_file_name)})" in fail_pm:
+                        fail_pm.remove(f"{const.GRADLE} ({', '.join(manifest_file_name)})")
         else:
             fail_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
     cover = CoverItem(tool_name=_PKG_NAME,
