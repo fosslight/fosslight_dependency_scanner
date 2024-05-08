@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.14.2 (08/05/2024)
+## Changes
+## 🚀 Features
+
+- Support unity package manager @dd-jy (#197)
+
+## 🐛 Hotfixes
+
+- Fix the fail package manager comment @dd-jy (#196)
+
+---
+
 ## v3.14.1 (26/04/2024)
 ## Changes
 
@@ -319,11 +331,3 @@
 ## 🔧 Maintenance
 
 - Add --direct option in help message @dd-jy (#87)
-
----
-
-## v3.10.0 (10/05/2022)
-## Changes
-## 🚀 Features
-
-- Support to comment direct/transitive type @dd-jy (#83)
