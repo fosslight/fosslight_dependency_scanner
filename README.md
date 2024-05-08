@@ -125,6 +125,14 @@ In this user guide, you can see how to install the FOSSLight Dependency Scanner 
     <td>X</td>
     <td>X</td>
   </tr>
+  <tr>
+    <td>Unity</td>
+    <td>Unity</td>
+    <td>Library/PackageManager/ProjectCache</td>
+    <td>O</td>
+    <td>O</td>
+    <td>X</td>
+  </tr>
 </tbody>
 </table>
 
