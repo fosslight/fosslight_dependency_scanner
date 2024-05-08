@@ -22,6 +22,7 @@ CARTHAGE = 'carthage'
 GO = 'go'
 NUGET = 'nuget'
 HELM = 'helm'
+UNITY = 'unity'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
@@ -36,7 +37,8 @@ SUPPORT_PACKAE = {
     CARTHAGE: 'Cartfile.resolved',
     GO: 'go.mod',
     NUGET: ['packages.config', os.path.join('obj', 'project.assets.json')],
-    HELM: 'Chart.yaml'
+    HELM: 'Chart.yaml',
+    UNITY: os.path.join('Library', 'PackageManager', 'ProjectCache')
 }
 
 # default android app name

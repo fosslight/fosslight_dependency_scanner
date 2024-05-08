@@ -23,6 +23,7 @@ _HELP_MESSAGE_DEPENDENCY = """
         Go (Go)
         Nuget (.NET)
         Helm (Kubernetes)
+        Unity (Unity)
 
     Options:
         Optional

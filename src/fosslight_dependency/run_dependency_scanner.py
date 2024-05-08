@@ -161,7 +161,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 logger.warning("Dependency scanning terminated because the package manager was not found.")
                 ret = False
     else:
-        found_package_manager[package_manager] = ''
+        found_package_manager[package_manager] = ["manual detect ('-m option')"]
 
     pass_key = 'PASS'
     success_pm = []
