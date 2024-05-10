@@ -32,6 +32,7 @@ _HELP_MESSAGE_DEPENDENCY = """
             -m <package_manager>\t    Enter the package manager.
                                         \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage, go, nuget, helm)
             -p <input_path>\t\t    Enter the path where the script will be run.
+            -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
             -f <format>\t\t\t    Output file format (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
