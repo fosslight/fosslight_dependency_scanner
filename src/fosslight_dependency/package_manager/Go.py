@@ -10,6 +10,7 @@ import json
 from bs4 import BeautifulSoup
 import urllib.request
 import re
+import shutil
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
@@ -24,6 +25,8 @@ class Go(PackageManager):
     is_run_plugin = False
     dn_url = 'https://pkg.go.dev/'
     tmp_file_name = 'tmp_go_list.json'
+    go_work = 'go.work'
+    tmp_go_work = 'go.work.tmp'
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -33,6 +36,8 @@ class Go(PackageManager):
     def __del__(self):
         if os.path.isfile(self.tmp_file_name):
             os.remove(self.tmp_file_name)
+        if os.path.isfile(self.tmp_go_work):
+            shutil.move(self.tmp_go_work, self.go_work)
 
     def parse_dependency_tree(self, go_deptree_txt):
         for line in go_deptree_txt.split('\n'):
@@ -49,6 +54,9 @@ class Go(PackageManager):
     def run_plugin(self):
         ret = True
 
+        if os.path.isfile(self.go_work):
+            shutil.move(self.go_work, self.tmp_go_work)
+
         logger.info("Execute 'go list -m -mod=mod -json all' to obtain package info.")
         cmd = f"go list -m -mod=mod -json all > {self.tmp_file_name}"
 
@@ -64,6 +72,8 @@ class Go(PackageManager):
         if ret_cmd_tree != 0:
             self.parse_dependency_tree(ret_cmd_tree)
 
+        if os.path.isfile(self.tmp_go_work):
+            shutil.move(self.tmp_go_work, self.go_work)
         return ret
 
     def parse_oss_information(self, f_name):
