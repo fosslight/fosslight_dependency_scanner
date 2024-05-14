@@ -84,6 +84,8 @@ class Unity(PackageManager):
                 purl = get_url_to_purl(dn_loc, self.package_manager_name)
                 if purl == 'None':
                     purl = ''
+                if purl != '':
+                    purl = f'{purl}@{oss_version}'
 
                 comment_list = []
                 if self.direct_dep:
