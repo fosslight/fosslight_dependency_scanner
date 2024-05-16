@@ -132,7 +132,7 @@ class PackageManager:
                     }}'''
         try:
             with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'a', encoding='utf8') as f:
-                f.write(allDeps)
+                f.write(f'\n{allDeps}\n')
                 ret = True
         except Exception as e:
             logging.warning(f"Cannot add the allDeps task in build.gradle: {e}")
