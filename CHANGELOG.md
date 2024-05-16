@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.14.3 (16/05/2024)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the issue of adding allDeps task for android @dd-jy (#201)
+- Add the version into unity purl @dd-jy (#198)
+- Fix the issue for go.work (go 1.18 or later) @dd-jy (#199)
+
+---
+
 ## v3.14.2 (08/05/2024)
 ## Changes
 ## 🚀 Features
@@ -323,11 +333,3 @@
 ## 🔧 Maintenance
 
 - Change the output for Go @dd-jy (#89)
-
----
-
-## v3.10.1 (10/05/2022)
-## Changes
-## 🔧 Maintenance
-
-- Add --direct option in help message @dd-jy (#87)
