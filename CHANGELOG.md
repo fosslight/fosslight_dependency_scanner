@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.15.0 (22/05/2024)
+## Changes
+## 🚀 Features
+
+- Add android-dependency-scanning plugin automatically @dd-jy (#202)
+
+---
+
 ## v3.14.3 (16/05/2024)
 ## Changes
 ## 🐛 Hotfixes
@@ -321,15 +329,3 @@
 ## 🐛 Hotfixes
 
 - Modify to analyze pub dependency @dd-jy (#90)
-
----
-
-## v3.11.0 (16/06/2022)
-## Changes
-## 🚀 Features
-
-- Add to generate yaml format result @dd-jy (#88)
-
-## 🔧 Maintenance
-
-- Change the output for Go @dd-jy (#89)
