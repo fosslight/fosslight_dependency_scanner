@@ -27,7 +27,7 @@ _PKG_NAME = "fosslight_dependency"
 logger = logging.getLogger(constant.LOGGER_NAME)
 warnings.filterwarnings("ignore", category=FutureWarning)
 _sheet_name = "DEP_FL_Dependency"
-EXTENDED_HEADER = {_sheet_name: ['ID', 'purl', 'OSS Name',
+EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Depends On']}
