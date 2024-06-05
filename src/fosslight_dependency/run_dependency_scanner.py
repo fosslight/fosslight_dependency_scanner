@@ -37,7 +37,7 @@ CUSTOMIZED_FORMAT = {'excel': '.xlsx', 'csv': '.csv', 'opossum': '.json', 'yaml'
 _exclude_dir = ['node_moduels', 'venv']
 
 
-def find_package_manager(input_dir):
+def find_package_manager(input_dir, abs_path_to_exclude=[]):
     ret = True
     manifest_file_name = []
     for value in const.SUPPORT_PACKAE.values():
@@ -52,7 +52,14 @@ def find_package_manager(input_dir):
             continue
         if os.path.basename(parent) in _exclude_dir:
             continue
+        if os.path.abspath(parent) in abs_path_to_exclude:
+            continue
         for file in files:
+            file_path = os.path.join(parent, file)
+            file_abs_path = os.path.abspath(file_path)
+            if any(os.path.commonpath([file_abs_path, exclude_path]) == exclude_path
+                   for exclude_path in abs_path_to_exclude):
+                continue
             if file in manifest_file_name:
                 found_manifest_file.append(file)
         if len(found_manifest_file) > 0:
@@ -83,8 +90,9 @@ def find_package_manager(input_dir):
     return ret, found_package_manager, input_dir
 
 
-def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='', pip_deactivate_cmd='',
-                           output_custom_dir='', app_name=const.default_app_name, github_token='', format='', direct=True):
+def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
+                           pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
+                           github_token='', format='', direct=True, path_to_exclude=[]):
     global logger
 
     ret = True
@@ -117,7 +125,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         sys.exit(1)
 
     logger, _result_log = init_log(os.path.join(output_path, "fosslight_log_dep_" + _start_time + ".txt"),
-                                   True, logging.INFO, logging.DEBUG, _PKG_NAME)
+                                   True, logging.INFO, logging.DEBUG, _PKG_NAME, "", path_to_exclude)
+    abs_path_to_exclude = [os.path.abspath(os.path.join(input_dir, path)) for path in path_to_exclude]
 
     logger.info(f"Tool Info : {_result_log['Tool Info']}")
 
@@ -151,7 +160,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     found_package_manager = {}
     if autodetect:
         try:
-            ret, found_package_manager, input_dir = find_package_manager(input_dir)
+            ret, found_package_manager, input_dir = find_package_manager(input_dir, abs_path_to_exclude)
             os.chdir(input_dir)
         except Exception as e:
             logger.error(f'Fail to find package manager: {e}')
@@ -188,7 +197,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             fail_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
     cover = CoverItem(tool_name=_PKG_NAME,
                       start_time=_start_time,
-                      input_path=input_dir)
+                      input_path=input_dir,
+                      exclude_path=path_to_exclude)
     cover_comment_arr = []
     if len(found_package_manager.keys()) > 0:
         if len(success_pm) > 0:
@@ -231,6 +241,7 @@ def main():
     package_manager = ''
     input_dir = ''
     output_dir = ''
+    path_to_exclude = []
     pip_activate_cmd = ''
     pip_deactivate_cmd = ''
     output_custom_dir = ''
@@ -244,6 +255,7 @@ def main():
     parser.add_argument('-v', '--version', action='store_true', required=False)
     parser.add_argument('-m', '--manager', nargs=1, type=str, default='', required=False)
     parser.add_argument('-p', '--path', nargs=1, type=str, required=False)
+    parser.add_argument('-e', '--exclude', nargs='*', required=False, default=[])
     parser.add_argument('-o', '--output', nargs=1, type=str, required=False)
     parser.add_argument('-a', '--activate', nargs=1, type=str, default='', required=False)
     parser.add_argument('-d', '--deactivate', nargs=1, type=str, default='', required=False)
@@ -268,6 +280,8 @@ def main():
         package_manager = ''.join(args.manager)
     if args.path:  # -p option
         input_dir = ''.join(args.path)
+    if args.exclude:  # -e option
+        path_to_exclude = args.exclude
     if args.output:  # -o option
         output_dir = ''.join(args.output)
     if args.activate:  # -a option
@@ -301,7 +315,7 @@ def main():
         sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token, format, direct)
+                           output_custom_dir, app_name, github_token, format, direct, path_to_exclude)
 
 
 if __name__ == '__main__':
