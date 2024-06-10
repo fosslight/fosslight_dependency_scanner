@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.15.1 (10/06/2024)
+## Changes
+## 🚀 Features
+
+- Supports for excluding paths @SeongjunJo (#200)
+
+## 🔧 Maintenance
+
+- Change Package URL col name @dd-jy (#203)
+
+---
+
 ## v3.15.0 (22/05/2024)
 ## Changes
 ## 🚀 Features
@@ -321,11 +333,3 @@
 ## 🚀 Features
 
 - [Enhancement] Golang go list option Fix @ehdwn1991 (#91)
-
----
-
-## v3.11.1 (07/07/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Modify to analyze pub dependency @dd-jy (#90)
