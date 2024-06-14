@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.15.2 (14/06/2024)
+## Changes
+- Change depends on to purl @dd-jy (#195)
+
+---
+
 ## v3.15.1 (10/06/2024)
 ## Changes
 ## 🚀 Features
@@ -325,11 +331,3 @@
 ## 🔧 Maintenance
 
 - Change a message when there is no output @soimkim (#92)
-
----
-
-## v3.11.2 (22/07/2022)
-## Changes
-## 🚀 Features
-
-- [Enhancement] Golang go list option Fix @ehdwn1991 (#91)
