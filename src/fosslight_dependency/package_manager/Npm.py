@@ -197,24 +197,21 @@ class Npm(PackageManager):
                     comment_list.append('transitive')
 
                 if f'{oss_init_name}({oss_version})' in self.relation_tree:
-                    rel_items = [f'npm:{ri}' for ri in self.relation_tree[f'{oss_init_name}({oss_version})']]
-                    deps_list.extend(rel_items)
+                    deps_list.extend(self.relation_tree[f'{oss_init_name}({oss_version})'])
 
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             multi_license, license_comment, multi_flag = check_multi_license(license_name, manifest_file_path)
 
             comment = ','.join(comment_list)
-            deps = ','.join(deps_list)
             if multi_flag:
                 comment = f'{comment}, {license_comment}'
-                sheet_list.append([purl, oss_name, oss_version, multi_license, dn_loc, homepage,
-                                  '', '', comment, deps])
+                license_name = multi_license
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
-                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, deps])
-
+            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
+                              '', '', comment, deps_list])
+        sheet_list = self.change_dep_to_purl(sheet_list)
         return sheet_list
 
 
