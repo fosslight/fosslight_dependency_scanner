@@ -111,9 +111,7 @@ class Go(PackageManager):
                         comment_list.append('direct')
 
                 if f'{package_path}({oss_version})' in self.relation_tree:
-                    rel_items = [f'{self.package_manager_name}:{ri}'
-                                 for ri in self.relation_tree[f'{package_path}({oss_version})']]
-                    deps_list.extend(rel_items)
+                    deps_list.extend(self.relation_tree[f'{package_path}({oss_version})'])
 
                 homepage_set = []
                 homepage = self.dn_url + package_path
@@ -159,8 +157,7 @@ class Go(PackageManager):
                 continue
 
             comment = ','.join(comment_list)
-            deps = ','.join(deps_list)
             sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps])
-
+                              '', '', comment, deps_list])
+        sheet_list = self.change_dep_to_purl(sheet_list)
         return sheet_list

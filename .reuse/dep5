@@ -113,3 +113,7 @@ License: Apache-2.0
 Files: tests/test_swift3/*
 Copyright: 2023 LG Electronics
 License: Apache-2.0
+
+Files: tests/test_exclude/*
+Copyright: 2024 LG Electronics
+License: Apache-2.0
