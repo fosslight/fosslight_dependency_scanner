@@ -29,6 +29,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
                        direct=True):
     ret = True
     package_sheet_list = []
+    cover_comment = ''
 
     if package_manager_name == const.PYPI:
         package_manager = Pypi(input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd)
@@ -82,9 +83,11 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     if ret:
         logger.warning(f"### Complete to analyze: {package_manager_name}")
+        if package_manager.cover_comment:
+            cover_comment = package_manager.cover_comment
     else:
         logger.error(f"### Fail to analyze: {package_manager_name}")
 
     del package_manager
 
-    return ret, package_sheet_list
+    return ret, package_sheet_list, cover_comment

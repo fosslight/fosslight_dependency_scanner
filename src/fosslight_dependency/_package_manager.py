@@ -50,6 +50,7 @@ class PackageManager:
         self.relation_tree = {}
         self.package_name = ''
         self.purl_dict = {}
+        self.cover_comment = ''
 
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)

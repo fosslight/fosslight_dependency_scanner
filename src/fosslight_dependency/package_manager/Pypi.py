@@ -56,6 +56,17 @@ class Pypi(PackageManager):
     def run_plugin(self):
         ret = True
 
+        req_f = 'requirements.txt'
+        if os.path.exists(req_f):
+            with open(req_f, encoding='utf8') as rf:
+                for rf_line in rf.readlines():
+                    ret_find = rf_line.find('--extra-index-url ')
+                    if ret_find == -1:
+                        ret_find = rf_line.find('--index-url ')
+                    if ret_find == -1:
+                        continue
+                    self.cover_comment += rf_line
+
         if not self.pip_activate_cmd and not self.pip_deactivate_cmd:
             ret = self.create_virtualenv()
 
