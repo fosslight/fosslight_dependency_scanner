@@ -175,11 +175,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     pass_key = 'PASS'
     success_pm = []
     fail_pm = []
+    cover_comment = ''
     for pm, manifest_file_name in found_package_manager.items():
         if manifest_file_name == pass_key:
             continue
-        ret, package_sheet_list = analyze_dependency(pm, input_dir, output_path, pip_activate_cmd, pip_deactivate_cmd,
-                                                     output_custom_dir, app_name, github_token, manifest_file_name, direct)
+        ret, package_sheet_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
+                                                                    pip_activate_cmd, pip_deactivate_cmd,
+                                                                    output_custom_dir, app_name, github_token,
+                                                                    manifest_file_name, direct)
         if ret:
             success_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
             sheet_list[_sheet_name].extend(package_sheet_list)
@@ -210,6 +213,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         cover_comment_arr.append("No Package manager detected.")
 
     cover.comment = ' / '.join(cover_comment_arr)
+    if cover_comment:
+        cover.comment += f', {cover_comment}'
 
     output_file_without_ext = os.path.join(output_path, output_file)
     if format.startswith('spdx'):
