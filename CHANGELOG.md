@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.15.3 (20/06/2024)
+## Changes
+## 🚀 Features
+
+- Print external-index-url in comment @dd-jy (#205)
+
+## 🐛 Hotfixes
+
+- Change to print depends on with purl @dd-jy (#204)
+
+---
+
 ## v3.15.2 (14/06/2024)
 ## Changes
 - Change depends on to purl @dd-jy (#195)
@@ -323,11 +335,3 @@
 ## 🔧 Maintenance
 
 - Separate multi license for Npm @dd-jy (#94)
-
----
-
-## v3.11.3 (12/08/2022)
-## Changes
-## 🔧 Maintenance
-
-- Change a message when there is no output @soimkim (#92)
