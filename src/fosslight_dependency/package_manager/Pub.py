@@ -179,26 +179,35 @@ class Pub(PackageManager):
         self.direct_dep = True
         tmp_pub_deps_file = 'tmp_deps.json'
         tmp_no_dev_deps_file = 'tmp_no_dev_deps.txt'
-
+        encoding_list = ['utf8', 'utf16']
         if os.path.exists(tmp_pub_deps_file) and os.path.exists(tmp_no_dev_deps_file):
-            try:
-                with open(tmp_pub_deps_file, 'r+', encoding='utf8') as deps_f:
-                    lines = deps_f.readlines()
-                    deps_f.seek(0)
-                    deps_f.truncate()
-                    for num, line in enumerate(lines):
-                        if line.startswith('{'):
-                            first_line = num
-                            break
-                    deps_f.writelines(lines[first_line:])
-                    deps_f.seek(0)
-                    deps_l = json.load(deps_f)
-                    self.parse_pub_deps_file(deps_l)
-                with open(tmp_no_dev_deps_file, 'r', encoding='utf8') as no_dev_f:
-                    self.parse_no_dev_command_file(no_dev_f.read())
-                logger.info('Parse tmp pub deps file.')
-            except Exception as e:
-                logger.error(f'Fail to parse tmp pub deps result file: {e}')
+            for encode in encoding_list:
+                try:
+                    logger.info(f'Try to encode with {encode}.')
+                    with open(tmp_pub_deps_file, 'r+', encoding=encode) as deps_f:
+                        lines = deps_f.readlines()
+                        deps_f.seek(0)
+                        deps_f.truncate()
+                        for num, line in enumerate(lines):
+                            if line.startswith('{'):
+                                first_line = num
+                                break
+                        deps_f.writelines(lines[first_line:])
+                        deps_f.seek(0)
+                        deps_l = json.load(deps_f)
+                        self.parse_pub_deps_file(deps_l)
+                    with open(tmp_no_dev_deps_file, 'r', encoding=encode) as no_dev_f:
+                        self.parse_no_dev_command_file(no_dev_f.read())
+                    logger.info('Parse tmp pub deps file.')
+                except UnicodeDecodeError as e1:
+                    logger.info(f'Fail to encode with {encode}: {e1}')
+                    pass
+                except Exception as e:
+                    logger.error(f'Fail to parse tmp pub deps result file: {e}')
+                    return False
+                else:
+                    logger.info(f'Success to encode with {encode}.')
+                    break
         else:
             try:
                 cmd = "flutter pub get"
