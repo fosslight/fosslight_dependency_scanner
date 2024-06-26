@@ -182,7 +182,16 @@ class Pub(PackageManager):
 
         if os.path.exists(tmp_pub_deps_file) and os.path.exists(tmp_no_dev_deps_file):
             try:
-                with open(tmp_pub_deps_file, 'r', encoding='utf8') as deps_f:
+                with open(tmp_pub_deps_file, 'r+', encoding='utf8') as deps_f:
+                    lines = deps_f.readlines()
+                    deps_f.seek(0)
+                    deps_f.truncate()
+                    for num, line in enumerate(lines):
+                        if line.startswith('{'):
+                            first_line = num
+                            break
+                    deps_f.writelines(lines[first_line:])
+                    deps_f.seek(0)
                     deps_l = json.load(deps_f)
                     self.parse_pub_deps_file(deps_l)
                 with open(tmp_no_dev_deps_file, 'r', encoding='utf8') as no_dev_f:
