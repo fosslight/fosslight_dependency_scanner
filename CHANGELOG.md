@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.15.4 (26/06/2024)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the pub encoding issue @dd-jy (#207)
+- Fix the pub_deps.json parsing issue @dd-jy (#206)
+
+---
+
 ## v3.15.3 (20/06/2024)
 ## Changes
 ## 🚀 Features
@@ -323,15 +332,3 @@
 ## 🐛 Hotfixes
 
 - Fix to separate multi license for npm @dd-jy (#95)
-
----
-
-## v3.11.4 (22/08/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the comment for npm root package @dd-jy (#93)
-
-## 🔧 Maintenance
-
-- Separate multi license for Npm @dd-jy (#94)
