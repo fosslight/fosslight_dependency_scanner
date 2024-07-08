@@ -30,7 +30,7 @@ _HELP_MESSAGE_DEPENDENCY = """
             -h\t\t\t\t    Print help message.
             -v\t\t\t\t    Print the version of the script.
             -m <package_manager>\t    Enter the package manager.
-                                        \t(npm, maven, gradle, pip, pub, cocoapods, android, swift, carthage, go, nuget, helm)
+                                        \t(npm, maven, gradle, pypi, pub, cocoapods, android, swift, carthage, go, nuget, helm)
             -p <input_path>\t\t    Enter the path where the script will be run.
             -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
             -o <output_path>\t\t    Output path
