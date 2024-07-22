@@ -35,7 +35,8 @@ _HELP_MESSAGE_DEPENDENCY = """
             -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
-            -f <format>\t\t\t    Output file format (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
+            -f <format> [<format> ...]\t    Output formats (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
+        \t\t\t\t    Multiple formats can be specified separated by space.
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
                                 \t\tChoice 'True' or 'False'. (default:True)
             --notice\t\t\t    Print the open source license notice text.
