@@ -12,6 +12,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 from fosslight_util.download import extract_compressed_dir
+from fosslight_dependency.dependency_item import DependencyItem
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -62,7 +64,6 @@ class Helm(PackageManager):
 
     def parse_oss_information(self, f_name):
         dep_item_list = []
-        sheet_list = []
         _dependencies = 'dependencies'
 
         with open(f_name, 'r', encoding='utf8') as yaml_fp:
@@ -73,33 +74,33 @@ class Helm(PackageManager):
         for dep in dep_item_list:
             try:
                 f_path = os.path.join(self.tmp_charts_dir, dep, f_name)
-                purl = ''
+                dep_item = DependencyItem()
+                oss_item = OssItem()
                 with open(f_path, 'r', encoding='utf8') as yaml_fp:
                     yaml_f = yaml.safe_load(yaml_fp)
-                    oss_name = f'{self.package_manager_name}:{yaml_f["name"]}'
-                    oss_version = yaml_f.get('version', '')
-                    if oss_version.startswith('v'):
-                        oss_version = oss_version[1:]
+                    oss_item.name = f'{self.package_manager_name}:{yaml_f["name"]}'
+                    oss_item.version = yaml_f.get('version', '')
+                    if oss_item.version.startswith('v'):
+                        oss_item.version = oss_item.version[1:]
 
-                    homepage = yaml_f.get('home', '')
-                    dn_loc = ''
+                    oss_item.homepage = yaml_f.get('home', '')
                     if yaml_f.get('sources', '') != '':
-                        dn_loc = yaml_f.get('sources', '')[0]
+                        oss_item.download_location = yaml_f.get('sources', '')[0]
 
-                    purl = get_url_to_purl(dn_loc if dn_loc else homepage, self.package_manager_name)
+                    dep_item.purl = get_url_to_purl(
+                        oss_item.download_location if oss_item.download_location else oss_item.homepage,
+                        self.package_manager_name
+                    )
 
-                    license_name = ''
                     if yaml_f.get('annotations', '') != '':
-                        license_name = yaml_f['annotations'].get('licenses', '')
+                        oss_item.license = yaml_f['annotations'].get('licenses', '')
 
                     if self.direct_dep:
-                        comment = 'direct'
+                        oss_item.comment = 'direct'
 
             except Exception as e:
                 logging.warning(f"Fail to parse chart info {dep}: {e}")
                 continue
-
-            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, ''])
-
-        return sheet_list
+            dep_item.oss_items.append(oss_item)
+            self.dep_items.append(dep_item)
+        return

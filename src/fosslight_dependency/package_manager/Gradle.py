@@ -10,6 +10,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -33,10 +35,11 @@ class Gradle(PackageManager):
         with open(f_name, 'r', encoding='utf8') as json_file:
             json_data = json.load(json_file)
 
-        sheet_list = []
+        purl_dict = {}
 
         for d in json_data['dependencies']:
-            comment = ''
+            dep_item = DependencyItem()
+            oss_item = OssItem()
             used_filename = False
             group_id = ""
             artifact_id = ""
@@ -50,51 +53,49 @@ class Gradle(PackageManager):
             else:
                 oss_name, oss_ini_version = parse_oss_name_version_in_filename(filename)
                 used_filename = True
-
-            dep_key = f"{oss_name}({oss_ini_version})"
+            oss_item.name = oss_name
+            dep_key = f"{oss_item.name}({oss_ini_version})"
             if self.total_dep_list:
                 if dep_key not in self.total_dep_list:
                     continue
 
-            oss_version = version_refine(oss_ini_version)
+            oss_item.version = version_refine(oss_ini_version)
 
-            license_names = []
-            purl = ''
             try:
+                license_names = []
                 for licenses in d['licenses']:
                     if licenses['name'] != '':
                         license_names.append(licenses['name'].replace(",", ""))
-                license_name = ', '.join(license_names)
+                oss_item.license = ', '.join(license_names)
             except Exception:
                 logger.info("Cannot find the license name")
 
             if used_filename or group_id == "":
-                dn_loc = 'Unknown'
-                homepage = ''
+                oss_item.download_location = 'Unknown'
             else:
-                dn_loc = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
-                homepage = f"{self.dn_url}{group_id}/{artifact_id}"
-                purl = get_url_to_purl(dn_loc, 'maven')
-                self.purl_dict[f'{oss_name}({oss_ini_version})'] = purl
+                oss_item.download_location = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
+                oss_item.homepage = f"{self.dn_url}{group_id}/{artifact_id}"
+                dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
+                purl_dict[f'{oss_item.name}({oss_ini_version})'] = dep_item.purl
 
-            comment_list = []
-            deps_list = []
             if self.direct_dep:
                 if len(self.direct_dep_list) > 0:
                     if dep_key in self.direct_dep_list:
-                        comment_list.append('direct')
+                        oss_item.comment = 'direct'
                     else:
-                        comment_list.append('transitive')
+                        oss_item.comment = 'transitive'
                 try:
                     if dep_key in self.relation_tree:
-                        deps_list.extend(self.relation_tree[dep_key])
+                        dep_item.depends_on_raw = self.relation_tree[dep_key]
                 except Exception as e:
                     logger.error(f"Fail to find oss scope in dependency tree: {e}")
-            comment = ','.join(comment_list)
-            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps_list])
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+
+            dep_item.oss_items.append(oss_item)
+            self.dep_items.append(dep_item)
+
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+        return
 
 
 def parse_oss_name_version_in_filename(name):

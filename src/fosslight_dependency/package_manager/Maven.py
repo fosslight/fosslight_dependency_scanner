@@ -14,6 +14,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -212,21 +214,21 @@ class Maven(PackageManager):
 
         root = tree.getroot()
         dependencies = root.find("dependencies")
-
-        sheet_list = []
-        comment = ''
+        purl_dict = {}
 
         for d in dependencies.iter("dependency"):
+            dep_item = DependencyItem()
+            oss_item = OssItem()
             groupid = d.findtext("groupId")
             artifactid = d.findtext("artifactId")
             version = d.findtext("version")
-            oss_version = version_refine(version)
+            oss_item.version = version_refine(version)
 
-            oss_name = f"{groupid}:{artifactid}"
-            dn_loc = f"{self.dn_url}{groupid}/{artifactid}/{version}"
-            homepage = f"{self.dn_url}{groupid}/{artifactid}"
-            purl = get_url_to_purl(dn_loc, self.package_manager_name)
-            self.purl_dict[f'{oss_name}({oss_version})'] = purl
+            oss_item.name = f"{groupid}:{artifactid}"
+            oss_item.download_location = f"{self.dn_url}{groupid}/{artifactid}/{version}"
+            oss_item.homepage = f"{self.dn_url}{groupid}/{artifactid}"
+            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+            purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
 
             licenses = d.find("licenses")
             if len(licenses):
@@ -234,26 +236,24 @@ class Maven(PackageManager):
                 for key_license in licenses.iter("license"):
                     if key_license.findtext("name") is not None:
                         license_names.append(key_license.findtext("name").replace(",", ""))
-                license_name = ', '.join(license_names)
-            else:
-                # Case that doesn't include License tag value.
-                license_name = ''
+                oss_item.license = ', '.join(license_names)
 
-            dep_key = f"{oss_name}({version})"
-            comment_list = []
-            deps_list = []
+            dep_key = f"{oss_item.name}({version})"
+
             if self.direct_dep:
                 if dep_key in self.direct_dep_list:
-                    comment_list.append('direct')
+                    oss_item.comment = 'direct'
                 else:
-                    comment_list.append('transitive')
+                    oss_item.comment = 'transitive'
                 try:
                     if dep_key in self.relation_tree:
-                        deps_list.extend(self.relation_tree[dep_key])
+                        dep_item.depends_on_raw = self.relation_tree[dep_key]
                 except Exception as e:
                     logger.error(f"Fail to find oss scope in dependency tree: {e}")
-            comment = ','.join(comment_list)
-            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps_list])
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+
+            dep_item.oss_items.append(oss_item)
+            self.dep_items.append(dep_item)
+
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+        return

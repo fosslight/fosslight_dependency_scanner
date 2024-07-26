@@ -11,6 +11,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 proprietary_license = 'Proprietary License'
@@ -33,20 +35,18 @@ class Unity(PackageManager):
         self.append_input_package_list_file(self.input_file_name)
 
     def parse_oss_information(self, f_name):
-        comment = ''
-
         with open(f_name, 'r', encoding='utf8') as f:
             f_yml = yaml.safe_load(f)
             resolvedPkg = f_yml['m_ResolvedPackages']
 
         try:
-            sheet_list = []
-
             for pkg_data in resolvedPkg:
-                oss_name = pkg_data['name']
-                oss_version = pkg_data['version']
+                dep_item = DependencyItem()
+                oss_item = OssItem()
+                oss_item.name = pkg_data['name']
+                oss_item.version = pkg_data['version']
 
-                oss_packagecache_dir = os.path.join(self.packageCache_dir, f'{oss_name}@{oss_version}')
+                oss_packagecache_dir = os.path.join(self.packageCache_dir, f'{oss_item.name}@{oss_item.version}')
                 license_f = os.path.join(oss_packagecache_dir, license_md)
                 if os.path.isfile(license_f):
                     license_name = check_and_run_license_scanner(self.platform,
@@ -61,6 +61,7 @@ class Unity(PackageManager):
                                     break
                 else:
                     license_name = proprietary_license
+                oss_item.license = license_name
 
                 third_f = os.path.join(oss_packagecache_dir, third_party_md)
                 if os.path.isfile(third_f):
@@ -71,21 +72,21 @@ class Unity(PackageManager):
                             tf.write(line)
                             tf.flush()
 
-                homepage = pkg_data['repository']['url']
-                if homepage and homepage.startswith('git@'):
-                    homepage = homepage.replace('git@', 'https://')
-                if homepage is None or homepage.startswith(self.unity_internal_url):
+                oss_item.homepage = pkg_data['repository']['url']
+                if oss_item.homepage and oss_item.homepage.startswith('git@'):
+                    oss_item.homepage = oss_item.homepage.replace('git@', 'https://')
+                if oss_item.homepage is None or oss_item.homepage.startswith(self.unity_internal_url):
                     if license_name != proprietary_license:
-                        homepage = f'{self.mirror_url}{oss_name}'
-                if homepage is None:
-                    homepage = ''
+                        oss_item.homepage = f'{self.mirror_url}{oss_item.name}'
+                if oss_item.homepage is None:
+                    oss_item.homepage = ''
 
-                dn_loc = homepage
-                purl = get_url_to_purl(dn_loc, self.package_manager_name)
-                if purl == 'None':
-                    purl = ''
-                if purl != '':
-                    purl = f'{purl}@{oss_version}'
+                oss_item.download_location = oss_item.homepage
+                dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+                if dep_item.purl == 'None':
+                    dep_item.purl = ''
+                if dep_item.purl != '':
+                    dep_item.purl = f'{dep_item.purl}@{oss_item.version}'
 
                 comment_list = []
                 if self.direct_dep:
@@ -94,10 +95,10 @@ class Unity(PackageManager):
                     else:
                         comment_list.append('transitive')
 
-                comment = ','.join(comment_list)
-                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, ''])
+                oss_item.comment = ','.join(comment_list)
+                dep_item.oss_items.append(oss_item)
+                self.dep_items.append(dep_item)
         except Exception as e:
             logger.error(f"Fail to parse unity oss information: {e}")
 
-        return sheet_list
+        return

@@ -11,6 +11,8 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import connect_github, get_github_license, check_and_run_license_scanner
 from fosslight_dependency._package_manager import get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -35,9 +37,8 @@ class Carthage(PackageManager):
     def parse_oss_information(self, f_name):
         github = "github"
         checkout_dir_list = get_checkout_dirname()
-        comment = ''
+
         with open(f_name, 'r', encoding='utf8') as input_fp:
-            sheet_list = []
             g = ''
             if not checkout_dir_list:
                 g = connect_github(self.github_token)
@@ -47,21 +48,24 @@ class Carthage(PackageManager):
                 # Ref. https://github.com/Carthage/Carthage/blob/master/Documentation/Artifacts.md
                 re_result = re.findall(r'(github|git)[\s]\"(\S*)\"[\s]\"(\S*)\"', line)
                 try:
+                    dep_item = DependencyItem()
+                    oss_item = OssItem()
                     repo = re_result[0][0]
                     oss_path = re_result[0][1]
                     if oss_path.endswith('.git'):
                         oss_path = oss_path[:-4]
                     oss_origin_name = oss_path.split('/')[-1]
-                    oss_name = self.package_manager_name + ":" + oss_origin_name
+                    oss_item.name = self.package_manager_name + ":" + oss_origin_name
 
                     if repo == github:
-                        homepage = self.dn_url + oss_path
+                        oss_item.homepage = self.dn_url + oss_path
                     else:
-                        homepage = oss_path
-                    dn_loc = homepage
-                    oss_version = re_result[0][2]
+                        oss_item.homepage = oss_path
+                    oss_item.download_location = oss_item.homepage
+                    oss_item.version = re_result[0][2]
 
-                    purl = get_url_to_purl(homepage, self.package_manager_name, oss_origin_name, oss_version)
+                    dep_item.purl = get_url_to_purl(oss_item.homepage, self.package_manager_name,
+                                                    oss_origin_name, oss_item.version)
 
                     license_name = ''
                     find_license = False
@@ -89,20 +93,17 @@ class Carthage(PackageManager):
                             except Exception as e:
                                 logger.warning(f"Failed to get license with github api: {e}")
                                 license_name == ''
-
+                    oss_item.license = license_name
                     if self.direct_dep_list:
                         if oss_origin_name in self.direct_dep_list:
-                            comment = 'direct'
+                            oss_item.comment = 'direct'
                         else:
-                            comment = 'transitive'
-
-                    sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                                      '', '', comment, ''])
-
+                            oss_item.comment = 'transitive'
+                    dep_item.oss_items.append(oss_item)
+                    self.dep_items.append(dep_item)
                 except Exception as e:
                     logger.warning(f"Failed to parse oss information: {e}")
-
-        return sheet_list
+        return
 
     def parse_direct_dependencies(self):
         self.direct_dep = True

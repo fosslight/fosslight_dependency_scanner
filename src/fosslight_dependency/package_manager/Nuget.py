@@ -13,6 +13,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -37,7 +39,7 @@ class Nuget(PackageManager):
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
         with open(f_name, 'r', encoding='utf8') as input_fp:
-            sheet_list = []
+            purl_dict = {}
             package_list = []
             if self.packageReference:
                 package_list = self.get_package_info_in_packagereference(input_fp)
@@ -46,14 +48,13 @@ class Nuget(PackageManager):
 
         for oss_origin_name, oss_version in package_list:
             try:
-                oss_name = f'{self.package_manager_name}:{oss_origin_name}'
+                dep_item = DependencyItem()
+                oss_item = OssItem()
+                oss_item.name = f'{self.package_manager_name}:{oss_origin_name}'
+                oss_item.version = oss_version
 
-                comment_list = []
-                dn_loc = ''
-                homepage = ''
                 license_name = ''
-
-                response = requests.get(f'{self.nuget_api_url}{oss_origin_name}/{oss_version}/{oss_origin_name}.nuspec')
+                response = requests.get(f'{self.nuget_api_url}{oss_origin_name}/{oss_item.version}/{oss_origin_name}.nuspec')
                 if response.status_code == 200:
                     root = fromstring(response.text)
                     xmlns = ''
@@ -66,7 +67,7 @@ class Nuget(PackageManager):
                     if license_name_id is not None:
                         license_name, license_comment = self.check_multi_license(license_name_id.text)
                         if license_comment != '':
-                            comment_list.append(license_comment)
+                            oss_item.comment = license_comment
                     else:
                         license_url = nupkg_metadata.find(f'{xmlns}licenseUrl')
                         if license_url is not None:
@@ -82,45 +83,47 @@ class Nuget(PackageManager):
                                     license_name = license_name_with_license_scanner
                                 else:
                                     license_name = license_url.text
+                    oss_item.license = license_name
                     repo_id = nupkg_metadata.find(f'{xmlns}repository')
                     if repo_id is not None:
-                        dn_loc = repo_id.get("url")
+                        oss_item.download_location = repo_id.get("url")
                     else:
                         proj_url_id = nupkg_metadata.find(f'{xmlns}projectUrl')
                         if proj_url_id is not None:
-                            dn_loc = proj_url_id.text
-                    homepage = f'{self.dn_url}{oss_origin_name}'
-                    if dn_loc == '':
-                        dn_loc = f'{homepage}/{oss_version}'
+                            oss_item.download_location = proj_url_id.text
+                    oss_item.homepage = f'{self.dn_url}{oss_origin_name}'
+                    if oss_item.download_location == '':
+                        oss_item.download_location = f'{oss_item.homepage}/{oss_item.version}'
                     else:
-                        if dn_loc.endswith('.git'):
-                            dn_loc = dn_loc[:-4]
-                    purl = get_url_to_purl(f'{homepage}/{oss_version}', self.package_manager_name)
+                        if oss_item.download_location.endswith('.git'):
+                            oss_item.download_location = oss_item.download_location[:-4]
+                    dep_item.purl = get_url_to_purl(f'{oss_item.homepage}/{oss_item.version}', self.package_manager_name)
                 else:
-                    comment_list.append('Fail to response for nuget api')
-                    purl = f'pkg:nuget/{oss_origin_name}@{oss_version}'
-                self.purl_dict[f'{oss_origin_name}({oss_version})'] = purl
+                    oss_item.comment = 'Fail to response for nuget api'
+                    dep_item.purl = f'pkg:nuget/{oss_origin_name}@{oss_item.version}'
+                purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
 
-                deps_list = []
                 if self.direct_dep and self.packageReference:
                     if oss_origin_name in self.direct_dep_list:
-                        comment_list.append('direct')
+                        oss_item.comment = 'direct'
                     else:
-                        comment_list.append('transitive')
+                        oss_item.comment = 'transitive'
 
-                    if f'{oss_origin_name}({oss_version})' in self.relation_tree:
-                        deps_list.extend(self.relation_tree[f'{oss_origin_name}({oss_version})'])
+                    if f'{oss_origin_name}({oss_item.version})' in self.relation_tree:
+                        dep_item.depends_on_raw = self.relation_tree[f'{oss_origin_name}({oss_item.version})']
 
-                comment = ','.join(comment_list)
-                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage, '', '', comment, deps_list])
+                dep_item.oss_items.append(oss_item)
+                self.dep_items.append(dep_item)
 
             except Exception as e:
                 logger.warning(f"Failed to parse oss information: {e}")
-        sheet_list = self.change_dep_to_purl(sheet_list)
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+
         if os.path.isfile(tmp_license_txt_file_name):
             os.remove(tmp_license_txt_file_name)
 
-        return sheet_list
+        return
 
     def get_package_list_in_packages_config(self, input_fp):
         package_list = []
