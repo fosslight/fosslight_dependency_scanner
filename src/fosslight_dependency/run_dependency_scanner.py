@@ -17,7 +17,7 @@ from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
 from fosslight_dependency._help import print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
-from fosslight_util.output_format import check_output_format, write_output_file
+from fosslight_util.output_format import check_output_formats, write_output_file
 if platform.system() != 'Windows':
     from fosslight_util.write_spdx import write_spdx
 from fosslight_util.cover import CoverItem
@@ -93,7 +93,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
-                           github_token='', format='', graph_path='', graph_size=(600, 600), direct=True,
+                           github_token='', formats=[], graph_path='', graph_size=(600, 600), direct=True,
                            path_to_exclude=[]):
     global logger
 
@@ -103,25 +103,42 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     _json_ext = ".json"
     _start_time = datetime.now().strftime('%y%m%d_%H%M')
 
-    success, msg, output_path, output_file, output_extension = check_output_format(output_dir_file, format, CUSTOMIZED_FORMAT)
+    success, msg, output_path, output_files, output_extensions = check_output_formats(output_dir_file, formats, CUSTOMIZED_FORMAT)
     if success:
         if output_path == "":
             output_path = os.getcwd()
         else:
             output_path = os.path.abspath(output_path)
 
-        if output_file == "":
-            if format.startswith('spdx'):
-                if platform.system() != 'Windows':
-                    output_file = f"fosslight_spdx_dep_{_start_time}"
+        if not output_files:
+            while len(output_files) < len(output_extensions):
+                output_files.append(None)
+            to_remove = []  # elements of spdx format on windows that should be removed
+            for i, output_extension in enumerate(output_extensions):
+                if formats:
+                    if formats[i].startswith('spdx'):
+                        if platform.system() != 'Windows':
+                            output_files[i] = f"fosslight_spdx_dep_{_start_time}"
+                        else:
+                            logger.warning('spdx format is not supported on Windows. Please remove spdx from format.')
+                            to_remove.append(i)
+                    else:
+                        if output_extension == _json_ext:
+                            output_files[i] = f"fosslight_opossum_dep_{_start_time}"
+                        else:
+                            output_files[i] = f"fosslight_report_dep_{_start_time}"
                 else:
-                    logger.error('Windows not support spdx format.')
-                    sys.exit(0)
-            else:
-                if output_extension == _json_ext:
-                    output_file = f"fosslight_opossum_dep_{_start_time}"
-                else:
-                    output_file = f"fosslight_report_dep_{_start_time}"
+                    if output_extension == _json_ext:
+                        output_files[i] = f"fosslight_opossum_dep_{_start_time}"
+                    else:
+                        output_files[i] = f"fosslight_report_dep_{_start_time}"
+            for index in sorted(to_remove, reverse=True):
+                # remove elements of spdx format on windows
+                del output_files[index]
+                del output_extensions[index]
+                del formats[index]
+            if len(output_extensions) < 1:
+                sys.exit(0)
     else:
         logger.error(msg)
         sys.exit(1)
@@ -222,27 +239,33 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         converter = GraphConvertor(sheet_list[_sheet_name])
         converter.save(graph_path, graph_size)
 
-    output_file_without_ext = os.path.join(output_path, output_file)
-    if format.startswith('spdx'):
-        if platform.system() != 'Windows':
-            success_write, err_msg, result_file = write_spdx(output_file_without_ext, output_extension, sheet_list,
-                                                             _PKG_NAME, pkg_resources.get_distribution(_PKG_NAME).version,
-                                                             spdx_version=(2, 3))
+    combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
+    results = []
+    for i, output_extension in enumerate(output_extensions):
+        if formats:
+            if formats[i].startswith('spdx'):
+                if platform.system() != 'Windows':
+                    results.append(write_spdx(combined_paths_and_files[i], output_extension, sheet_list, _PKG_NAME,
+                                              pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
+                else:
+                    logger.error('Windows not support spdx format.')
+            else:
+                results.append(write_output_file(combined_paths_and_files[i], output_extension, sheet_list, EXTENDED_HEADER,
+                                                 '', cover))
         else:
-            logger.error('Windows not support spdx format.')
-    else:
-        success_write, err_msg, result_file = write_output_file(output_file_without_ext, output_extension,
-                                                                sheet_list, EXTENDED_HEADER, '', cover)
-    if success_write:
-        if result_file:
-            logger.info(f"Output file: {result_file}")
+            results.append(write_output_file(combined_paths_and_files[i], output_extension, sheet_list, EXTENDED_HEADER,
+                                             '', cover))
+    for success_write, err_msg, result_file in results:
+        if success_write:
+            if result_file:
+                logger.info(f"Output file: {result_file}")
+            else:
+                logger.warning(f"{err_msg}")
+            for i in cover_comment_arr:
+                logger.info(i.strip())
         else:
-            logger.warning(f"{err_msg}")
-        for i in cover_comment_arr:
-            logger.info(i.strip())
-    else:
-        ret = False
-        logger.error(f"Fail to generate result file. msg:({err_msg})")
+            ret = False
+            logger.error(f"Fail to generate result file. msg:({err_msg})")
 
     logger.warning("### FINISH ###")
     return ret, sheet_list
@@ -275,7 +298,7 @@ def main():
     parser.add_argument('-c', '--customized', nargs=1, type=str, required=False)
     parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
-    parser.add_argument('-f', '--format', nargs=1, type=str, required=False)
+    parser.add_argument('-f', '--format', nargs="*", type=str, required=False)
     parser.add_argument('--graph-path', nargs=1, type=str, required=False)
     parser.add_argument('--graph-size', nargs=2, required=False)
     parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
@@ -310,7 +333,7 @@ def main():
     if args.token:  # -t option
         github_token = ''.join(args.token)
     if args.format:  # -f option
-        format = ''.join(args.format)
+        format = list(args.format)
     if args.graph_path:
         graph_path = ''.join(args.graph_path)
     if args.graph_size:

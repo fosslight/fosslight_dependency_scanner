@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.15.5 (24/07/2024)
+## Changes
+## 🚀 Features
+
+- Enable multiple input for -f option @JustinWonjaePark (#210)
+
+## 🔧 Maintenance
+
+- Change pip to pypi in the help message @soimkim (#208)
+
+---
+
 ## v3.15.4 (26/06/2024)
 ## Changes
 ## 🐛 Hotfixes
@@ -324,11 +336,3 @@
 ## 🔧 Maintenance
 
 - Change the help message @dd-jy (#96)
-
----
-
-## v3.11.5 (23/08/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Fix to separate multi license for npm @dd-jy (#95)

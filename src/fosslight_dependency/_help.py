@@ -35,7 +35,8 @@ _HELP_MESSAGE_DEPENDENCY = """
             -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
-            -f <format>\t\t\t    Output file format (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
+            -f <format> [<format> ...]\t    Output formats (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
+        \t\t\t\t    Multiple formats can be specified separated by space.
             --graph_path <save_path> \t    Enter the path where the graph image will be saved
             \t\t\t\t\t(ex. /your/directory/path/filename.{pdf, jpg, png}) (recommend pdf extension)
             --graph_size <width> <height>   Enter the size of the graph image (The size unit is pixels) 
