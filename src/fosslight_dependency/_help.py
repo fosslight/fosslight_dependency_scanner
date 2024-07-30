@@ -36,6 +36,9 @@ _HELP_MESSAGE_DEPENDENCY = """
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
             -f <format>\t\t\t    Output file format (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
+            --graph_path <save_path> \t    Enter the path where the graph image will be saved
+            --graph_size <width> <height>   Enter the size of the graph image (The size unit is pixels) 
+            \t\t\t\t\t--graph-path option is required
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
                                 \t\tChoice 'True' or 'False'. (default:True)
             --notice\t\t\t    Print the open source license notice text.
@@ -54,7 +57,6 @@ _HELP_MESSAGE_DEPENDENCY = """
         Optional only for android
             -n <app_name>\t\t    Enter the application directory name where the plugin output file is located(default: app)
         """
-
 
 def print_help_msg():
     helpMsg = PrintHelpMsg(_HELP_MESSAGE_DEPENDENCY)
