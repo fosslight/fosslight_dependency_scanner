@@ -21,6 +21,7 @@ from fosslight_util.output_format import check_output_format, write_output_file
 if platform.system() != 'Windows':
     from fosslight_util.write_spdx import write_spdx
 from fosslight_util.cover import CoverItem
+from fosslight_dependency._graph_convertor import GraphConvertor
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
@@ -92,7 +93,8 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
-                           github_token='', format='', direct=True, path_to_exclude=[]):
+                           github_token='', format='', graph_path='', graph_size=(600, 600), direct=True,
+                           path_to_exclude=[]):
     global logger
 
     ret = True
@@ -216,6 +218,10 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if cover_comment:
         cover.comment += f', {cover_comment}'
 
+    if graph_path:
+        converter = GraphConvertor(sheet_list[_sheet_name])
+        converter.save(graph_path, graph_size)
+
     output_file_without_ext = os.path.join(output_path, output_file)
     if format.startswith('spdx'):
         if platform.system() != 'Windows':
@@ -253,6 +259,8 @@ def main():
     app_name = const.default_app_name
     github_token = ''
     format = ''
+    graph_path = ''
+    graph_size = (600, 600)
     direct = True
 
     parser = argparse.ArgumentParser(add_help=False)
@@ -268,6 +276,8 @@ def main():
     parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
     parser.add_argument('-f', '--format', nargs=1, type=str, required=False)
+    parser.add_argument('--graph-path', nargs=1, type=str, required=False)
+    parser.add_argument('--graph-size', nargs=2, required=False)
     parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
     parser.add_argument('--notice', action='store_true', required=False)
 
@@ -301,6 +311,10 @@ def main():
         github_token = ''.join(args.token)
     if args.format:  # -f option
         format = ''.join(args.format)
+    if args.graph_path:
+        graph_path = ''.join(args.graph_path)
+    if args.graph_size:
+        graph_size = tuple(map(lambda x: int(x), args.graph_size))
     if args.direct:  # --direct option
         if args.direct == 'true':
             direct = True
@@ -320,7 +334,8 @@ def main():
         sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token, format, direct, path_to_exclude)
+                           output_custom_dir, app_name, github_token, format, graph_path, graph_size,
+                           direct, path_to_exclude)
 
 
 if __name__ == '__main__':
