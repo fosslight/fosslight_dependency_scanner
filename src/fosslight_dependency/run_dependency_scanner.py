@@ -93,8 +93,8 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
-                           github_token='', formats=[], graph_path='', graph_size=(600, 600), direct=True,
-                           path_to_exclude=[]):
+                           github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='', 
+                           graph_size=(600, 600)):
     global logger
 
     ret = True
