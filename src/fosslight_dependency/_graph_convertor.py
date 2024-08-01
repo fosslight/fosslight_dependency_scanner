@@ -1,9 +1,14 @@
-from typing import Dict, List, Optional, Tuple
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2021 LG Electronics Inc.
+# SPDX-License-Identifier: Apache-2.0
+from typing import Optional, Tuple
 import igraph as ig
 import matplotlib.pyplot as plt
 
+
 class GraphConvertor:
-    def __init__(self, package_list: Optional[list]=None):
+    def __init__(self, package_list: Optional[list] = None):
         self._verticies = {}
         self._edges = []
         if package_list:
