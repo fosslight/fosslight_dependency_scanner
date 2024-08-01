@@ -64,7 +64,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .
-        sudo npm install -g license-checker      
+        npm install -g license-checker
     - name: Install Pod
       working-directory: ./tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips
       run: pod install --clean-install
