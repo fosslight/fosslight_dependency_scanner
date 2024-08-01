@@ -93,7 +93,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
-                           github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='', 
+                           github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
                            graph_size=(600, 600)):
     global logger
 
@@ -357,8 +357,8 @@ def main():
         sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token, format, graph_path, graph_size,
-                           direct, path_to_exclude)
+                           output_custom_dir, app_name, github_token, format, direct, path_to_exclude,
+                           graph_path, graph_size)
 
 
 if __name__ == '__main__':
