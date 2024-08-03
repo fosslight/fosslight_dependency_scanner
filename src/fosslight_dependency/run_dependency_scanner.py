@@ -235,9 +235,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if cover_comment:
         cover.comment += f', {cover_comment}'
 
-    if graph_path:
-        converter = GraphConvertor(sheet_list[_sheet_name])
-        converter.save(graph_path, graph_size)
+    if ret and graph_path:
+        graph_path = os.path.abspath(graph_path)
+        try:
+            converter = GraphConvertor(sheet_list[_sheet_name])
+            converter.save(graph_path, graph_size)
+            logger.info(f"Output graph image file: {graph_path}")
+        except Exception as e:
+            logger.error(f'Fail to make graph image: {e}')
 
     combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
     results = []
@@ -300,7 +305,7 @@ def main():
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
     parser.add_argument('-f', '--format', nargs="*", type=str, required=False)
     parser.add_argument('--graph-path', nargs=1, type=str, required=False)
-    parser.add_argument('--graph-size', nargs=2, required=False)
+    parser.add_argument('--graph-size', nargs=2, type=int, metavar=("WIDTH", "HEIGHT"), required=False)
     parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
     parser.add_argument('--notice', action='store_true', required=False)
 
@@ -337,7 +342,7 @@ def main():
     if args.graph_path:
         graph_path = ''.join(args.graph_path)
     if args.graph_size:
-        graph_size = tuple(map(lambda x: int(x), args.graph_size))
+        graph_size = args.graph_size
     if args.direct:  # --direct option
         if args.direct == 'true':
             direct = True
