@@ -9,3 +9,5 @@ PyGithub
 requirements-parser
 defusedxml
 packageurl-python
+igraph
+matplotlib
