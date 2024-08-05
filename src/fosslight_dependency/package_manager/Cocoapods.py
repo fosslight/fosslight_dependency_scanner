@@ -128,7 +128,7 @@ class Cocoapods(PackageManager):
                 purl = get_url_to_purl(homepage, self.package_manager_name, pod_oss_name_origin, oss_version)
                 self.purl_dict[f'{pod_oss_name_origin}({oss_version})'] = purl
                 if pod_oss_name in external_source_list:
-                    homepage = dn_loc
+                    homepage = ''
                 if oss_name == '':
                     continue
                 if pod_oss_version != oss_version:
