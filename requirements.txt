@@ -11,3 +11,6 @@ defusedxml
 packageurl-python
 igraph
 matplotlib
+requests
+cloudscraper
+pyuseragents

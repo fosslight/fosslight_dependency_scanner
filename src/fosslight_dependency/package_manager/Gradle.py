@@ -8,8 +8,12 @@ import logging
 import json
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
+import cloudscraper
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl
+from requests import exceptions
+from bs4 import BeautifulSoup as bs
+from pyuseragents import random as random_user_agent
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -62,7 +66,9 @@ class Gradle(PackageManager):
             purl = ''
             try:
                 for licenses in d['licenses']:
-                    if licenses['name'] != '':
+                    if licenses['name'] == 'No license found':
+                        license_names.append(parse_oss_name_version_in_maven(self.dn_url, group_id, artifact_id))
+                    elif licenses['name'] != '':
                         license_names.append(licenses['name'].replace(",", ""))
                 license_name = ', '.join(license_names)
             except Exception:
@@ -115,3 +121,35 @@ def parse_oss_name_version_in_artifactid(name):
     oss_version = artifact_comp[2]
 
     return group_id, artifact_id, oss_version
+
+
+def parse_oss_name_version_in_maven(dn_url, group_id, artifact_id):
+    url = f"{dn_url}{group_id}/{artifact_id}"
+    headers = {
+        'Content-Type': 'text/html;',
+        'User-Agent': random_user_agent()
+    }
+    try:
+        scraper = cloudscraper.create_scraper()
+        res = scraper.get(url=url, headers=headers)
+        res.raise_for_status()
+    except exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")
+        return "No license found"
+    except exceptions.RequestException as req_err:
+        logger.error(f"Request exception occurred: {req_err}")
+        return "No license found"
+    except Exception as e:
+        logger.error(f"Unexpected error occurred: {e}")
+        return "No license found"
+
+    soup = bs(res.content, 'html.parser')
+    license_th = soup.find('th', text='License')
+    if not license_th:
+        return "No license found"
+
+    license_td = license_th.find_next_sibling('td')
+    license_span = license_td.find('span', {'class': 'b lic'}) if license_td else None
+    license_name = license_span.text.strip()
+
+    return license_name
