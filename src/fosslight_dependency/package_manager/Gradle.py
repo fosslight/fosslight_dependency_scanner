@@ -17,6 +17,7 @@ from pyuseragents import random as random_user_agent
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
+NO_LICENSE_MESSAGE = "NO_LICENSE_DETECTED"
 
 class Gradle(PackageManager):
     package_manager_name = const.GRADLE
@@ -134,19 +135,19 @@ def parse_oss_name_version_in_maven(dn_url, group_id, artifact_id):
         res = scraper.get(url=url, headers=headers)
         res.raise_for_status()
     except exceptions.HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err}")
-        return "No license found"
+        logger.debug(f"HTTP error occurred: {http_err}")
+        return NO_LICENSE_MESSAGE
     except exceptions.RequestException as req_err:
-        logger.error(f"Request exception occurred: {req_err}")
-        return "No license found"
+        logger.debug(f"Request exception occurred: {req_err}")
+        return NO_LICENSE_MESSAGE
     except Exception as e:
-        logger.error(f"Unexpected error occurred: {e}")
-        return "No license found"
+        logger.debug(f"Unexpected error occurred: {e}")
+        return NO_LICENSE_MESSAGE
 
     soup = bs(res.content, 'html.parser')
     license_th = soup.find('th', text='License')
     if not license_th:
-        return "No license found"
+        return NO_LICENSE_MESSAGE
 
     license_td = license_th.find_next_sibling('td')
     license_span = license_td.find('span', {'class': 'b lic'}) if license_td else None
