@@ -19,6 +19,7 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 NO_LICENSE_MESSAGE = "NO_LICENSE_DETECTED"
 
+
 class Gradle(PackageManager):
     package_manager_name = const.GRADLE
 
