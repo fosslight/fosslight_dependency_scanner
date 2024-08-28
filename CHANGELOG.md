@@ -1,5 +1,23 @@
 # Changelog
 
+## v3.15.6 (28/08/2024)
+## Changes
+## 🚀 Features
+
+- Add feature that save graph image @fhdufhdu (#214)
+
+## 🐛 Hotfixes
+
+- Fix the macos npm github action bug @dd-jy (#215)
+
+## 🔧 Maintenance
+
+- Limit installation to fosslight_util 1.4.* @soimkim (#223)
+- Modify homepage to empty if it is external repo @dd-jy (#217)
+- Add dummy in github action token @dd-jy (#216)
+
+---
+
 ## v3.15.5 (24/07/2024)
 ## Changes
 ## 🚀 Features
@@ -324,15 +342,3 @@
 ## 🔧 Maintenance
 
 - Change output report file name @dd-jy (#98)
-
----
-
-## v3.11.6 (01/09/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Fix error when it fails to create venv for Pypi @dd-jy (#97)
-
-## 🔧 Maintenance
-
-- Change the help message @dd-jy (#96)
