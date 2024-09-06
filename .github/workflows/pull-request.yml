@@ -64,10 +64,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .
-        sudo npm install -g license-checker      
+        npm install -g license-checker
     - name: Install Pod
       working-directory: ./tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips
       run: pod install --clean-install
+    - name: Set TOKEN Environment Variable
+      run: |
+        if [ -z "${{ secrets.TOKEN }}" ]; then
+          echo "TOKEN=dummy" >> $GITHUB_ENV
+        else
+          echo "TOKEN=${{ secrets.TOKEN }}" >> $GITHUB_ENV
+        fi
     - name: Run Test
       run: |
         fosslight_dependency -p tests/test_pypi -o tests/result/pypi
@@ -78,10 +85,10 @@ jobs:
         fosslight_dependency -p tests/test_gradle/jib -o tests/result/gradle
         fosslight_dependency -p tests/test_pub -o tests/result/pub
         fosslight_dependency -p tests/test_cocoapods/cocoapods-tips/JWSCocoapodsTips -o tests/result/Cocoapods
-        fosslight_dependency -p tests/test_swift -o tests/result/swift -t ${{ secrets.TOKEN }}
-        fosslight_dependency -p tests/test_swift2 -o tests/result/swift2 -t ${{ secrets.TOKEN }}
-        fosslight_dependency -p tests/test_swift2 -o tests/result/swift3 -t ${{ secrets.TOKEN }}
-        fosslight_dependency -p tests/test_carthage -o tests/result/carthage -t ${{ secrets.TOKEN }}
+        fosslight_dependency -p tests/test_swift -o tests/result/swift -t ${{ env.TOKEN }}
+        fosslight_dependency -p tests/test_swift2 -o tests/result/swift2 -t ${{ env.TOKEN }}
+        fosslight_dependency -p tests/test_swift2 -o tests/result/swift3 -t ${{ env.TOKEN }}
+        fosslight_dependency -p tests/test_carthage -o tests/result/carthage -t ${{ env.TOKEN }}
   reuse:
     runs-on: ubuntu-latest
     steps: 

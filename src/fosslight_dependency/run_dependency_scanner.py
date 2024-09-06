@@ -21,6 +21,7 @@ from fosslight_util.output_format import check_output_formats, write_output_file
 if platform.system() != 'Windows':
     from fosslight_util.write_spdx import write_spdx
 from fosslight_util.oss_item import ScannerItem
+from fosslight_dependency._graph_convertor import GraphConvertor
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
@@ -92,7 +93,8 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
-                           github_token='', formats=[], direct=True, path_to_exclude=[], cli_mode=True):
+                           github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
+                           graph_size=(600, 600)):
     global logger
 
     ret = True
@@ -225,35 +227,43 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     else:
         scan_item.set_cover_comment("No Package manager detected.")
 
+    if ret and graph_path:
+        graph_path = os.path.abspath(graph_path)
+        try:
+            converter = GraphConvertor(sheet_list[_sheet_name])
+            converter.save(graph_path, graph_size)
+            logger.info(f"Output graph image file: {graph_path}")
+        except Exception as e:
+            logger.error(f'Fail to make graph image: {e}')
+
     if cover_comment:
         scan_item.set_cover_comment(cover_comment)
 
-    if cli_mode:
         combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
         results = []
-        for i, output_extension in enumerate(output_extensions):
-            if formats:
-                if formats[i].startswith('spdx'):
-                    if platform.system() != 'Windows':
-                        results.append(write_spdx(combined_paths_and_files[i], output_extension, scan_item, _PKG_NAME,
-                                                  pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
-                    else:
-                        logger.error('Windows not support spdx format.')
+    for i, output_extension in enumerate(output_extensions):
+        if formats:
+            if formats[i].startswith('spdx'):
+                if platform.system() != 'Windows':
+                    results.append(write_spdx(combined_paths_and_files[i], output_extension, scan_item, _PKG_NAME,
+                                                pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
                 else:
-                    results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
+                    logger.error('Windows not support spdx format.')
             else:
                 results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
-        for success_write, err_msg, result_file in results:
-            if success_write:
-                if result_file:
-                    logger.info(f"Output file: {result_file}")
-                else:
-                    logger.warning(f"{err_msg}")
-                for i in scan_item.get_cover_comment():
-                    logger.info(i)
+        else:
+            results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
+    for success_write, err_msg, result_file in results:
+        if success_write:
+            if result_file:
+                logger.info(f"Output file: {result_file}")
             else:
-                ret = False
-                logger.error(f"Fail to generate result file. msg:({err_msg})")
+                logger.warning(f"{err_msg}")
+            for i in scan_item.get_cover_comment():
+                logger.info(i)
+        else:
+            ret = False
+            logger.error(f"Fail to generate result file. msg:({err_msg})")
 
     logger.warning("### FINISH ###")
     return ret, scan_item
@@ -270,6 +280,8 @@ def main():
     app_name = const.default_app_name
     github_token = ''
     format = ''
+    graph_path = ''
+    graph_size = (600, 600)
     direct = True
 
     parser = argparse.ArgumentParser(add_help=False)
@@ -285,6 +297,8 @@ def main():
     parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
     parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
     parser.add_argument('-f', '--format', nargs="*", type=str, required=False)
+    parser.add_argument('--graph-path', nargs=1, type=str, required=False)
+    parser.add_argument('--graph-size', nargs=2, type=int, metavar=("WIDTH", "HEIGHT"), required=False)
     parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
     parser.add_argument('--notice', action='store_true', required=False)
 
@@ -318,6 +332,10 @@ def main():
         github_token = ''.join(args.token)
     if args.format:  # -f option
         format = list(args.format)
+    if args.graph_path:
+        graph_path = ''.join(args.graph_path)
+    if args.graph_size:
+        graph_size = args.graph_size
     if args.direct:  # --direct option
         if args.direct == 'true':
             direct = True
@@ -337,7 +355,8 @@ def main():
         sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token, format, direct, path_to_exclude)
+                           output_custom_dir, app_name, github_token, format, direct, path_to_exclude,
+                           graph_path, graph_size)
 
 
 if __name__ == '__main__':
