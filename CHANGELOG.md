@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.0.0 (06/09/2024)
+## Changes
+## 🔧 Maintenance
+
+- Refactoring OSS item @dd-jy (#213)
+
+---
+
 ## v3.15.6 (28/08/2024)
 ## Changes
 ## 🚀 Features
@@ -334,11 +342,3 @@
 - Fix the path string for each platform @dd-jy (#102)
 - Add the additional infor for Nuget @dd-jy (#101)
 - Change log file name to fosslight_log_{datetime}.txt @dd-jy (#99)
-
----
-
-## v3.11.7 (15/09/2022)
-## Changes
-## 🔧 Maintenance
-
-- Change output report file name @dd-jy (#98)
