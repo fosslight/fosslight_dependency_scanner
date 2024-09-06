@@ -230,7 +230,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if ret and graph_path:
         graph_path = os.path.abspath(graph_path)
         try:
-            converter = GraphConvertor(sheet_list[_sheet_name])
+            converter = GraphConvertor(scan_item.file_items[_PKG_NAME])
             converter.save(graph_path, graph_size)
             logger.info(f"Output graph image file: {graph_path}")
         except Exception as e:
@@ -239,14 +239,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if cover_comment:
         scan_item.set_cover_comment(cover_comment)
 
-        combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
-        results = []
+    combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
+    results = []
     for i, output_extension in enumerate(output_extensions):
         if formats:
             if formats[i].startswith('spdx'):
                 if platform.system() != 'Windows':
                     results.append(write_spdx(combined_paths_and_files[i], output_extension, scan_item, _PKG_NAME,
-                                                pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
+                                              pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
                 else:
                     logger.error('Windows not support spdx format.')
             else:

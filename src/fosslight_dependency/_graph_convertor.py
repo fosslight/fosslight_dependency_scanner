@@ -8,24 +8,23 @@ import matplotlib.pyplot as plt
 
 
 class GraphConvertor:
-    def __init__(self, package_list: Optional[list] = None):
+    def __init__(self, dep_items: Optional[list] = None):
         self._verticies = {}
         self._edges = []
-        if package_list:
-            self.init_list(package_list)
+        if dep_items:
+            self.init_list(dep_items)
 
-    def init_list(self, package_list: list):
+    def init_list(self, dep_items: list):
         """
-        Initialize package_list to self._verticies and self._edges
+        Initialize dep_items to self._verticies and self._edges
 
         Args:
-            package_list (list): List containing package information
+            dep_items : List containing package information
         """
         depend_on_package_dict = {}
-        for idx, package_info in enumerate(package_list):
-            package_name = package_info[0]
-            depend_on_packages_str = package_info[-1]
-            depend_on_packages = list(map((lambda x: x.strip()), depend_on_packages_str.split(",")))
+        for idx, file_item in enumerate(dep_items):
+            package_name = file_item.purl
+            depend_on_packages = file_item.depends_on
             self._verticies[package_name] = idx
             depend_on_package_dict[package_name] = depend_on_packages
         else:
