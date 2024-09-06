@@ -12,6 +12,8 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 node_modules = 'node_modules'
@@ -148,25 +150,25 @@ class Npm(PackageManager):
         with open(f_name, 'r', encoding='utf8') as json_file:
             json_data = json.load(json_file)
 
-        sheet_list = []
-        comment = ''
         _licenses = 'licenses'
         _repository = 'repository'
         _private = 'private'
 
         keys = [key for key in json_data]
-
+        purl_dict = {}
         for i in range(0, len(keys)):
+            dep_item = DependencyItem()
+            oss_item = OssItem()
             d = json_data.get(keys[i - 1])
             oss_init_name = d['name']
-            oss_name = self.package_manager_name + ":" + oss_init_name
+            oss_item.name = self.package_manager_name + ":" + oss_init_name
 
             if d[_licenses]:
                 license_name = d[_licenses]
             else:
                 license_name = ''
 
-            oss_version = d['version']
+            oss_item.version = d['version']
             package_path = d['path']
 
             private_pkg = False
@@ -174,45 +176,48 @@ class Npm(PackageManager):
                 if d[_private]:
                     private_pkg = True
 
-            homepage = self.dn_url + oss_init_name
-            dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_version}"
-            purl = get_url_to_purl(dn_loc, self.package_manager_name)
-            self.purl_dict[f'{oss_init_name}({oss_version})'] = purl
+            oss_item.homepage = self.dn_url + oss_init_name
+            dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
+            dep_item.purl = get_url_to_purl(dn_loc, self.package_manager_name)
+            purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
             if d[_repository]:
                 dn_loc = d[_repository]
             elif private_pkg:
                 dn_loc = ''
 
-            comment_list = []
-            deps_list = []
-            if private_pkg:
-                homepage = dn_loc
-                comment_list.append('private')
-            if self.package_name == f'{oss_init_name}({oss_version})':
-                comment_list.append('root package')
-            elif self.direct_dep and len(self.relation_tree) > 0:
-                if f'{oss_init_name}({oss_version})' in self.relation_tree[self.package_name]:
-                    comment_list.append('direct')
-                else:
-                    comment_list.append('transitive')
+            oss_item.download_location = dn_loc
 
-                if f'{oss_init_name}({oss_version})' in self.relation_tree:
-                    deps_list.extend(self.relation_tree[f'{oss_init_name}({oss_version})'])
+            if private_pkg:
+                oss_item.homepage = oss_item.download_location
+                oss_item.comment = 'private'
+            if self.package_name == f'{oss_init_name}({oss_item.version})':
+                oss_item.comment = 'root package'
+            elif self.direct_dep and len(self.relation_tree) > 0:
+                if f'{oss_init_name}({oss_item.version})' in self.relation_tree[self.package_name]:
+                    oss_item.comment = 'direct'
+                else:
+                    oss_item.comment = 'transitive'
+
+                if f'{oss_init_name}({oss_item.version})' in self.relation_tree:
+                    dep_item.depends_on_raw = self.relation_tree[f'{oss_init_name}({oss_item.version})']
 
             manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
             multi_license, license_comment, multi_flag = check_multi_license(license_name, manifest_file_path)
 
-            comment = ','.join(comment_list)
             if multi_flag:
-                comment = f'{comment}, {license_comment}'
+                oss_item.comment = license_comment
                 license_name = multi_license
             else:
                 license_name = license_name.replace(",", "")
                 license_name = check_unknown_license(license_name, manifest_file_path)
-            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps_list])
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+            oss_item.license = license_name
+
+            dep_item.oss_items.append(oss_item)
+            self.dep_items.append(dep_item)
+
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+        return
 
 
 def check_multi_license(license_name, manifest_file_path):

@@ -11,6 +11,8 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -36,7 +38,6 @@ class Cocoapods(PackageManager):
 
         spec_repo_list = []
         external_source_list = []
-        comment = ''
 
         if _spec_repos in podfile_yaml:
             for spec_item_key in podfile_yaml[_spec_repos]:
@@ -81,26 +82,26 @@ class Cocoapods(PackageManager):
                 if rel_key in self.relation_tree:
                     self.relation_tree[rel_key] = []
 
-        sheet_list = []
+        purl_dict = {}
         for pod_oss_name_origin, pod_oss_version in pod_item_list.items():
+            dep_item = DependencyItem()
+            oss_item = OssItem()
             try:
-                comment_list = []
-                deps_list = []
                 if self.direct_dep and (len(self.direct_dep_list) > 0):
                     if pod_oss_name_origin in self.direct_dep_list:
-                        comment_list.append('direct')
+                        oss_item.comment = 'direct'
                     else:
-                        comment_list.append('transitive')
-                    if f'{pod_oss_name_origin}({oss_version})' in self.relation_tree:
-                        deps_list.extend(self.relation_tree[f'{pod_oss_name_origin}({oss_version})'])
-                comment = ','.join(comment_list)
+                        oss_item.comment = 'transitive'
+                    if f'{pod_oss_name_origin}({pod_oss_version})' in self.relation_tree:
+                        dep_item.depends_on_raw = self.relation_tree[f'{pod_oss_name_origin}({pod_oss_version})']
 
-                oss_name_report = f'{self.package_manager_name}:{pod_oss_name_origin}'
+                oss_item.name = f'{self.package_manager_name}:{pod_oss_name_origin}'
                 pod_oss_name = pod_oss_name_origin
+                oss_item.version = pod_oss_version
                 if '/' in pod_oss_name_origin:
                     pod_oss_name = pod_oss_name_origin.split('/')[0]
                 if pod_oss_name in external_source_list:
-                    oss_name_report = pod_oss_name_origin
+                    oss_item.name = pod_oss_name_origin
                     podspec_filename = pod_oss_name + '.podspec.json'
                     spec_file_path = os.path.join("Pods", "Local Podspecs", podspec_filename)
                 else:
@@ -122,24 +123,27 @@ class Cocoapods(PackageManager):
                         file_path_without_version = os.path.join(os.sep, *file_path[:-2])
                     else:
                         file_path_without_version = os.path.join(*file_path[:-2])
-                    spec_file_path = os.path.join(file_path_without_version, pod_oss_version, file_path[-1])
+                    spec_file_path = os.path.join(file_path_without_version, oss_item.version, file_path[-1])
 
-                oss_name, oss_version, license_name, dn_loc, homepage = self.get_oss_in_podspec(spec_file_path)
-                purl = get_url_to_purl(homepage, self.package_manager_name, pod_oss_name_origin, oss_version)
-                self.purl_dict[f'{pod_oss_name_origin}({oss_version})'] = purl
+                oss_name, oss_version, oss_item.license, oss_item.download_location, \
+                    oss_item.homepage = self.get_oss_in_podspec(spec_file_path)
+                dep_item.purl = get_url_to_purl(oss_item.homepage, self.package_manager_name, pod_oss_name_origin, oss_version)
+                purl_dict[f'{pod_oss_name_origin}({oss_version})'] = dep_item.purl
                 if pod_oss_name in external_source_list:
-                    homepage = ''
+                    oss_item.homepage = ''
                 if oss_name == '':
                     continue
-                if pod_oss_version != oss_version:
-                    logger.warning(f'{pod_oss_name_origin} has different version({pod_oss_version})\
+                if oss_item.version != oss_version:
+                    logger.warning(f'{pod_oss_name_origin} has different version({oss_item.version})\
                                    with spec version({oss_version})')
-                sheet_list.append([purl, oss_name_report, pod_oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, deps_list])
+                dep_item.oss_items.append(oss_item)
+                self.dep_items.append(dep_item)
             except Exception as e:
                 logger.warning(f"Fail to get {pod_oss_name_origin}:{e}")
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+
+        return
 
     def get_oss_in_podspec(self, spec_file_path):
         oss_name = ''

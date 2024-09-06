@@ -49,8 +49,8 @@ class PackageManager:
         self.manifest_file_name = []
         self.relation_tree = {}
         self.package_name = ''
-        self.purl_dict = {}
         self.cover_comment = ''
+        self.dep_items = []
 
         self.platform = platform.system()
         self.license_scanner_bin = check_license_scanner(self.platform)
@@ -67,6 +67,7 @@ class PackageManager:
         self.manifest_file_name = []
         self.relation_tree = {}
         self.package_name = ''
+        self.dep_items = []
 
     def run_plugin(self):
         ret = True
@@ -256,18 +257,6 @@ class PackageManager:
                     self.relation_tree[stack[-1]].append(name)
         except Exception as e:
             logger.warning(f'Fail to parse gradle dependency tree:{e}')
-
-    def change_dep_to_purl(self, sheet_list):
-        for oss_item in sheet_list:
-            try:
-                if len(oss_item) < 10:
-                    break
-                deps_list = oss_item[9]
-                deps_purl = list(filter(None, map(lambda x: self.purl_dict.get(x, ''), deps_list)))
-                oss_item[9] = ','.join(deps_purl)
-            except Exception as e:
-                logger.warning(f'Fail to change depend_on to purl:{e}')
-        return sheet_list
 
 
 def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):

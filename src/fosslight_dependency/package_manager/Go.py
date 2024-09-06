@@ -14,6 +14,8 @@ import shutil
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -78,7 +80,7 @@ class Go(PackageManager):
 
     def parse_oss_information(self, f_name):
         indirect = 'Indirect'
-        sheet_list = []
+        purl_dict = {}
         json_list = []
         with open(f_name, 'r', encoding='utf8') as input_fp:
             json_data_raw = ''
@@ -88,52 +90,51 @@ class Go(PackageManager):
                     json_list.append(json.loads(json_data_raw))
                     json_data_raw = ''
 
-        for dep_item in json_list:
+        for dep_i in json_list:
+            dep_item = DependencyItem()
+            oss_item = OssItem()
             try:
-                if 'Main' in dep_item:
-                    if dep_item['Main']:
+                if 'Main' in dep_i:
+                    if dep_i['Main']:
                         continue
-                package_path = dep_item['Path']
-                oss_name = f"{self.package_manager_name}:{package_path}"
-                oss_origin_version = dep_item['Version']
+                package_path = dep_i['Path']
+                oss_item.name = f"{self.package_manager_name}:{package_path}"
+                oss_origin_version = dep_i['Version']
                 if oss_origin_version.startswith('v'):
-                    oss_version = oss_origin_version[1:]
+                    oss_item.version = oss_origin_version[1:]
+                else:
+                    oss_item.version = oss_origin_version
 
-                comment_list = []
-                deps_list = []
                 if self.direct_dep:
-                    if indirect in dep_item:
-                        if dep_item[indirect]:
-                            comment_list.append('transitive')
+                    if indirect in dep_i:
+                        if dep_i[indirect]:
+                            oss_item.comment = 'transitive'
                         else:
-                            comment_list.append('direct')
+                            oss_item.comment = 'direct'
                     else:
-                        comment_list.append('direct')
+                        oss_item.comment = 'direct'
 
-                if f'{package_path}({oss_version})' in self.relation_tree:
-                    deps_list.extend(self.relation_tree[f'{package_path}({oss_version})'])
+                if f'{package_path}({oss_item.version})' in self.relation_tree:
+                    dep_item.depends_on_raw = self.relation_tree[f'{package_path}({oss_item.version})']
 
                 homepage_set = []
-                homepage = self.dn_url + package_path
-                purl = get_url_to_purl(f"{homepage}@{oss_version}", self.package_manager_name)
-                self.purl_dict[f'{package_path}({oss_version})'] = purl
+                oss_item.homepage = self.dn_url + package_path
+                dep_item.purl = get_url_to_purl(f"{oss_item.homepage}@{oss_item.version}", self.package_manager_name)
+                purl_dict[f'{package_path}({oss_item.version})'] = dep_item.purl
 
                 if oss_origin_version:
-                    tmp_homepage = f"{homepage}@{oss_origin_version}"
+                    tmp_homepage = f"{oss_item.homepage}@{oss_origin_version}"
                     homepage_set.append(tmp_homepage)
-                homepage_set.append(homepage)
-
-                license_name = ''
-                dn_loc = ''
+                homepage_set.append(oss_item.homepage)
 
                 for homepage_i in homepage_set:
                     try:
                         res = urllib.request.urlopen(homepage_i)
                         if res.getcode() == 200:
                             urlopen_success = True
-                            if homepage_i == homepage:
-                                if oss_version:
-                                    comment_list.append(f'Cannot connect {tmp_homepage}, get info from the latest version.')
+                            if homepage_i == oss_item.homepage:
+                                if oss_item.version:
+                                    oss_item.comment = f'Cannot connect {tmp_homepage}, get info from the latest version.'
                             break
                     except Exception:
                         continue
@@ -144,20 +145,19 @@ class Go(PackageManager):
 
                     license_data = bs_obj.find('a', {'data-test-id': 'UnitHeader-license'})
                     if license_data:
-                        license_name = license_data.text
+                        oss_item.license = license_data.text
 
                     repository_data = bs_obj.find('div', {'class': 'UnitMeta-repo'})
                     if repository_data:
-                        dn_loc = repository_data.find('a')['href']
+                        oss_item.download_location = repository_data.find('a')['href']
                     else:
-                        dn_loc = homepage
+                        oss_item.download_location = oss_item.homepage
 
             except Exception as e:
                 logging.warning(f"Fail to parse {package_path} in go mod : {e}")
                 continue
-
-            comment = ','.join(comment_list)
-            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps_list])
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+            dep_item.oss_items.append(oss_item)
+            self.dep_items.append(dep_item)
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+        return

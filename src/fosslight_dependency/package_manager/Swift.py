@@ -12,6 +12,8 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import connect_github, get_github_license
 from fosslight_dependency._package_manager import get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -96,8 +98,8 @@ class Swift(PackageManager):
         return ret
 
     def parse_oss_information(self, f_name):
-        sheet_list = []
         json_ver = 1
+        purl_dict = {}
 
         with open(f_name, 'r', encoding='utf8') as json_file:
             json_raw = json.load(json_file)
@@ -109,47 +111,48 @@ class Swift(PackageManager):
                 json_data = json_raw["pins"]
             else:
                 logger.error(f'Not supported Package.resolved version {json_ver}')
-                return sheet_list
+                return
 
         g = connect_github(self.github_token)
 
         for key in json_data:
+            dep_item = DependencyItem()
+            oss_item = OssItem()
             if json_ver == 1:
                 oss_origin_name = key['package']
-                homepage = key['repositoryURL']
+                oss_item.homepage = key['repositoryURL']
             elif json_ver == 2:
                 oss_origin_name = key['identity']
-                homepage = key['location']
+                oss_item.homepage = key['location']
 
-            if homepage.endswith('.git'):
-                homepage = homepage[:-4]
+            if oss_item.homepage.endswith('.git'):
+                oss_item.homepage = oss_item.homepage[:-4]
 
-            oss_name = f"{self.package_manager_name}:{oss_origin_name}"
+            oss_item.name = f"{self.package_manager_name}:{oss_origin_name}"
 
-            oss_version = key['state'].get('version', None)
-            if oss_version is None:
-                oss_version = key['state'].get('revision', None)
+            oss_item.version = key['state'].get('version', None)
+            if oss_item.version is None:
+                oss_item.version = key['state'].get('revision', None)
 
-            dn_loc = homepage
-            license_name = ''
+            oss_item.download_location = oss_item.homepage
 
-            github_repo = "/".join(homepage.split('/')[-2:])
-            purl = get_url_to_purl(dn_loc, self.package_manager_name, github_repo, oss_version)
-            self.purl_dict[f'{oss_origin_name}({oss_version})'] = purl
-            license_name = get_github_license(g, github_repo, self.platform, self.license_scanner_bin)
+            github_repo = "/".join(oss_item.homepage.split('/')[-2:])
+            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name, github_repo, oss_item.version)
+            purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
+            oss_item.license = get_github_license(g, github_repo, self.platform, self.license_scanner_bin)
 
-            comment_list = []
-            deps_list = []
             if self.direct_dep and len(self.direct_dep_list) > 0:
                 if oss_origin_name in self.direct_dep_list:
-                    comment_list.append('direct')
+                    oss_item.comment = 'direct'
                 else:
-                    comment_list.append('transitive')
+                    oss_item.comment = 'transitive'
+                if f'{oss_origin_name}({oss_item.version})' in self.relation_tree:
+                    dep_item.depends_on_raw = self.relation_tree[f'{oss_origin_name}({oss_item.version})']
 
-                if f'{oss_origin_name}({oss_version})' in self.relation_tree:
-                    deps_list.extend(self.relation_tree[f'{oss_origin_name}({oss_version})'])
-            comment = ','.join(comment_list)
-            sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                              '', '', comment, deps_list])
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+            dep_item.oss_items.append(oss_item)
+            self.dep_items.append(dep_item)
+
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+
+        return

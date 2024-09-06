@@ -28,7 +28,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
                        output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=[],
                        direct=True):
     ret = True
-    package_sheet_list = []
+    package_dep_item_list = []
     cover_comment = ''
 
     if package_manager_name == const.PYPI:
@@ -60,7 +60,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     else:
         logger.error(f"Not supported package manager name: {package_manager_name}")
         ret = False
-        return ret, package_sheet_list
+        return ret, package_dep_item_list
 
     if manifest_file_name:
         package_manager.set_manifest_file(manifest_file_name)
@@ -76,7 +76,8 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
             logger.info(f"Parse oss information with file: {f_name}")
 
             if os.path.isfile(f_name):
-                package_sheet_list.extend(package_manager.parse_oss_information(f_name))
+                package_manager.parse_oss_information(f_name)
+                package_dep_item_list.extend(package_manager.dep_items)
             else:
                 logger.error(f"Failed to open input file: {f_name}")
                 ret = False
@@ -90,4 +91,4 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     del package_manager
 
-    return ret, package_sheet_list, cover_comment
+    return ret, package_dep_item_list, cover_comment

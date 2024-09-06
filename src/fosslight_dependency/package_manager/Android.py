@@ -8,6 +8,8 @@ import logging
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -40,43 +42,41 @@ class Android(PackageManager):
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
-            sheet_list = []
-
+            purl_dict = {}
             for i, line in enumerate(input_fp.readlines()):
-                comment = ''
+                dep_item = DependencyItem()
+                oss_item = OssItem()
                 split_str = line.strip().split("\t")
                 if i < 2:
                     continue
 
-                if len(split_str) == 9:
-                    idx, manifest_file, oss_name, oss_version, license_name, dn_loc, homepage, NA, NA = split_str
-                elif len(split_str) == 7:
-                    idx, manifest_file, oss_name, oss_version, license_name, dn_loc, homepage = split_str
+                if len(split_str) == 9 or len(split_str) == 7:
+                    _, _, oss_item.name, oss_item.version, oss_item.license, \
+                        oss_item.download_location, oss_item.homepage = split_str[:7]
                 else:
                     continue
-                purl = get_url_to_purl(dn_loc, 'maven')
-                self.purl_dict[f'{oss_name}({oss_version})'] = purl
+                dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
+                purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
 
-                comment_list = []
-                deps_list = []
                 if self.direct_dep:
-                    dep_key = f"{oss_name}({oss_version})"
+                    dep_key = f"{oss_item.name}({oss_item.version})"
                     if self.total_dep_list:
                         if dep_key not in self.total_dep_list:
                             continue
                     if dep_key in self.direct_dep_list:
-                        comment_list.append('direct')
+                        oss_item.comment = 'direct'
                     else:
-                        comment_list.append('transitive')
+                        oss_item.comment = 'transitive'
                     try:
                         if dep_key in self.relation_tree:
-                            deps_list.extend(self.relation_tree[dep_key])
+                            dep_item.depends_on_raw = self.relation_tree[dep_key]
                     except Exception as e:
                         logger.error(f"Fail to find oss scope in dependency tree: {e}")
-                comment = ','.join(comment_list)
 
-                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, deps_list])
-            sheet_list = self.change_dep_to_purl(sheet_list)
+                dep_item.oss_items.append(oss_item)
+                self.dep_items.append(dep_item)
 
-        return sheet_list
+            if self.direct_dep:
+                self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+
+        return

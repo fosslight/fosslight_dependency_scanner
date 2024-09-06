@@ -20,7 +20,7 @@ from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_formats, write_output_file
 if platform.system() != 'Windows':
     from fosslight_util.write_spdx import write_spdx
-from fosslight_util.cover import CoverItem
+from fosslight_util.oss_item import ScannerItem
 from fosslight_dependency._graph_convertor import GraphConvertor
 
 # Package Name
@@ -98,10 +98,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     global logger
 
     ret = True
-    sheet_list = {}
-    sheet_list[_sheet_name] = []
     _json_ext = ".json"
     _start_time = datetime.now().strftime('%y%m%d_%H%M')
+    scan_item = ScannerItem(_PKG_NAME, _start_time)
 
     success, msg, output_path, output_files, output_extensions = check_output_formats(output_dir_file, formats, CUSTOMIZED_FORMAT)
     if success:
@@ -151,7 +150,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     if not success:
         logger.error(msg)
-        return False, sheet_list
+        return False, scan_item
 
     autodetect = True
     if package_manager:
@@ -162,7 +161,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             logger.error(f"You entered the unsupported package manager({package_manager}).")
             logger.error("Please enter the supported package manager({0}) with '-m' option."
                          .format(", ".join(support_packagemanager)))
-            return False, sheet_list
+            return False, scan_item
 
     if input_dir:
         if os.path.isdir(input_dir):
@@ -171,10 +170,11 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         else:
             logger.error(f"You entered the wrong input path({input_dir}) to run the script.")
             logger.error("Please enter the existed input path with '-p' option.")
-            return False, sheet_list
+            return False, scan_item
     else:
         input_dir = os.getcwd()
         os.chdir(input_dir)
+    scan_item.set_cover_pathinfo(input_dir, path_to_exclude)
 
     found_package_manager = {}
     if autodetect:
@@ -198,13 +198,13 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     for pm, manifest_file_name in found_package_manager.items():
         if manifest_file_name == pass_key:
             continue
-        ret, package_sheet_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
-                                                                    pip_activate_cmd, pip_deactivate_cmd,
-                                                                    output_custom_dir, app_name, github_token,
-                                                                    manifest_file_name, direct)
+        ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
+                                                                       pip_activate_cmd, pip_deactivate_cmd,
+                                                                       output_custom_dir, app_name, github_token,
+                                                                       manifest_file_name, direct)
         if ret:
             success_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
-            sheet_list[_sheet_name].extend(package_sheet_list)
+            scan_item.append_file_items(package_dep_item_list)
             if pm == const.GRADLE:
                 if const.ANDROID in found_package_manager.keys():
                     found_package_manager[const.ANDROID] = pass_key
@@ -217,32 +217,27 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                         fail_pm.remove(f"{const.GRADLE} ({', '.join(manifest_file_name)})")
         else:
             fail_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
-    cover = CoverItem(tool_name=_PKG_NAME,
-                      start_time=_start_time,
-                      input_path=input_dir,
-                      exclude_path=path_to_exclude)
-    cover_comment_arr = []
+
     if len(found_package_manager.keys()) > 0:
         if len(success_pm) > 0:
-            cover_comment_arr.append(f"Analyzed Package manager: {', '.join(success_pm)}")
+            scan_item.set_cover_comment(f"Analyzed Package manager: {', '.join(success_pm)}")
         if len(fail_pm) > 0:
             info_msg = 'Check https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
-            cover_comment_arr.append(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
+            scan_item.set_cover_comment(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
     else:
-        cover_comment_arr.append("No Package manager detected.")
-
-    cover.comment = ' / '.join(cover_comment_arr)
-    if cover_comment:
-        cover.comment += f', {cover_comment}'
+        scan_item.set_cover_comment("No Package manager detected.")
 
     if ret and graph_path:
         graph_path = os.path.abspath(graph_path)
         try:
-            converter = GraphConvertor(sheet_list[_sheet_name])
+            converter = GraphConvertor(scan_item.file_items[_PKG_NAME])
             converter.save(graph_path, graph_size)
             logger.info(f"Output graph image file: {graph_path}")
         except Exception as e:
             logger.error(f'Fail to make graph image: {e}')
+
+    if cover_comment:
+        scan_item.set_cover_comment(cover_comment)
 
     combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
     results = []
@@ -250,30 +245,28 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         if formats:
             if formats[i].startswith('spdx'):
                 if platform.system() != 'Windows':
-                    results.append(write_spdx(combined_paths_and_files[i], output_extension, sheet_list, _PKG_NAME,
+                    results.append(write_spdx(combined_paths_and_files[i], output_extension, scan_item, _PKG_NAME,
                                               pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
                 else:
                     logger.error('Windows not support spdx format.')
             else:
-                results.append(write_output_file(combined_paths_and_files[i], output_extension, sheet_list, EXTENDED_HEADER,
-                                                 '', cover))
+                results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
         else:
-            results.append(write_output_file(combined_paths_and_files[i], output_extension, sheet_list, EXTENDED_HEADER,
-                                             '', cover))
+            results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
     for success_write, err_msg, result_file in results:
         if success_write:
             if result_file:
                 logger.info(f"Output file: {result_file}")
             else:
                 logger.warning(f"{err_msg}")
-            for i in cover_comment_arr:
-                logger.info(i.strip())
+            for i in scan_item.get_cover_comment():
+                logger.info(i)
         else:
             ret = False
             logger.error(f"Fail to generate result file. msg:({err_msg})")
 
     logger.warning("### FINISH ###")
-    return ret, sheet_list
+    return ret, scan_item
 
 
 def main():

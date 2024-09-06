@@ -14,6 +14,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -279,23 +281,24 @@ class Pypi(PackageManager):
         return ret
 
     def parse_oss_information(self, f_name):
-        sheet_list = []
-        comment = ''
+        purl_dict = {}
         try:
             oss_init_name = ''
             with open(f_name, 'r', encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
 
             for d in json_data:
+                dep_item = DependencyItem()
+                oss_item = OssItem()
                 oss_init_name = d['Name']
                 oss_init_name = re.sub(r"[-_.]+", "-", oss_init_name).lower()
-                oss_name = f"{self.package_manager_name}:{oss_init_name}"
+                oss_item.name = f"{self.package_manager_name}:{oss_init_name}"
                 license_name = check_UNKNOWN(d['License'])
-                homepage = check_UNKNOWN(d['URL'])
-                oss_version = d['Version']
-                dn_loc = f"{self.dn_url}{oss_init_name}/{oss_version}"
-                purl = get_url_to_purl(dn_loc, self.package_manager_name)
-                self.purl_dict[f'{oss_init_name}({oss_version})'] = purl
+                oss_item.homepage = check_UNKNOWN(d['URL'])
+                oss_item.version = d['Version']
+                oss_item.download_location = f"{self.dn_url}{oss_init_name}/{oss_item.version}"
+                dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+                purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
                 if license_name is not None:
                     license_name = license_name.replace(';', ',')
                 else:
@@ -305,26 +308,26 @@ class Pypi(PackageManager):
                                                                                   license_file_dir)
                     if license_name_with_lic_scanner != "":
                         license_name = license_name_with_lic_scanner
+                oss_item.license = license_name
 
-                comment_list = []
-                deps_list = []
                 if oss_init_name == self.package_name:
-                    comment_list.append('root package')
+                    oss_item.comment = 'root package'
                 elif self.direct_dep and len(self.direct_dep_list) > 0:
-                    if f'{oss_init_name}({oss_version})' in self.direct_dep_list:
-                        comment_list.append('direct')
+                    if f'{oss_init_name}({oss_item.version})' in self.direct_dep_list:
+                        oss_item.comment = 'direct'
                     else:
-                        comment_list.append('transitive')
-                    if f'{oss_init_name}({oss_version})' in self.relation_tree:
-                        deps_list.extend(self.relation_tree[f'{oss_init_name}({oss_version})'])
-                comment = ','.join(comment_list)
-                sheet_list.append([purl, oss_name, oss_version,
-                                   license_name, dn_loc, homepage, '', '', comment, deps_list])
+                        oss_item.comment = 'transitive'
+                    if f'{oss_init_name}({oss_item.version})' in self.relation_tree:
+                        dep_item.depends_on_raw = self.relation_tree[f'{oss_init_name}({oss_item.version})']
+
+                dep_item.oss_items.append(oss_item)
+                self.dep_items.append(dep_item)
 
         except Exception as ex:
             logger.warning(f"Fail to parse oss information: {oss_init_name}({ex})")
-        sheet_list = self.change_dep_to_purl(sheet_list)
-        return sheet_list
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+        return
 
     def get_dependencies(self, dependencies, package):
         package_name = 'package_name'

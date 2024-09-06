@@ -14,6 +14,8 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
@@ -104,28 +106,29 @@ class Pub(PackageManager):
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
         json_data = ''
-        comment = ''
 
         with open(f_name, 'r', encoding='utf8') as pub_file:
             json_f = json.load(pub_file)
 
         try:
-            sheet_list = []
+            purl_dict = {}
 
             for json_data in json_f:
+                dep_item = DependencyItem()
+                oss_item = OssItem()
                 oss_origin_name = json_data['name']
                 if oss_origin_name not in self.total_dep_list:
                     continue
-                oss_name = f"{self.package_manager_name}:{oss_origin_name}"
-                oss_version = json_data['version']
-                homepage = json_data['homepage']
-                if homepage is None:
-                    homepage = json_data['repository']
-                if homepage is None:
-                    homepage = ''
-                dn_loc = f"{self.dn_url}{oss_origin_name}/versions/{oss_version}"
-                purl = get_url_to_purl(dn_loc, self.package_manager_name)
-                self.purl_dict[f'{oss_origin_name}({oss_version})'] = purl
+                oss_item.name = f"{self.package_manager_name}:{oss_origin_name}"
+                oss_item.version = json_data['version']
+                oss_item.homepage = json_data['homepage']
+                if oss_item.homepage is None:
+                    oss_item.homepage = json_data['repository']
+                if oss_item.homepage is None:
+                    oss_item.homepage = ''
+                oss_item.download_location = f"{self.dn_url}{oss_origin_name}/versions/{oss_item.version}"
+                dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+                purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
                 license_txt = json_data['license']
 
                 tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
@@ -137,36 +140,33 @@ class Pub(PackageManager):
                                                                                   tmp_license_txt_file_name)
 
                 if license_name_with_license_scanner != "":
-                    license_name = license_name_with_license_scanner
-                else:
-                    license_name = ''
+                    oss_item.license = license_name_with_license_scanner
 
-                comment_list = []
-                deps_list = []
                 if self.direct_dep:
                     if oss_origin_name not in self.total_dep_list:
                         continue
-                    if self.package_name == f'{oss_origin_name}({oss_version})':
-                        comment_list.append('root package')
+                    if self.package_name == f'{oss_origin_name}({oss_item.version})':
+                        oss_item.comment = 'root package'
                     else:
                         if json_data['isDirectDependency']:
-                            comment_list.append('direct')
+                            oss_item.comment = 'direct'
                         else:
-                            comment_list.append('transitive')
+                            oss_item.comment = 'transitive'
 
-                    if f'{oss_origin_name}({oss_version})' in self.relation_tree:
-                        deps_list.extend(self.relation_tree[f'{oss_origin_name}({oss_version})'])
-                comment = ','.join(comment_list)
-                sheet_list.append([purl, oss_name, oss_version, license_name, dn_loc, homepage,
-                                  '', '', comment, deps_list])
+                    if f'{oss_origin_name}({oss_item.version})' in self.relation_tree:
+                        dep_item.depends_on_raw = self.relation_tree[f'{oss_origin_name}({oss_item.version})']
+
+                dep_item.oss_items.append(oss_item)
+                self.dep_items.append(dep_item)
         except Exception as e:
             logger.error(f"Fail to parse pub oss information: {e}")
-        sheet_list = self.change_dep_to_purl(sheet_list)
+        if self.direct_dep:
+            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
 
         if os.path.isfile(tmp_license_txt_file_name):
             os.remove(tmp_license_txt_file_name)
 
-        return sheet_list
+        return
 
     def parse_no_dev_command_file(self, pub_deps):
         for line in pub_deps.split('\n'):
