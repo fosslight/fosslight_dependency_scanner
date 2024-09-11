@@ -1,7 +1,6 @@
 flake8==3.9.2
 pyinstaller
-tox
-tox-wheel
+tox>=4.18.1
 pytest
 pytest-cov
 pytest-flake8
