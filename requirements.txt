@@ -11,3 +11,4 @@ defusedxml
 packageurl-python
 igraph
 matplotlib
+pytest

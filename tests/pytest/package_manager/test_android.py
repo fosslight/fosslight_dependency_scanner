@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
-import os.path
+import os
+import pytest
 
 UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_android -o tests/result/android -m android"
@@ -15,12 +16,14 @@ OUTPUT_PATH = os.path.join("tests", "result", "android")
 WINDOW_COMMANDS = [f"{DIST_PATH} -p {INPUT_PATH} -o {OUTPUT_PATH}"]
 
 
+@pytest.mark.ubuntu
 def test_ubuntu(run_command):
     for command in UBUNTU_COMMANDS:
         return_code, stdout, stderr = run_command(command)
         assert return_code == 0, f"Command failed: {command}\nstdout: {stdout}\nstderr: {stderr}"
 
 
+@pytest.mark.windows
 def test_windows(run_command):
     for command in WINDOW_COMMANDS:
         return_code, stdout, stderr = run_command(command)
