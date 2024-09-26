@@ -2,14 +2,17 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
+import os.path
 
 UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_android -o tests/result/android -m android"
 ]
 
-WINDOW_COMMANDS = [
-    "\dist\cli.exe -p tests\test_maven2 -o tests\result\maven2 -m maven"
-]
+DIST_PATH = os.path.join(os.path.abspath(os.sep), "dist", "cli.exe")
+INPUT_PATH = os.path.join("tests", "test_android", "sunflower")
+OUTPUT_PATH = os.path.join("tests", "result", "android")
+
+WINDOW_COMMANDS = [f"{DIST_PATH} -p {INPUT_PATH} -o {OUTPUT_PATH}"]
 
 
 def test_ubuntu(run_command):
@@ -18,7 +21,7 @@ def test_ubuntu(run_command):
         assert return_code == 0, f"Command failed: {command}\nstdout: {stdout}\nstderr: {stderr}"
 
 
-def test_window(run_command):
+def test_windows(run_command):
     for command in WINDOW_COMMANDS:
         return_code, stdout, stderr = run_command(command)
         assert return_code == 0, f"Command failed: {command}\nstdout: {stdout}\nstderr: {stderr}"
