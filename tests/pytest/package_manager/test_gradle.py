@@ -9,7 +9,7 @@ UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_gradle2 -o tests/result/gradle2"
 ]
 
-DIST_PATH = os.path.join(os.path.abspath(os.sep), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
 INPUT_PATH = os.path.join("tests", "test_gradle", "jib")
 OUTPUT_PATH = os.path.join("tests", "result", "gradle")
 INPUT_PATH2 = os.path.join("tests", "test_gradle2")
@@ -19,6 +19,7 @@ WINDOW_COMMANDS = [
     f"{DIST_PATH} -p {INPUT_PATH} -o {OUTPUT_PATH} -m gradle",
     f"{DIST_PATH} -p {INPUT_PATH2} -o {OUTPUT_PATH2} -m gradle",
 ]
+
 
 def test_ubuntu(run_command):
     for command in UBUNTU_COMMANDS:

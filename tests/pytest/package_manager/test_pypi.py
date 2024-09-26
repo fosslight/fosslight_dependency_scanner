@@ -10,7 +10,7 @@ UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_multi_pypi_npm -o tests/result/multi_pypi_npm -f opossum"
 ]
 
-DIST_PATH = os.path.join(os.path.abspath(os.sep), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
 INPUT_PATH = os.path.join("tests", "test_pypi")
 OUTPUT_PATH = os.path.join("tests", "result", "pypi")
 

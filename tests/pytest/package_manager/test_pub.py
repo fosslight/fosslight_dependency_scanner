@@ -9,7 +9,7 @@ UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_exclude -e requirements.txt -o tests/result/exclude"
 ]
 
-DIST_PATH = os.path.join(os.path.abspath(os.sep), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
 INPUT_PATH = os.path.join("tests", "test_pub")
 OUTPUT_PATH = os.path.join("tests", "result", "pub")
 INPUT_PATH2 = os.path.join("tests", "test_exclude")

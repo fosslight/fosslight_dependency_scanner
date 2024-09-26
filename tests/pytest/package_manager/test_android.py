@@ -8,7 +8,7 @@ UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_android -o tests/result/android -m android"
 ]
 
-DIST_PATH = os.path.join(os.path.abspath(os.sep), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
 INPUT_PATH = os.path.join("tests", "test_android", "sunflower")
 OUTPUT_PATH = os.path.join("tests", "result", "android")
 

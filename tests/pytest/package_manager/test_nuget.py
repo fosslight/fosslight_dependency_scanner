@@ -9,7 +9,7 @@ UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_nuget2 -o tests/result/nuget2"
 ]
 
-DIST_PATH = os.path.join(os.path.abspath(os.sep), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
 INPUT_PATH = os.path.join("tests", "test_nuget")
 OUTPUT_PATH = os.path.join("tests", "result", "nuget1")
 INPUT_PATH2 = os.path.join("tests", "test_nuget2")
