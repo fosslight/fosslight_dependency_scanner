@@ -21,7 +21,7 @@ set_up_directories = [
     "tests/result/nuget1",
     "tests/result/nuget2",
     "tests/result/pub",
-    "tests/result/pypi",
+    "tests/result/pypi"
 ]
 
 remove_directories = set_up_directories
