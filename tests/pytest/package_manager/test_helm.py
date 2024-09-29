@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
+import os
 import pytest
-
-UBUNTU_COMMANDS = [
-    "fosslight_dependency -p tests/test_helm -o tests/result/helm -m helm"
-]
+import subprocess
 
 
+@pytest.mark.parametrize("input_path, output_path, extra_args", [
+    ("tests/test_helm", "tests/result/helm", "-m helm")
+])
 @pytest.mark.ubuntu
-def test_ubuntu(run_command):
-    for command in UBUNTU_COMMANDS:
-        return_code, stdout, stderr = run_command(command)
-        assert return_code == 0, f"Command failed: {command}\nstdout: {stdout}\nstderr: {stderr}"
+def test_ubuntu(input_path, output_path, extra_args):
+    command = f"fosslight_dependency -p {input_path} -o {output_path} {extra_args}"
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"

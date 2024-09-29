@@ -4,28 +4,29 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 import pytest
-
-UBUNTU_COMMANDS = [
-    "fosslight_dependency -p tests/test_maven1/lombok.maven -o tests/result/maven1",
-    "fosslight_dependency -p tests/test_maven2 -o tests/result/maven2"
-]
+import subprocess
 
 DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
-INPUT_PATH = os.path.join("tests", "test_maven2")
-OUTPUT_PATH = os.path.join("tests", "result", "maven2")
-
-WINDOW_COMMANDS = [f"{DIST_PATH} -p {INPUT_PATH} -o {OUTPUT_PATH} -m maven"]
 
 
+@pytest.mark.parametrize("input_path, output_path", [
+    ("tests/test_maven1/lombok.maven", "tests/result/maven1"),
+    ("tests/test_maven2", "tests/result/maven2")
+])
 @pytest.mark.ubuntu
-def test_ubuntu(run_command):
-    for command in UBUNTU_COMMANDS:
-        return_code, stdout, stderr = run_command(command)
-        assert return_code == 0, f"Command failed: {command}\nstdout: {stdout}\nstderr: {stderr}"
+def test_ubuntu(input_path, output_path):
+    command = f"fosslight_dependency -p {input_path} -o {output_path}"
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
 
 
+@pytest.mark.parametrize("input_path, output_path", [
+    (os.path.join("tests", "test_maven2"), os.path.join("tests", "result", "maven2"))
+])
 @pytest.mark.windows
-def test_windows(run_command):
-    for command in WINDOW_COMMANDS:
-        return_code, stdout, stderr = run_command(command)
-        assert return_code == 0, f"Command failed: {command}\nstdout: {stdout}\nstderr: {stderr}"
+def test_windows(input_path, output_path):
+    command = f"{DIST_PATH} -p {input_path} -o {output_path} -m maven"
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
