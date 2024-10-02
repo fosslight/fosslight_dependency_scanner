@@ -17,7 +17,7 @@ DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
 @pytest.mark.ubuntu
 def test_ubuntu(input_path, output_path, extra_args):
     command = f"fosslight_dependency -p {input_path} -o {output_path} {extra_args}"
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
     assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
 
