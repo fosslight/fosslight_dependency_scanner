@@ -1,5 +1,5 @@
 flake8==3.9.2
-pyinstaller
+pyinstaller>=6.10.0
 tox>=4.18.1
 pytest
 pytest-cov
