@@ -240,7 +240,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
     results = []
     for i, output_extension in enumerate(output_extensions):
-        results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER, '', formats[i]))
+        results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item,
+                                         EXTENDED_HEADER, '', formats[i]))
     for success_write, err_msg, result_file in results:
         if success_write:
             if result_file:

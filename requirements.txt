@@ -4,7 +4,7 @@ lxml
 virtualenv
 pyyaml
 lastversion
-fosslight_util>=2.0.1
+fosslight_util>=2.1.0
 PyGithub
 requirements-parser
 defusedxml
