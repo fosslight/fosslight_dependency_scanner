@@ -17,9 +17,7 @@ from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
 from fosslight_dependency._help import print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
-from fosslight_util.output_format import check_output_formats, write_output_file
-if platform.system() != 'Windows':
-    from fosslight_util.write_spdx import write_spdx
+from fosslight_util.output_format import check_output_formats_v2, write_output_file
 from fosslight_util.oss_item import ScannerItem
 from fosslight_dependency._graph_convertor import GraphConvertor
 
@@ -102,7 +100,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     _start_time = datetime.now().strftime('%y%m%d_%H%M')
     scan_item = ScannerItem(_PKG_NAME, _start_time)
 
-    success, msg, output_path, output_files, output_extensions = check_output_formats(output_dir_file, formats, CUSTOMIZED_FORMAT)
+    success, msg, output_path, output_files, output_extensions, formats = check_output_formats_v2(output_dir_file, formats)
     if success:
         if output_path == "":
             output_path = os.getcwd()
@@ -242,17 +240,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
     results = []
     for i, output_extension in enumerate(output_extensions):
-        if formats:
-            if formats[i].startswith('spdx'):
-                if platform.system() != 'Windows':
-                    results.append(write_spdx(combined_paths_and_files[i], output_extension, scan_item, _PKG_NAME,
-                                              pkg_resources.get_distribution(_PKG_NAME).version, spdx_version=(2, 3)))
-                else:
-                    logger.error('Windows not support spdx format.')
-            else:
-                results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
-        else:
-            results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item, EXTENDED_HEADER))
+        results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item,
+                                         EXTENDED_HEADER, '', formats[i]))
     for success_write, err_msg, result_file in results:
         if success_write:
             if result_file:
@@ -279,7 +268,7 @@ def main():
     output_custom_dir = ''
     app_name = const.default_app_name
     github_token = ''
-    format = ''
+    format = []
     graph_path = ''
     graph_size = (600, 600)
     direct = True
