@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.1.0 (08/10/2024)
+## Changes
+## 🔧 Maintenance
+
+- Update spdx function @dd-jy (#226)
+- Refactor existing tox test to pytest @YongGoose (#225)
+- Fix tox version & delete tox-wheel @bjk7119 (#224)
+
+---
+
 ## v4.0.0 (06/09/2024)
 ## Changes
 ## 🔧 Maintenance
@@ -328,17 +338,3 @@
 ## 🔧 Maintenance
 
 - Print license text through notice parameter @dd-jy (#104)
-
----
-
-## v3.12.0 (04/10/2022)
-## Changes
-## 🚀 Features
-
-- Support nuget package manager @dd-jy (#100)
-
-## 🔧 Maintenance
-
-- Fix the path string for each platform @dd-jy (#102)
-- Add the additional infor for Nuget @dd-jy (#101)
-- Change log file name to fosslight_log_{datetime}.txt @dd-jy (#99)
