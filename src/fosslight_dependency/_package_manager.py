@@ -303,7 +303,7 @@ def version_refine(oss_version):
 
 
 def connect_github(github_token):
-    if github_token is not None:
+    if len(github_token) > 0:
         g = Github(github_token)
     else:
         g = Github()

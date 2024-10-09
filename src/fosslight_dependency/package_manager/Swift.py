@@ -98,7 +98,7 @@ class Swift(PackageManager):
         return ret
 
     def parse_oss_information(self, f_name):
-        json_ver = 1
+        json_ver = 2
         purl_dict = {}
 
         with open(f_name, 'r', encoding='utf8') as json_file:
@@ -107,11 +107,12 @@ class Swift(PackageManager):
 
             if json_ver == 1:
                 json_data = json_raw["object"]["pins"]
-            elif json_ver == 2:
+            elif json_ver == 2 or json_ver == 3:
                 json_data = json_raw["pins"]
             else:
-                logger.error(f'Not supported Package.resolved version {json_ver}')
-                return
+                logger.warning(f'Not supported Package.resolved version {json_ver}')
+                logger.warning('Try to parse as version 2(or 3)')
+                json_data = json_raw["pins"]
 
         g = connect_github(self.github_token)
 
@@ -121,7 +122,7 @@ class Swift(PackageManager):
             if json_ver == 1:
                 oss_origin_name = key['package']
                 oss_item.homepage = key['repositoryURL']
-            elif json_ver == 2:
+            else:
                 oss_origin_name = key['identity']
                 oss_item.homepage = key['location']
 
