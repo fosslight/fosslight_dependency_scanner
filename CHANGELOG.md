@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.1 (10/10/2024)
+## Changes
+## 🔧 Maintenance
+
+- Support swift package.resolved v3 @dd-jy (#227)
+
+---
+
 ## v4.1.0 (08/10/2024)
 ## Changes
 ## 🔧 Maintenance
@@ -326,15 +334,3 @@
 ## 🔧 Maintenance
 
 - Fix duplicated output file if multi package manager @dd-jy (#105)
-
----
-
-## v3.12.1 (27/10/2022)
-## Changes
-## 🚀 Features
-
-- Exclude private packages from NPM license-checker @Elastino (#103)
-
-## 🔧 Maintenance
-
-- Print license text through notice parameter @dd-jy (#104)
