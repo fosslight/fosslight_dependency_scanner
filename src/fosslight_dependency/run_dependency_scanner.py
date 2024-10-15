@@ -156,7 +156,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         support_packagemanager = list(const.SUPPORT_PACKAE.keys())
 
         if package_manager not in support_packagemanager:
-            logger.error(f"You entered the unsupported package manager({package_manager}).")
+            logger.error(f"(-m option) You entered the unsupported package manager({package_manager}).")
             logger.error("Please enter the supported package manager({0}) with '-m' option."
                          .format(", ".join(support_packagemanager)))
             return False, scan_item
@@ -166,7 +166,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             os.chdir(input_dir)
             input_dir = os.getcwd()
         else:
-            logger.error(f"You entered the wrong input path({input_dir}) to run the script.")
+            logger.error(f"(-p option) You entered the wrong input path({input_dir}) to run the script.")
             logger.error("Please enter the existed input path with '-p' option.")
             return False, scan_item
     else:
