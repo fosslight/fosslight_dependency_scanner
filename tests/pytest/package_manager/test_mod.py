@@ -27,4 +27,3 @@ def test_windows(input_path, output_path):
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
-    print(f"Output file does not exist: {output_path}")
