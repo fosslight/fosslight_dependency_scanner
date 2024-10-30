@@ -2,23 +2,22 @@
 Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
+
 # FOSSLight Dependency Scanner
 
-<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <a href="https://pypi.org/project/fosslight-dependency/"><img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /></a> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
-
+`<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" />` `<a href="https://pypi.org/project/fosslight-dependency/"><img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." />``</a>` `<img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" />` [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
 
 ## 💡 Introduction
 
 This is the tool that supports the analysis of dependencies for multiple package managers. It detects the manifest file of package managers automatically and analyzes the dependencies with using open source tools. Then, it generates the report file that contains OSS information of dependencies.
 
-
 ## 📖 User Guide
 
-We describe the user guide in the [**FOSSLight Guide page**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html).  
+We describe the user guide in the [**FOSSLight Guide page**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html).
 In this user guide, you can see how to install the FOSSLight Dependency Scanner and how to set up the prerequisite step and run it according to the package manager of your project. Also, you can check the results of the FOSSLight Dependency Scanner.
 
-
 ## 👀 Package Support Level
+
 <table>
 <thead>
   <tr>
@@ -133,17 +132,23 @@ In this user guide, you can see how to install the FOSSLight Dependency Scanner 
     <td>O</td>
     <td>X</td>
   </tr>
+  <tr>
+    <td>Rust</td>
+    <td>Cargo</td>
+    <td>Cargo.toml</td>
+    <td>O</td>
+    <td>O</td>
+    <td>O</td>
+  </tr>
 </tbody>
 </table>
 
-
 ## 👏 Contributing Guide
 
-We always welcome your contributions.  
+We always welcome your contributions.
 Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/CONTRIBUTING.md) for how to contribute.
-
 
 ## 📄 License
 
-Copyright (c) 2020 LG Electronics, Inc.  
+Copyright (c) 2020 LG Electronics, Inc.
 FOSSLight Dependency Scanner is licensed under Apache-2.0, as found in the [LICENSE](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/LICENSE) file.

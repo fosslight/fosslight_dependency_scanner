@@ -286,6 +286,8 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
                 elif pkg_manager == 'carthage':
                     if oss_version:
                         purl = f'{purl}@{oss_version}'
+                elif pkg_manager == 'cargo':
+                    purl = f'{purl_prefix}/{oss_name}@{oss_version}'
         except Exception:
             logger.debug('Fail to get purl. So use the link purl({purl}).')
     return purl

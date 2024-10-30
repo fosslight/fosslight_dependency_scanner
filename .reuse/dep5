@@ -117,3 +117,7 @@ License: Apache-2.0
 Files: tests/test_exclude/*
 Copyright: 2024 LG Electronics
 License: Apache-2.0
+
+Files: tests/test_cargo/*
+Copyright: 2024 LG Electronics
+License: Apache-2.0
