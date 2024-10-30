@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.2 (30/10/2024)
+## Changes
+## 🚀 Features
+
+- Support cargo package manager @dd-jy (#230)
+
+## 🔧 Maintenance
+
+- Print option name with error msg @bjk7119 (#228)
+
+---
+
 ## v4.1.1 (10/10/2024)
 ## Changes
 ## 🔧 Maintenance
@@ -322,15 +334,3 @@
 ## 🐛 Hotfixes
 
 - Fix the parsing bug for swift's Package.resolved @dd-jy (#107)
-
----
-
-## v3.12.2 (24/11/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the gradle direct/transitive issue @dd-jy (#106)
-
-## 🔧 Maintenance
-
-- Fix duplicated output file if multi package manager @dd-jy (#105)
