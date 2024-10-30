@@ -19,6 +19,7 @@ from fosslight_dependency.package_manager.Go import Go
 from fosslight_dependency.package_manager.Nuget import Nuget
 from fosslight_dependency.package_manager.Helm import Helm
 from fosslight_dependency.package_manager.Unity import Unity
+from fosslight_dependency.package_manager.Cargo import Cargo
 import fosslight_util.constant as constant
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -57,6 +58,8 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         package_manager = Helm(input_dir, output_dir)
     elif package_manager_name == const.UNITY:
         package_manager = Unity(input_dir, output_dir)
+    elif package_manager_name == const.CARGO:
+        package_manager = Cargo(input_dir, output_dir)
     else:
         logger.error(f"Not supported package manager name: {package_manager_name}")
         ret = False
