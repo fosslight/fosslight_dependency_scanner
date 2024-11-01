@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # FOSSLight Dependency Scanner
 
-`<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" />` `<a href="https://pypi.org/project/fosslight-dependency/"><img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." />``</a>` `<img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" />` [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
+<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <a href="https://pypi.org/project/fosslight-dependency/"><img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /></a> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
 
 ## 💡 Introduction
 
