@@ -30,9 +30,6 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Depends On']}
-CUSTOMIZED_FORMAT = {'excel': '.xlsx', 'csv': '.csv', 'opossum': '.json', 'yaml': '.yaml',
-                     'spdx-yaml': '.yaml', 'spdx-json': '.json', 'spdx-xml': '.xml',
-                     'spdx-tag': '.tag'}
 _exclude_dir = ['node_moduels', 'venv']
 
 
@@ -220,7 +217,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         if len(success_pm) > 0:
             scan_item.set_cover_comment(f"Analyzed Package manager: {', '.join(success_pm)}")
         if len(fail_pm) > 0:
-            info_msg = 'Check https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
+            info_msg = 'Check log file(fosslight_log*.txt) ' \
+                       'and https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
             scan_item.set_cover_comment(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
     else:
         scan_item.set_cover_comment("No Package manager detected.")
