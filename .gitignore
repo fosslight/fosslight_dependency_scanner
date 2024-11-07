@@ -6,3 +6,8 @@ __pycache__
 build/
 dist/
 cli.spec
+pyvenv.cfg
+Lib/
+Scripts/
+share/
+include/
