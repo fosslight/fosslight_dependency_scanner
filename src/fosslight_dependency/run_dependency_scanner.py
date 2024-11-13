@@ -11,6 +11,7 @@ import pkg_resources
 import warnings
 from datetime import datetime
 import logging
+import shutil
 import fosslight_dependency.constant as const
 from collections import defaultdict
 from fosslight_util.set_log import init_log
@@ -32,6 +33,23 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'Comment', 'Depends On']}
 _exclude_dir = ['node_moduels', 'venv']
 
+
+def get_terminal_size():
+    size = shutil.get_terminal_size()
+    return size.lines
+
+
+def paginate_file(file_path):
+    lines_per_page = get_terminal_size() - 1
+    with open(file_path, 'r', encoding='utf8') as file:
+        lines = file.readlines()
+
+    for i in range(0, len(lines), lines_per_page):
+        os.system('clear' if os.name == 'posix' else 'cls')
+        print(''.join(lines[i: i + lines_per_page]))
+        if i + lines_per_page < len(lines):
+            input("Press Enter to see the next page...")
+            
 
 def find_package_manager(input_dir, abs_path_to_exclude=[]):
     ret = True
@@ -79,6 +97,50 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
         manifest_file_w_path = map(lambda x: os.path.join(input_dir, x), found_manifest_file)
         logger.info(f"Found the manifest file({','.join(manifest_file_w_path)}) automatically.")
         logger.warning(f"### Set Package Manager = {', '.join(found_package_manager.keys())}")
+    else:
+        ret = False
+        logger.info("It cannot find the manifest file.")
+
+    return ret, found_package_manager, input_dir
+
+
+def find_manifest_for_package_manager(package_manager, input_dir, abs_path_to_exclude=[]):
+    ret = True
+    manifest_file_name = []
+
+    value = const.SUPPORT_PACKAE[package_manager]
+    if isinstance(value, list):
+        manifest_file_name.extend(value)
+    else:
+        manifest_file_name.append(value)
+
+    found_manifest_file = []
+    for (parent, _, files) in os.walk(input_dir):
+        if len(files) < 1:
+            continue
+        if os.path.basename(parent) in _exclude_dir:
+            continue
+        if os.path.abspath(parent) in abs_path_to_exclude:
+            continue
+        for file in files:
+            file_path = os.path.join(parent, file)
+            file_abs_path = os.path.abspath(file_path)
+            if any(os.path.commonpath([file_abs_path, exclude_path]) == exclude_path
+                   for exclude_path in abs_path_to_exclude):
+                continue
+            if file in manifest_file_name:
+                found_manifest_file.append(file)
+        if len(found_manifest_file) > 0:
+            input_dir = parent
+            break
+
+    found_package_manager = defaultdict(list)
+    for f_idx in found_manifest_file:
+        found_package_manager[package_manager].append(f_idx)
+
+    if len(found_package_manager) >= 1:
+        manifest_file_w_path = map(lambda x: os.path.join(input_dir, x), found_manifest_file)
+        logger.info(f"Found the manifest file({','.join(manifest_file_w_path)}) automatically.")
     else:
         ret = False
         logger.info("It cannot find the manifest file.")
@@ -183,8 +245,17 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             if not ret:
                 logger.warning("Dependency scanning terminated because the package manager was not found.")
                 ret = False
-    else:
-        found_package_manager[package_manager] = ["manual detect ('-m option')"]
+    else:        
+        try:
+            ret, found_package_manager, input_dir = find_manifest_for_package_manager(package_manager, input_dir, abs_path_to_exclude)
+            os.chdir(input_dir)
+        except Exception as e:
+            logger.error(f'Fail to find manifest file: {e}')
+            ret = False
+        finally:
+            if not ret:
+                logger.warning("Dependency scanning terminated because any manifest file was not found.")
+                ret = False
 
     pass_key = 'PASS'
     success_pm = []
@@ -227,7 +298,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         graph_path = os.path.abspath(graph_path)
         try:
             converter = GraphConvertor(scan_item.file_items[_PKG_NAME])
-            converter.save(graph_path, graph_size)
+            growth_factor_per_node = 10
+            node_count_threshold = 20
+            node_count = len(scan_item.file_items[_PKG_NAME])
+            if node_count > node_count_threshold:
+                new_size = graph_size + (node_count * growth_factor_per_node)
+            else:
+                new_size = graph_size
+            converter.save(graph_path, new_size)
             logger.info(f"Output graph image file: {graph_path}")
         except Exception as e:
             logger.error(f'Fail to make graph image: {e}')
@@ -324,9 +402,9 @@ def main():
     if args.graph_size:
         graph_size = args.graph_size
     if args.direct:  # --direct option
-        if args.direct == 'true':
+        if args.direct == 'true' or args.direct == 'True':
             direct = True
-        elif args.direct == 'false':
+        elif args.direct == 'false' or args.direct == 'False':
             direct = False
     if args.notice:  # --notice option
         try:
@@ -337,8 +415,10 @@ def main():
         data_path = os.path.join(base_path, 'LICENSES')
         print(f"*** {_PKG_NAME} open source license notice ***")
         for ff in os.listdir(data_path):
-            f = open(os.path.join(data_path, ff), 'r', encoding='utf8')
-            print(f.read())
+            source_file = os.path.join(data_path, ff)
+            destination_file = os.path.join(base_path, ff)
+            paginate_file(source_file)
+            shutil.copyfile(source_file, destination_file)
         sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
