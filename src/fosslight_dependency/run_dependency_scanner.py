@@ -49,7 +49,7 @@ def paginate_file(file_path):
         print(''.join(lines[i: i + lines_per_page]))
         if i + lines_per_page < len(lines):
             input("Press Enter to see the next page...")
-            
+
 
 def find_package_manager(input_dir, abs_path_to_exclude=[]):
     ret = True
@@ -245,9 +245,11 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             if not ret:
                 logger.warning("Dependency scanning terminated because the package manager was not found.")
                 ret = False
-    else:        
+    else:
         try:
-            ret, found_package_manager, input_dir = find_manifest_for_package_manager(package_manager, input_dir, abs_path_to_exclude)
+            ret, found_package_manager, input_dir = find_manifest_for_package_manager(package_manager,
+                                                                                      input_dir,
+                                                                                      abs_path_to_exclude)
             os.chdir(input_dir)
         except Exception as e:
             logger.error(f'Fail to find manifest file: {e}')
