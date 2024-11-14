@@ -249,7 +249,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             node_count_threshold = 20
             node_count = len(scan_item.file_items[_PKG_NAME])
             if node_count > node_count_threshold:
-                new_size = tuple(x + (node_count * growth_factor_per_node) for x in new_size)
+                new_size = tuple(x + (node_count * growth_factor_per_node) for x in graph_size)
             else:
                 new_size = graph_size
             new_size = tuple((((x + 99) // 100) * 100) for x in new_size)
