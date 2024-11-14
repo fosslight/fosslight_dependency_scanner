@@ -104,50 +104,6 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
     return ret, found_package_manager, input_dir
 
 
-def find_manifest_for_package_manager(package_manager, input_dir, abs_path_to_exclude=[]):
-    ret = True
-    manifest_file_name = []
-
-    value = const.SUPPORT_PACKAE[package_manager]
-    if isinstance(value, list):
-        manifest_file_name.extend(value)
-    else:
-        manifest_file_name.append(value)
-
-    found_manifest_file = []
-    for (parent, _, files) in os.walk(input_dir):
-        if len(files) < 1:
-            continue
-        if os.path.basename(parent) in _exclude_dir:
-            continue
-        if os.path.abspath(parent) in abs_path_to_exclude:
-            continue
-        for file in files:
-            file_path = os.path.join(parent, file)
-            file_abs_path = os.path.abspath(file_path)
-            if any(os.path.commonpath([file_abs_path, exclude_path]) == exclude_path
-                   for exclude_path in abs_path_to_exclude):
-                continue
-            if file in manifest_file_name:
-                found_manifest_file.append(file)
-        if len(found_manifest_file) > 0:
-            input_dir = parent
-            break
-
-    found_package_manager = defaultdict(list)
-    for f_idx in found_manifest_file:
-        found_package_manager[package_manager].append(f_idx)
-
-    if len(found_package_manager) >= 1:
-        manifest_file_w_path = map(lambda x: os.path.join(input_dir, x), found_manifest_file)
-        logger.info(f"Found the manifest file({','.join(manifest_file_w_path)}) automatically.")
-    else:
-        ret = False
-        logger.info("It cannot find the manifest file.")
-
-    return ret, found_package_manager, input_dir
-
-
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
                            github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
@@ -246,18 +202,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 logger.warning("Dependency scanning terminated because the package manager was not found.")
                 ret = False
     else:
-        try:
-            ret, found_package_manager, input_dir = find_manifest_for_package_manager(package_manager,
-                                                                                      input_dir,
-                                                                                      abs_path_to_exclude)
-            os.chdir(input_dir)
-        except Exception as e:
-            logger.error(f'Fail to find manifest file: {e}')
-            ret = False
-        finally:
-            if not ret:
-                logger.warning("Dependency scanning terminated because any manifest file was not found.")
-                ret = False
+        found_package_manager[package_manager] = ["manual detect ('-m option')"]
 
     pass_key = 'PASS'
     success_pm = []
