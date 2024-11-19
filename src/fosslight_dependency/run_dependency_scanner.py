@@ -11,6 +11,7 @@ import pkg_resources
 import warnings
 from datetime import datetime
 import logging
+import shutil
 import fosslight_dependency.constant as const
 from collections import defaultdict
 from fosslight_util.set_log import init_log
@@ -31,6 +32,23 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Depends On']}
 _exclude_dir = ['node_moduels', 'venv']
+
+
+def get_terminal_size():
+    size = shutil.get_terminal_size()
+    return size.lines
+
+
+def paginate_file(file_path):
+    lines_per_page = get_terminal_size() - 1
+    with open(file_path, 'r', encoding='utf8') as file:
+        lines = file.readlines()
+
+    for i in range(0, len(lines), lines_per_page):
+        os.system('clear' if os.name == 'posix' else 'cls')
+        print(''.join(lines[i: i + lines_per_page]))
+        if i + lines_per_page < len(lines):
+            input("Press Enter to see the next page...")
 
 
 def find_package_manager(input_dir, abs_path_to_exclude=[]):
@@ -227,7 +245,15 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         graph_path = os.path.abspath(graph_path)
         try:
             converter = GraphConvertor(scan_item.file_items[_PKG_NAME])
-            converter.save(graph_path, graph_size)
+            growth_factor_per_node = 10
+            node_count_threshold = 20
+            node_count = len(scan_item.file_items[_PKG_NAME])
+            if node_count > node_count_threshold:
+                new_size = tuple(x + (node_count * growth_factor_per_node) for x in graph_size)
+            else:
+                new_size = graph_size
+            new_size = tuple((((x + 99) // 100) * 100) for x in new_size)
+            converter.save(graph_path, new_size)
             logger.info(f"Output graph image file: {graph_path}")
         except Exception as e:
             logger.error(f'Fail to make graph image: {e}')
@@ -324,9 +350,9 @@ def main():
     if args.graph_size:
         graph_size = args.graph_size
     if args.direct:  # --direct option
-        if args.direct == 'true':
+        if args.direct == 'true' or args.direct == 'True':
             direct = True
-        elif args.direct == 'false':
+        elif args.direct == 'false' or args.direct == 'False':
             direct = False
     if args.notice:  # --notice option
         try:
@@ -337,8 +363,10 @@ def main():
         data_path = os.path.join(base_path, 'LICENSES')
         print(f"*** {_PKG_NAME} open source license notice ***")
         for ff in os.listdir(data_path):
-            f = open(os.path.join(data_path, ff), 'r', encoding='utf8')
-            print(f.read())
+            source_file = os.path.join(data_path, ff)
+            destination_file = os.path.join(base_path, ff)
+            paginate_file(source_file)
+            shutil.copyfile(source_file, destination_file)
         sys.exit(0)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
