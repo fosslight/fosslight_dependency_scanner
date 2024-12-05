@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.1.3 (05/12/2024)
+## Changes
+## 🚀 Features
+
+- Support cycloneDX format @dd-jy (#235)
+
+## 🔧 Maintenance
+
+- Fix -m option, notice screen, dinamic graph size, case insensitive @ethanleelge (#234)
+- Change cover sheet fail str @dd-jy (#231)
+- test/golang: Added Golang test code and test case. @rewrite0w0 (#229)
+
+---
+
 ## v4.1.2 (30/10/2024)
 ## Changes
 ## 🚀 Features
@@ -326,11 +340,3 @@
 
 - Change package to get release package @bjk7119 (#121)
 - Update version of packages for actions @bjk7119 (#120)
-
----
-
-## v3.12.3 (22/12/2022)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the parsing bug for swift's Package.resolved @dd-jy (#107)
