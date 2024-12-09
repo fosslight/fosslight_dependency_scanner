@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.4 (09/12/2024)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the bug @dd-jy (#236)
+
+---
+
 ## v4.1.3 (05/12/2024)
 ## Changes
 ## 🚀 Features
@@ -327,16 +335,3 @@
 ## 🔧 Maintenance
 
 - Unify version output format @bjk7119 (#123)
-
----
-
-## v3.12.4 (05/01/2023)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the npm multi license issue @dd-jy (#122)
-
-## 🔧 Maintenance
-
-- Change package to get release package @bjk7119 (#121)
-- Update version of packages for actions @bjk7119 (#120)
