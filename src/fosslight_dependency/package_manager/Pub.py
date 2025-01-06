@@ -121,6 +121,8 @@ class Pub(PackageManager):
                     continue
                 oss_item.name = f"{self.package_manager_name}:{oss_origin_name}"
                 oss_item.version = json_data['version']
+                if oss_item.version is None:
+                    oss_item.version = ''
                 oss_item.homepage = json_data['homepage']
                 if oss_item.homepage is None:
                     oss_item.homepage = json_data['repository']
@@ -130,17 +132,19 @@ class Pub(PackageManager):
                 dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
                 purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
                 license_txt = json_data['license']
+                if license_txt is not None:
+                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
+                    tmp_license_txt.write(license_txt)
+                    tmp_license_txt.close()
 
-                tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                tmp_license_txt.write(license_txt)
-                tmp_license_txt.close()
+                    license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
+                                                                                      self.license_scanner_bin,
+                                                                                      tmp_license_txt_file_name)
 
-                license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
-                                                                                  self.license_scanner_bin,
-                                                                                  tmp_license_txt_file_name)
-
-                if license_name_with_license_scanner != "":
-                    oss_item.license = license_name_with_license_scanner
+                    if license_name_with_license_scanner != "":
+                        oss_item.license = license_name_with_license_scanner
+                else:
+                    oss_item.license = ''
 
                 if self.direct_dep:
                     if oss_origin_name not in self.total_dep_list:
