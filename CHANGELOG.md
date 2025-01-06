@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.5 (06/01/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the pub result parsing bug @dd-jy (#237)
+
+---
+
 ## v4.1.4 (09/12/2024)
 ## Changes
 ## 🐛 Hotfixes
@@ -327,11 +335,3 @@
 ## 🔧 Maintenance
 
 - Fix the cocoapods issue @dd-jy (#124)
-
----
-
-## v3.12.5 (27/01/2023)
-## Changes
-## 🔧 Maintenance
-
-- Unify version output format @bjk7119 (#123)
