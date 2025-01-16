@@ -10,10 +10,11 @@ import re
 import shutil
 import yaml
 import subprocess
+from askalono import identify
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency._package_manager import get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -27,6 +28,7 @@ class Pub(PackageManager):
     input_file_name = 'tmp_flutter_oss_licenses.json'
     tmp_dir = "fl_dependency_tmp_dir"
     cur_path = ''
+    pkg_source_list = {}
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -92,6 +94,7 @@ class Pub(PackageManager):
                 if dep_key not in self.relation_tree:
                     self.relation_tree[dep_key] = []
                 self.relation_tree[dep_key].extend(p['dependencies'])
+                self.pkg_source_list[dep_key] = p['source']
 
             for i in self.relation_tree:
                 tmp_dep = []
@@ -110,10 +113,9 @@ class Pub(PackageManager):
         with open(f_name, 'r', encoding='utf8') as pub_file:
             json_f = json.load(pub_file)
 
-        try:
-            purl_dict = {}
-
-            for json_data in json_f:
+        purl_dict = {}
+        for json_data in json_f:
+            try:
                 dep_item = DependencyItem()
                 oss_item = OssItem()
                 oss_origin_name = json_data['name']
@@ -133,18 +135,9 @@ class Pub(PackageManager):
                 purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
                 license_txt = json_data['license']
                 if license_txt is not None:
-                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                    tmp_license_txt.write(license_txt)
-                    tmp_license_txt.close()
-
-                    license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
-                                                                                      self.license_scanner_bin,
-                                                                                      tmp_license_txt_file_name)
-
-                    if license_name_with_license_scanner != "":
-                        oss_item.license = license_name_with_license_scanner
-                else:
-                    oss_item.license = ''
+                    detect_askalono = identify(license_txt)
+                    if detect_askalono.score > 0.7:
+                        oss_item.license = detect_askalono.name
 
                 if self.direct_dep:
                     if oss_origin_name not in self.total_dep_list:
@@ -159,11 +152,20 @@ class Pub(PackageManager):
 
                     if f'{oss_origin_name}({oss_item.version})' in self.relation_tree:
                         dep_item.depends_on_raw = self.relation_tree[f'{oss_origin_name}({oss_item.version})']
+                if f'{oss_origin_name}({oss_item.version})' in self.pkg_source_list:
+                    pkg_source = self.pkg_source_list[f'{oss_origin_name}({oss_item.version})']
+                    if pkg_source in ['git', 'path']:
+                        oss_item.download_location = json_data['repository']
+                        if oss_item.download_location is None:
+                            oss_item.download_location = json_data['homepage']
+                        if oss_item.download_location is None:
+                            oss_item.download_location = ''
+                        oss_item.comment = pkg_source
 
                 dep_item.oss_items.append(oss_item)
                 self.dep_items.append(dep_item)
-        except Exception as e:
-            logger.error(f"Fail to parse pub oss information: {e}")
+            except Exception as e:
+                logger.error(f"Fail to parse pub oss information: {e}")
         if self.direct_dep:
             self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
 
