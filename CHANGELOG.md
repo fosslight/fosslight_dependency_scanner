@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.6 (16/01/2025)
+## Changes
+## 🚀 Features
+
+- Distinguish the origin of the pub package @dd-jy (#238)
+
+---
+
 ## v4.1.5 (06/01/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -323,15 +331,3 @@
 ## 🐛 Hotfixes
 
 - Fix the encoding issue @dd-jy (#127)
-
----
-
-## v3.12.6 (23/02/2023)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the cocoapods issue @dd-jy (#124)
-
-## 🔧 Maintenance
-
-- Fix the cocoapods issue @dd-jy (#124)
