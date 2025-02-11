@@ -7,6 +7,7 @@ import os
 import logging
 import re
 import yaml
+import requests
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -76,11 +77,13 @@ class Unity(PackageManager):
                 if oss_item.homepage and oss_item.homepage.startswith('git@'):
                     oss_item.homepage = oss_item.homepage.replace('git@', 'https://')
                 if oss_item.homepage is None or oss_item.homepage.startswith(self.unity_internal_url):
-                    if license_name != proprietary_license:
+                    if (license_name != proprietary_license) and license_name != '':
                         oss_item.homepage = f'{self.mirror_url}{oss_item.name}'
                 if oss_item.homepage is None:
                     oss_item.homepage = ''
-
+                else:
+                    if not check_url_alive(oss_item.homepage):
+                        oss_item.homepage = f'https://docs.unity3d.com/Packages/{oss_item.name}@{oss_item.version}'
                 oss_item.download_location = oss_item.homepage
                 dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
                 if dep_item.purl == 'None':
@@ -102,3 +105,16 @@ class Unity(PackageManager):
             logger.error(f"Fail to parse unity oss information: {e}")
 
         return
+
+
+def check_url_alive(url):
+    alive = False
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            alive = True
+        else:
+            logger.debug(f"{url} returned status code {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        logger.debug(f"Check if url({url})is alive err: {e}")
+    return alive
