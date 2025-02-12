@@ -83,7 +83,8 @@ class Unity(PackageManager):
                     oss_item.homepage = ''
                 else:
                     if not check_url_alive(oss_item.homepage):
-                        oss_item.homepage = f'https://docs.unity3d.com/Packages/{oss_item.name}@{oss_item.version}'
+                        minor_version = '.'.join(oss_item.version.split('.')[0:2])
+                        oss_item.homepage = f'https://docs.unity3d.com/Packages/{oss_item.name}@{minor_version}'
                 oss_item.download_location = oss_item.homepage
                 dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
                 if dep_item.purl == 'None':
