@@ -13,7 +13,7 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import version_refine, get_url_to_purl
+from fosslight_dependency._package_manager import version_refine, get_url_to_purl, change_file_mode
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -142,7 +142,7 @@ class Maven(PackageManager):
         else:
             cmd_mvn = "mvn"
         cmd = f"{cmd_mvn} license:aggregate-download-licenses"
-
+        current_mode = change_file_mode(cmd_mvn)
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error(f"Failed to run maven plugin: {cmd}")
@@ -159,6 +159,7 @@ class Maven(PackageManager):
         except Exception as e:
             logger.error(f"Failed to run '{cmd}': {e}")
             self.set_direct_dependencies(False)
+        change_file_mode(cmd_mvn, current_mode)
 
     def create_dep_stack(self, dep_line):
         dep_stack = []
