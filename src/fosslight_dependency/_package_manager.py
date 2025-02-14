@@ -11,6 +11,7 @@ import re
 import base64
 import subprocess
 import shutil
+import stat
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from packageurl.contrib import url2purl
@@ -116,6 +117,7 @@ class PackageManager:
                 if ret_plugin:
                     logger.warning('Also it cannot run android-dependency-scanning plugin.')
             if ret_task:
+                current_mode = change_file_mode(cmd_gradle)
                 if ret_alldeps:
                     cmd = f"{cmd_gradle} allDeps"
                     try:
@@ -145,6 +147,7 @@ class PackageManager:
                     except Exception as e:
                         logger.error(f'Fail to run {cmd}: {e}')
                         ret_task = False
+                change_file_mode(cmd_gradle, current_mode)
 
             if os.path.isfile(gradle_backup):
                 os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
@@ -422,3 +425,18 @@ def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
         license_name = ""
 
     return license_name
+
+
+def change_file_mode(filepath, mode=''):
+    current_mode = os.stat(filepath).st_mode
+
+    if not os.path.exists(filepath):
+        logger.debug(f"The file{filepath} does not exist.")
+    else:
+        if not mode:
+            new_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        else:
+            new_mode = mode
+        os.chmod(filepath, new_mode)
+        logger.debug(f"File mode of {filepath} has been changed to {oct(new_mode)}.")
+    return current_mode
