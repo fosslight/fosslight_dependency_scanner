@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.7 (14/02/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the docs.unity3d url with minor version @dd-jy (#240)
+- Fix to check if unity url is alive @dd-jy (#239)
+
+## 🔧 Maintenance
+
+- Add temporary execute mode for wrapper @dd-jy (#241)
+
+---
+
 ## v4.1.6 (16/01/2025)
 ## Changes
 ## 🚀 Features
@@ -319,15 +332,3 @@
 - Print the dependencies of each package in comment @dd-jy (#128)
   - Implemented : gradle(java, android), maven, npm, pypi, pub
   - Not implemented yet : cocoapods, go, nuget, swift
-
----
-
-## v3.12.7 (09/03/2023)
-## Changes
-## 🚀 Features
-
-- Support Helm package manager @dd-jy (#125)
-
-## 🐛 Hotfixes
-
-- Fix the encoding issue @dd-jy (#127)
