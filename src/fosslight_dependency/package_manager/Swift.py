@@ -140,7 +140,7 @@ class Swift(PackageManager):
             github_repo = "/".join(oss_item.homepage.split('/')[-2:])
             dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name, github_repo, oss_item.version)
             purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
-            oss_item.license = get_github_license(g, github_repo, self.platform, self.license_scanner_bin)
+            oss_item.license = get_github_license(g, github_repo)
 
             if self.direct_dep and len(self.direct_dep_list) > 0:
                 if oss_origin_name in self.direct_dep_list:

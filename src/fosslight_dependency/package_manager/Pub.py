@@ -10,11 +10,10 @@ import re
 import shutil
 import yaml
 import subprocess
-from askalono import identify
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import get_url_to_purl
+from fosslight_dependency._package_manager import get_url_to_purl, check_license_name
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -135,9 +134,7 @@ class Pub(PackageManager):
                 purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
                 license_txt = json_data['license']
                 if license_txt is not None:
-                    detect_askalono = identify(license_txt)
-                    if detect_askalono.score > 0.7:
-                        oss_item.license = detect_askalono.name
+                    oss_item.license = check_license_name(license_txt)
 
                 if self.direct_dep:
                     if oss_origin_name not in self.total_dep_list:

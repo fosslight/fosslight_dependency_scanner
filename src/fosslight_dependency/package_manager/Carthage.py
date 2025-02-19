@@ -9,8 +9,8 @@ import os
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import connect_github, get_github_license, check_and_run_license_scanner
-from fosslight_dependency._package_manager import get_url_to_purl
+from fosslight_dependency._package_manager import connect_github, get_github_license
+from fosslight_dependency._package_manager import get_url_to_purl, check_license_name
 from fosslight_dependency.dependency_item import DependencyItem
 from fosslight_util.oss_item import OssItem
 
@@ -79,9 +79,7 @@ class Carthage(PackageManager):
                                 for license_file_reg in license_file_regs:
                                     match_result = re.match(license_file_reg, filename_in_dir.lower())
                                     if match_result is not None:
-                                        license_name = check_and_run_license_scanner(self.platform,
-                                                                                     self.license_scanner_bin,
-                                                                                     filename_with_checkout_path)
+                                        license_name = check_license_name(filename_with_checkout_path, True)
                                         find_license = True
                                         break
                     if license_name == '':
@@ -89,7 +87,7 @@ class Carthage(PackageManager):
                             try:
                                 if not g:
                                     g = connect_github(self.github_token)
-                                license_name = get_github_license(g, oss_path, self.platform, self.license_scanner_bin)
+                                license_name = get_github_license(g, oss_path)
                             except Exception as e:
                                 logger.warning(f"Failed to get license with github api: {e}")
                                 license_name == ''

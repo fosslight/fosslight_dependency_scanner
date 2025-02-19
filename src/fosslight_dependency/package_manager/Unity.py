@@ -11,13 +11,12 @@ import requests
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency._package_manager import check_license_name, get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 proprietary_license = 'Proprietary License'
-unclassifed_license = 'UnclassifiedLicense'
 license_md = 'LICENSE.md'
 third_party_md = 'Third Party Notices.md'
 
@@ -50,10 +49,8 @@ class Unity(PackageManager):
                 oss_packagecache_dir = os.path.join(self.packageCache_dir, f'{oss_item.name}@{oss_item.version}')
                 license_f = os.path.join(oss_packagecache_dir, license_md)
                 if os.path.isfile(license_f):
-                    license_name = check_and_run_license_scanner(self.platform,
-                                                                 self.license_scanner_bin,
-                                                                 license_f)
-                    if license_name == unclassifed_license or license_name == '':
+                    license_name = check_license_name(license_f, True)
+                    if license_name == '':
                         with open(license_f, 'r', encoding='utf-8') as f:
                             for line in f:
                                 matched_l = re.search(r'Unity\s[\s\w]*\sLicense', line)

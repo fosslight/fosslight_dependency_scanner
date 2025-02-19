@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import sys
 import logging
 import platform
 import re
@@ -12,9 +11,10 @@ import base64
 import subprocess
 import shutil
 import stat
+from packageurl.contrib import url2purl
+from askalono import identify
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from packageurl.contrib import url2purl
 
 try:
     from github import Github
@@ -54,7 +54,6 @@ class PackageManager:
         self.dep_items = []
 
         self.platform = platform.system()
-        self.license_scanner_bin = check_license_scanner(self.platform)
 
     def __del__(self):
         self.input_package_list_file = []
@@ -316,9 +315,8 @@ def connect_github(github_token):
     return g
 
 
-def get_github_license(g, github_repo, platform, license_scanner_bin):
+def get_github_license(g, github_repo):
     license_name = ''
-    tmp_license_txt_file_name = 'tmp_license.txt'
 
     try:
         repository = g.get_repo(github_repo)
@@ -334,96 +332,26 @@ def get_github_license(g, github_repo, platform, license_scanner_bin):
             if license_name == "" or license_name == "NOASSERTION":
                 try:
                     license_txt_data = base64.b64decode(repository.get_license().content).decode('utf-8')
-                    tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                    tmp_license_txt.write(license_txt_data)
-                    tmp_license_txt.close()
-                    license_name = check_and_run_license_scanner(platform, license_scanner_bin, tmp_license_txt_file_name)
+                    license_name = check_license_name(license_txt_data)
                 except Exception:
-                    logger.info("Cannot find the license name with license scanner binary.")
-
-                if os.path.isfile(tmp_license_txt_file_name):
-                    os.remove(tmp_license_txt_file_name)
+                    logger.info("Cannot find the license name with askalono.")
         except Exception:
             logger.info("Cannot find the license name with github api.")
 
     return license_name
 
 
-def check_license_scanner(platform):
-    license_scanner_bin = ''
-
-    if platform == const.LINUX:
-        license_scanner = _license_scanner_linux
-    elif platform == const.MACOS:
-        license_scanner = _license_scanner_macos
-    elif platform == const.WINDOWS:
-        license_scanner = _license_scanner_windows
-    else:
-        logger.debug("Not supported OS to analyze license text with binary.")
-
-    if license_scanner:
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.dirname(__file__)
-
-        data_path = os.path.join(base_path, license_scanner)
-        license_scanner_bin = data_path
-
-    return license_scanner_bin
-
-
-def check_and_run_license_scanner(platform, license_scanner_bin, file_dir):
+def check_license_name(license_txt, is_filepath=False):
     license_name = ''
+    if is_filepath:
+        with open(license_txt, 'r', encoding='utf-8') as f:
+            license_content = f.read()
+    else:
+        license_content = license_txt
 
-    if not license_scanner_bin:
-        logger.error('Not supported OS for license scanner binary.')
-
-    try:
-        tmp_output_file_name = "tmp_license_scanner_output.txt"
-
-        if file_dir == "UNKNOWN":
-            license_name = ""
-        else:
-            if platform == const.LINUX:
-                run_license_scanner = f"{license_scanner_bin} {file_dir} > {tmp_output_file_name}"
-            elif platform == const.MACOS:
-                run_license_scanner = f"{license_scanner_bin} identify {file_dir} > {tmp_output_file_name}"
-            elif platform == const.WINDOWS:
-                run_license_scanner = f"{license_scanner_bin} identify {file_dir} > {tmp_output_file_name}"
-            else:
-                run_license_scanner = ''
-
-            if run_license_scanner is None:
-                license_name = ""
-                return license_name
-            else:
-                ret = subprocess.run(run_license_scanner, shell=True, stderr=subprocess.PIPE)
-                if ret.returncode != 0 or ret.stderr:
-                    os.remove(tmp_output_file_name)
-                    return ""
-
-            fp = open(tmp_output_file_name, "r", encoding='utf8')
-            license_output = fp.read()
-            fp.close()
-
-            if platform == const.LINUX:
-                license_output_re = re.findall(r'.*contains license\(s\)\s(.*)', license_output)
-            else:
-                license_output_re = re.findall(r"License:\s{1}(\S*)\s{1}", license_output)
-
-            if len(license_output_re) == 1:
-                license_name = license_output_re[0]
-                if license_name == "No_license_found":
-                    license_name = ""
-            else:
-                license_name = ""
-            os.remove(tmp_output_file_name)
-
-    except Exception as ex:
-        logger.error(f"Failed to run license scan binary. {ex}")
-        license_name = ""
-
+    detect_askalono = identify(license_content)
+    if detect_askalono.score > 0.7:
+        license_name = detect_askalono.name
     return license_name
 
 

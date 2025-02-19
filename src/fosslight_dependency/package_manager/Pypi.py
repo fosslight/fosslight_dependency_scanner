@@ -13,7 +13,7 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency._package_manager import check_license_name, get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -302,12 +302,7 @@ class Pypi(PackageManager):
                 if license_name is not None:
                     license_name = license_name.replace(';', ',')
                 else:
-                    license_file_dir = d['LicenseFile']
-                    license_name_with_lic_scanner = check_and_run_license_scanner(self.platform,
-                                                                                  self.license_scanner_bin,
-                                                                                  license_file_dir)
-                    if license_name_with_lic_scanner != "":
-                        license_name = license_name_with_lic_scanner
+                    license_name = check_license_name(d['LicenseFile'], True)
                 oss_item.license = license_name
 
                 if oss_init_name == self.package_name:

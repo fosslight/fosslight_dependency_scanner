@@ -12,7 +12,7 @@ import requests
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_and_run_license_scanner, get_url_to_purl
+from fosslight_dependency._package_manager import check_license_name, get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -73,14 +73,9 @@ class Nuget(PackageManager):
                         if license_url is not None:
                             url_res = requests.get(license_url.text)
                             if url_res.status_code == 200:
-                                tmp_license_txt = open(tmp_license_txt_file_name, 'w', encoding='utf-8')
-                                tmp_license_txt.write(url_res.text)
-                                tmp_license_txt.close()
-                                license_name_with_license_scanner = check_and_run_license_scanner(self.platform,
-                                                                                                  self.license_scanner_bin,
-                                                                                                  tmp_license_txt_file_name)
-                                if license_name_with_license_scanner != "":
-                                    license_name = license_name_with_license_scanner
+                                license_name_with_scanner = check_license_name(url_res.text)
+                                if license_name_with_scanner != "":
+                                    license_name = license_name_with_scanner
                                 else:
                                     license_name = license_url.text
                     oss_item.license = license_name
