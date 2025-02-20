@@ -23,13 +23,9 @@ except Exception:
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 
-# binary url to check license text
-_license_scanner_linux = os.path.join('third_party', 'nomos', 'nomossa')
-_license_scanner_macos = os.path.join('third_party', 'askalono', 'askalono_macos')
-_license_scanner_windows = os.path.join('third_party', 'askalono', 'askalono.exe')
-
 gradle_config = ['runtimeClasspath', 'runtime']
 android_config = ['releaseRuntimeClasspath']
+ASKALONO_THRESHOLD = 0.7
 
 
 class PackageManager:
@@ -350,7 +346,7 @@ def check_license_name(license_txt, is_filepath=False):
         license_content = license_txt
 
     detect_askalono = identify(license_content)
-    if detect_askalono.score > 0.7:
+    if detect_askalono.score > ASKALONO_THRESHOLD:
         license_name = detect_askalono.name
     return license_name
 

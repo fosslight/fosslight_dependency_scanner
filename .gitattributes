@@ -1,3 +1,2 @@
 # Apply override to all files in the directory
 tests/** linguist-vendored
-src/fosslight_dependency/third_party/** linguist-vendored
