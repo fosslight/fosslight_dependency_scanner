@@ -52,10 +52,7 @@ if __name__ == "__main__":
                      "Programming Language :: Python :: 3.8",
                      "Programming Language :: Python :: 3.9", ],
         install_requires=required,
-        package_data={_PACKAEG_NAME: [os.path.join('third_party', 'nomos', 'nomossa'),
-                                      os.path.join('third_party', 'askalono', 'askalono.exe'),
-                                      os.path.join('third_party', 'askalono', 'askalono_macos'),
-                                      os.path.join(_LICENSE_DIR, '*')]},
+        package_data={_PACKAEG_NAME: [os.path.join(_LICENSE_DIR, '*')]},
         include_package_data=True,
         entry_points={
             "console_scripts": [
