@@ -61,7 +61,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
             manifest_file_name.append(value)
 
     found_manifest_file = []
-    for (parent, _, files) in os.walk(input_dir):
+    for parent, dirs, files in os.walk(input_dir):
         if len(files) < 1:
             continue
         if os.path.basename(parent) in _exclude_dir:
@@ -76,6 +76,13 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
                 continue
             if file in manifest_file_name:
                 found_manifest_file.append(file)
+        for dir in dirs:
+            for manifest_f in manifest_file_name:
+                manifest_l = manifest_f.split(os.path.sep)
+                if len(manifest_l) > 1:
+                    if manifest_l[0] == dir:
+                        if os.path.exists(os.path.join(parent, manifest_f)):
+                            found_manifest_file.append(manifest_f)
         if len(found_manifest_file) > 0:
             input_dir = parent
             break
