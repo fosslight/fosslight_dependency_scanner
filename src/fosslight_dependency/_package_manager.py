@@ -108,7 +108,7 @@ class PackageManager:
                     cmd_gradle = "./gradlew"
             else:
                 ret_task = False
-                logger.warning('No gradlew file exists. (skip to find dependencies relationship.')
+                logger.warning('No gradlew file exists (Skip to find dependencies relationship.).')
                 if ret_plugin:
                     logger.warning('Also it cannot run android-dependency-scanning plugin.')
             if ret_task:
@@ -121,11 +121,10 @@ class PackageManager:
                             self.parse_dependency_tree(ret)
                         else:
                             self.set_direct_dependencies(False)
-                            logger.warning("Failed to run allDeps task.")
+                            logger.warning(f"Fail to run {cmd}")
                     except Exception as e:
                         self.set_direct_dependencies(False)
-                        logger.error(f'Fail to run {cmd}: {e}')
-                        logger.warning('It cannot print the direct/transitive dependencies relationship.')
+                        logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
 
                 if ret_plugin:
                     cmd = f"{cmd_gradle} generateLicenseTxt"
@@ -152,6 +151,9 @@ class PackageManager:
                 if os.path.isfile(module_gradle_backup):
                     os.remove(module_build_gradle)
                     shutil.move(module_gradle_backup, module_build_gradle)
+        if os.path.isfile(self.input_file_name):
+            logger.info(f'Found {self.input_file_name}, skip to run plugin.')
+            ret_task = True
         return ret_task
 
     def add_android_plugin_in_gradle(self, module_build_gradle):

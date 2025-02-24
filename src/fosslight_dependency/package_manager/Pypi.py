@@ -111,7 +111,7 @@ class Pypi(PackageManager):
             install_cmd = cmd_separator.join(install_cmd_list)
         else:
             logger.error(const.SUPPORT_PACKAE[self.package_manager_name])
-            logger.error('Cannot create virtualenv becuase it cannot find: '
+            logger.error('Cannot create virtualenv because it cannot find: '
                          + ', '.join(const.SUPPORT_PACKAE[self.package_manager_name]))
             logger.error("Please run with '-a' and '-d' option.")
             return False
