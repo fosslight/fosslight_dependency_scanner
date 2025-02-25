@@ -51,14 +51,14 @@ def paginate_file(file_path):
             input("Press Enter to see the next page...")
 
 
-def find_package_manager(input_dir, abs_path_to_exclude=[]):
+def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[]):
     ret = True
-    manifest_file_name = []
-    for value in const.SUPPORT_PACKAE.values():
-        if isinstance(value, list):
-            manifest_file_name.extend(value)
-        else:
-            manifest_file_name.append(value)
+    if not manifest_file_name:
+        for value in const.SUPPORT_PACKAE.values():
+            if isinstance(value, list):
+                manifest_file_name.extend(value)
+            else:
+                manifest_file_name.append(value)
 
     found_manifest_file = []
     for parent, dirs, files in os.walk(input_dir):
@@ -106,7 +106,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[]):
         logger.warning(f"### Set Package Manager = {', '.join(found_package_manager.keys())}")
     else:
         ret = False
-        logger.info("It cannot find the manifest file.")
+        logger.info("Cannot find the manifest file.")
 
     return ret, found_package_manager, input_dir
 
@@ -175,17 +175,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         logger.error(msg)
         return False, scan_item
 
-    autodetect = True
-    if package_manager:
-        autodetect = False
-        support_packagemanager = list(const.SUPPORT_PACKAE.keys())
-
-        if package_manager not in support_packagemanager:
-            logger.error(f"(-m option) You entered the unsupported package manager({package_manager}).")
-            logger.error("Please enter the supported package manager({0}) with '-m' option."
-                         .format(", ".join(support_packagemanager)))
-            return False, scan_item
-
     if input_dir:
         if os.path.isdir(input_dir):
             os.chdir(input_dir)
@@ -199,20 +188,44 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         os.chdir(input_dir)
     scan_item.set_cover_pathinfo(input_dir, path_to_exclude)
 
+    autodetect = True
     found_package_manager = {}
-    if autodetect:
-        try:
-            ret, found_package_manager, input_dir = find_package_manager(input_dir, abs_path_to_exclude)
+    if package_manager:
+        autodetect = False
+        support_packagemanager = list(const.SUPPORT_PACKAE.keys())
+
+        if package_manager not in support_packagemanager:
+            logger.error(f"(-m option) You entered the unsupported package manager({package_manager}).")
+            logger.error("Please enter the supported package manager({0}) with '-m' option."
+                         .format(", ".join(support_packagemanager)))
+            return False, scan_item
+        manifest_file_name = []
+        value = const.SUPPORT_PACKAE[package_manager]
+        if isinstance(value, list):
+            manifest_file_name.extend(value)
+        else:
+            manifest_file_name.append(value)
+        scan_item.set_cover_comment(f"Manual detect mode (-m {package_manager})")
+    else:
+        manifest_file_name = []
+
+    try:
+        ret, found_package_manager, input_dir = find_package_manager(input_dir, abs_path_to_exclude, manifest_file_name)
+        if ret:
             os.chdir(input_dir)
-        except Exception as e:
+    except Exception as e:
+        if autodetect:
             logger.error(f'Fail to find package manager: {e}')
             ret = False
-        finally:
-            if not ret:
-                logger.warning("Dependency scanning terminated because the package manager was not found.")
+    finally:
+        if not ret:
+            if not autodetect:
+                logger.info('Try to analyze dependency without manifest file. (Manual mode)')
+                found_package_manager[package_manager] = []
+            else:
+                logger.error("Terminated: package manager could not be found.")
                 ret = False
-    else:
-        found_package_manager[package_manager] = ["manual detect ('-m option')"]
+                return False, scan_item
 
     pass_key = 'PASS'
     success_pm = []
@@ -249,7 +262,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                        'and https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
             scan_item.set_cover_comment(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
     else:
-        scan_item.set_cover_comment("No Package manager detected.")
+        if autodetect:
+            scan_item.set_cover_comment("No Package manager detected.")
 
     if ret and graph_path:
         graph_path = os.path.abspath(graph_path)
