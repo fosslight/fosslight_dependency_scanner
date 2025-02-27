@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.1.8 (27/02/2025)
+## Changes
+## 🚀 Features
+
+- Change license scanner to askalono package @dd-jy (#242)
+
+## 🐛 Hotfixes
+
+- Fix the manual option issue @dd-jy (#246)
+- Fix the feature to automatically find manifest file @dd-jy (#243)
+
+## 🔧 Maintenance
+
+- Modify NuGet's API url to lower case @dd-jy (#245)
+- Fix to analyze gradle with only plugin input file @dd-jy (#244)
+
+---
+
 ## v4.1.7 (14/02/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -322,13 +340,3 @@
 ## 🔧 Maintenance
 
 - Add the helm in help meesage @dd-jy (#129)
-
----
-
-## v3.13.0 (22/03/2023)
-## Changes
-## 🚀 Features
-
-- Print the dependencies of each package in comment @dd-jy (#128)
-  - Implemented : gradle(java, android), maven, npm, pypi, pub
-  - Not implemented yet : cocoapods, go, nuget, swift
