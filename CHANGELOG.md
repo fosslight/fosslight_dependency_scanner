@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.9 (17/03/2025)
+## Changes
+## 🚀 Features
+
+- Support pnpm for nodejs project @dd-jy (#247)
+
+---
+
 ## v4.1.8 (27/02/2025)
 ## Changes
 ## 🚀 Features
@@ -324,19 +332,3 @@
 ## 🐛 Hotfixes
 
 - Fix the breaking script when npm ls returns error @dd-jy, @RHeynsZa (#132)
-
----
-
-## v3.13.1 (07/04/2023)
-## Changes
-## 🚀 Features
-
-- Add dependencies of cocoapods, go, nuget package in comment @dd-jy (#130)
-
-## 🐛 Hotfixes
-
-- Add dependencies of cocoapods, go, nuget package in comment @dd-jy (#130)
-
-## 🔧 Maintenance
-
-- Add the helm in help meesage @dd-jy (#129)
