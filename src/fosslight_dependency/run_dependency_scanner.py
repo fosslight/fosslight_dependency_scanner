@@ -100,8 +100,11 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                 if value == f_idx:
                     found_package_manager[key] = [f_idx]
 
+    # both npm and pnpm are detected, remove npm.
+    if 'npm' in found_package_manager and 'pnpm' in found_package_manager:
+        del found_package_manager['npm']
     if len(found_package_manager) >= 1:
-        manifest_file_w_path = map(lambda x: os.path.join(input_dir, x), found_manifest_file)
+        manifest_file_w_path = [os.path.join(input_dir, file) for pkg, files in found_package_manager.items() for file in files]
         logger.info(f"Found the manifest file({','.join(manifest_file_w_path)}) automatically.")
         logger.warning(f"### Set Package Manager = {', '.join(found_package_manager.keys())}")
     else:

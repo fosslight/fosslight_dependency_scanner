@@ -15,6 +15,7 @@ _HELP_MESSAGE_DEPENDENCY = """
         Gradle (Java)
         Maven (Java)
         NPM (Node.js)
+        PNPM (Node.js)
         PIP (Python)
         Pub (Dart with flutter)
         Cocoapods (Swift/Obj-C)
@@ -32,7 +33,7 @@ _HELP_MESSAGE_DEPENDENCY = """
             -v\t\t\t\t    Print the version of the script.
             -m <package_manager>\t    Enter the package manager.
                                         \t(npm, maven, gradle, pypi, pub, cocoapods, android, swift, carthage,
-                                        \t go, nuget, helm, unity, cargo)
+                                        \t go, nuget, helm, unity, cargo, pnpm)
             -p <input_path>\t\t    Enter the path where the script will be run.
             -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
             -o <output_path>\t\t    Output path

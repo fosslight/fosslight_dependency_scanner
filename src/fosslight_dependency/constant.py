@@ -24,10 +24,12 @@ NUGET = 'nuget'
 HELM = 'helm'
 UNITY = 'unity'
 CARGO = 'cargo'
+PNPM = 'pnpm'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
     PYPI: ['requirements.txt', 'setup.py', 'pyproject.toml'],
+    PNPM: 'pnpm-lock.yaml',
     NPM: 'package.json',
     MAVEN: 'pom.xml',
     GRADLE: 'build.gradle',

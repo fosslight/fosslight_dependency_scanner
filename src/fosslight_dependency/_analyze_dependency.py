@@ -20,6 +20,7 @@ from fosslight_dependency.package_manager.Nuget import Nuget
 from fosslight_dependency.package_manager.Helm import Helm
 from fosslight_dependency.package_manager.Unity import Unity
 from fosslight_dependency.package_manager.Cargo import Cargo
+from fosslight_dependency.package_manager.Pnpm import Pnpm
 import fosslight_util.constant as constant
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -60,6 +61,8 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         package_manager = Unity(input_dir, output_dir)
     elif package_manager_name == const.CARGO:
         package_manager = Cargo(input_dir, output_dir)
+    elif package_manager_name == const.PNPM:
+        package_manager = Pnpm(input_dir, output_dir)
     else:
         logger.error(f"Not supported package manager name: {package_manager_name}")
         ret = False
@@ -84,7 +87,10 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
             else:
                 logger.error(f"Failed to open input file: {f_name}")
                 ret = False
-
+        if package_manager_name == const.PNPM:
+            logger.info("Parse oss information for pnpm")
+            package_manager.parse_oss_information_for_pnpm()
+            package_dep_item_list.extend(package_manager.dep_items)
     if ret:
         logger.warning(f"### Complete to analyze: {package_manager_name}")
         if package_manager.cover_comment:
