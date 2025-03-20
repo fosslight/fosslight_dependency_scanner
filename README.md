@@ -31,9 +31,16 @@ In this user guide, you can see how to install the FOSSLight Dependency Scanner 
 </thead>
 <tbody>
   <tr>
-    <td>Javascript</td>
+    <td rowspan="2">Javascript</td>
     <td>Npm</td>
     <td>package.json</td>
+    <td>O</td>
+    <td>O</td>
+    <td>O</td>
+  </tr>
+  <tr>
+    <td>Pnpm</td>
+    <td>pnpm-lock.yaml</td>
     <td>O</td>
     <td>O</td>
     <td>O</td>
