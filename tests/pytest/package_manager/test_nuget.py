@@ -11,7 +11,7 @@ UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_nuget2 -o tests/result/nuget2"
 ]
 
-DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH", ""), "dist", "cli.exe")
 
 
 @pytest.mark.parametrize("input_path, output_path", [
