@@ -30,6 +30,7 @@ jobs:
         sudo npm install -g license-checker
     - name: Run Tox
       run: |
+        tox -e release_flake8
         tox -e run_ubuntu
   build_windows:
     runs-on: windows-latest

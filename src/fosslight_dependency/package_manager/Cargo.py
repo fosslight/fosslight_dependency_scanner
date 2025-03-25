@@ -132,11 +132,11 @@ def get_matched_dependencies(match_id, resolve_node):
                 try:
                     match = re.findall(r'^.*#(\S*)@(\S*)', dep_pkg)
                     dependencies_list.append(f'{match[0][0]}({match[0][1]})')
-                except:
+                except Exception:
                     try:
                         match = re.findall(r'^(\S*)\s(\S*)\s', dep_pkg)
                         dependencies_list.append(f'{match[0][0]}({match[0][1]})')
-                    except:
+                    except Exception:
                         logger.info(f'cannot find name and version for dependencies: {match_id}')
                         pass
             break

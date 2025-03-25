@@ -7,7 +7,7 @@ import pytest
 import subprocess
 
 
-DIST_PATH = os.path.join(os.environ.get("TOX_PATH"), "dist", "cli.exe")
+DIST_PATH = os.path.join(os.environ.get("TOX_PATH", ""), "dist", "cli.exe")
 
 
 @pytest.mark.parametrize("input_path, output_path, extra_args", [
