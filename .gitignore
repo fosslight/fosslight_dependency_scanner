@@ -6,3 +6,4 @@ __pycache__
 build/
 dist/
 cli.spec
+venv/
