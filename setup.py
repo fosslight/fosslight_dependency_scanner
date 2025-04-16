@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     setup(
         name=_PACKAEG_NAME,
-        version='4.1.9',
+        version='4.1.10',
         package_dir={"": "src"},
         packages=find_namespace_packages(where='src'),
         description='FOSSLight Dependency Scanner',
