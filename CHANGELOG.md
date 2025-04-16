@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.10 (16/04/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix to retry virtualenv for pypi @dd-jy (#250)
+
+## 🔧 Maintenance
+
+- Add venv into .gitignore @dd-jy (#249)
+- Change flake8 github action @dd-jy (#248)
+
+---
+
 ## v4.1.9 (17/03/2025)
 ## Changes
 ## 🚀 Features
@@ -320,15 +333,3 @@
 ## 🚀 Features
 
 - Support spdx format result @dd-jy (#136)
-
----
-
-## v3.13.2 (18/04/2023)
-## Changes
-## 🚀 Features
-
-- Add dependencies of swift in comment @dd-jy (#133)
-
-## 🐛 Hotfixes
-
-- Fix the breaking script when npm ls returns error @dd-jy, @RHeynsZa (#132)
