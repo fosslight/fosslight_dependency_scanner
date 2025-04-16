@@ -136,6 +136,23 @@ class Pypi(PackageManager):
             ret = False
             err_msg = e
         finally:
+            try:
+                if self.platform != const.WINDOWS:
+                    ret = True
+                    create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
+
+                    cmd_list = [create_venv_cmd, activate_cmd, install_cmd, deactivate_cmd]
+                    cmd = cmd_separator.join(cmd_list)
+                    cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+                    if cmd_ret.returncode != 0:
+                        ret = False
+                        err_msg = f"return code({cmd_ret.returncode})"
+                    elif cmd_ret.stderr.decode('utf-8').rstrip().startswith('ERROR:'):
+                        ret = False
+                        err_msg = f"stderr msg({cmd_ret.stderr})"
+            except Exception as e:
+                ret = False
+                err_msg = e
             if ret:
                 logger.info(f"It created the temporary virtualenv({venv_path}).")
             else:
