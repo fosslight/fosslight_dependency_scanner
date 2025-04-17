@@ -176,7 +176,7 @@ class Npm(PackageManager):
                 if d[_private]:
                     private_pkg = True
 
-            oss_item.homepage = self.dn_url + oss_init_name
+            oss_item.download_location = self.dn_url + oss_init_name
             dn_loc = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
             dep_item.purl = get_url_to_purl(dn_loc, self.package_manager_name)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
@@ -185,10 +185,10 @@ class Npm(PackageManager):
             elif private_pkg:
                 dn_loc = ''
 
-            oss_item.download_location = dn_loc
+            oss_item.homepage = dn_loc
 
             if private_pkg:
-                oss_item.homepage = oss_item.download_location
+                oss_item.download_location = oss_item.homepage
                 oss_item.comment = 'private'
             if self.package_name == f'{oss_init_name}({oss_item.version})':
                 oss_item.comment = 'root package'
