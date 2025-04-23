@@ -129,7 +129,7 @@ class Pypi(PackageManager):
             if cmd_ret.returncode != 0:
                 ret = False
                 err_msg = f"return code({cmd_ret.returncode})"
-            elif cmd_ret.stderr.decode('utf-8').rstrip().startswith('ERROR:'):
+            elif cmd_ret.stderr.decode('utf-8').strip().lower().startswith('error:'):
                 ret = False
                 err_msg = f"stderr msg({cmd_ret.stderr})"
         except Exception as e:
@@ -137,7 +137,7 @@ class Pypi(PackageManager):
             err_msg = e
         finally:
             try:
-                if self.platform != const.WINDOWS:
+                if (not ret) and (self.platform != const.WINDOWS):
                     ret = True
                     create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
 
@@ -147,14 +147,14 @@ class Pypi(PackageManager):
                     if cmd_ret.returncode != 0:
                         ret = False
                         err_msg = f"return code({cmd_ret.returncode})"
-                    elif cmd_ret.stderr.decode('utf-8').rstrip().startswith('ERROR:'):
+                    elif cmd_ret.stderr.decode('utf-8').strip().lower().startswith('error:'):
                         ret = False
                         err_msg = f"stderr msg({cmd_ret.stderr})"
             except Exception as e:
                 ret = False
                 err_msg = e
             if ret:
-                logger.info(f"It created the temporary virtualenv({venv_path}).")
+                logger.info(f"Created the temporary virtualenv({venv_path}).")
             else:
                 logger.error(f"Failed to create virtualenv: {err_msg}")
 
