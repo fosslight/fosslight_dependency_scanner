@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.11 (23/04/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix to detect pypi install error @dd-jy (#252)
+
+---
+
 ## v4.1.10 (16/04/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -325,11 +333,3 @@
 ## 🐛 Hotfixes
 
 - Fix to use customized output format @dd-jy (#137)
-
----
-
-## v3.13.3 (08/05/2023)
-## Changes
-## 🚀 Features
-
-- Support spdx format result @dd-jy (#136)
