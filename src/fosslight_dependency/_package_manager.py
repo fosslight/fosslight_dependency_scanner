@@ -354,11 +354,12 @@ def check_license_name(license_txt, is_filepath=False):
 
 
 def change_file_mode(filepath, mode=''):
-    current_mode = os.stat(filepath).st_mode
+    current_mode = ''
 
     if not os.path.exists(filepath):
         logger.debug(f"The file{filepath} does not exist.")
     else:
+        current_mode = os.stat(filepath).st_mode
         if not mode:
             new_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         else:

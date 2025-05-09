@@ -134,15 +134,17 @@ class Maven(PackageManager):
 
     def run_maven_plugin(self):
         logger.info('Run maven license scanning plugin with temporary pom.xml')
+        current_mode = ''
         if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
             if self.platform == const.WINDOWS:
                 cmd_mvn = "mvnw.cmd"
             else:
                 cmd_mvn = "./mvnw"
+            current_mode = change_file_mode(cmd_mvn)
         else:
             cmd_mvn = "mvn"
         cmd = f"{cmd_mvn} license:aggregate-download-licenses"
-        current_mode = change_file_mode(cmd_mvn)
+
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error(f"Failed to run maven plugin: {cmd}")
@@ -159,7 +161,8 @@ class Maven(PackageManager):
         except Exception as e:
             logger.error(f"Failed to run '{cmd}': {e}")
             self.set_direct_dependencies(False)
-        change_file_mode(cmd_mvn, current_mode)
+        if current_mode:
+            change_file_mode(cmd_mvn, current_mode)
 
     def create_dep_stack(self, dep_line):
         dep_stack = []
