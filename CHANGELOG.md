@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.12 (09/05/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix bug about mvnw cmd @dd-jy (#253)
+
+---
+
 ## v4.1.11 (23/04/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -325,11 +333,3 @@
 - Update readme @dd-jy (#174)
 - Fix the vulnerability @dd-jy (#171)
 - Change None string to N/A for pub homepage @dd-jy (#139)
-
----
-
-## v3.13.4 (19/05/2023)
-## Changes
-## 🐛 Hotfixes
-
-- Fix to use customized output format @dd-jy (#137)
