@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import urllib.request
 import re
 import shutil
+import time
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
@@ -128,16 +129,29 @@ class Go(PackageManager):
                 homepage_set.append(oss_item.homepage)
 
                 for homepage_i in homepage_set:
-                    try:
-                        res = urllib.request.urlopen(homepage_i)
-                        if res.getcode() == 200:
-                            urlopen_success = True
-                            if homepage_i == oss_item.homepage:
-                                if oss_item.version:
-                                    oss_item.comment = f'Cannot connect {tmp_homepage}, get info from the latest version.'
+                    urlopen_success = False
+                    while True:
+                        try:
+                            res = urllib.request.urlopen(homepage_i)
+                            if res.getcode() == 200:
+                                urlopen_success = True
+                                if homepage_i == oss_item.homepage:
+                                    if oss_item.version:
+                                        oss_item.comment = f'Cannot connect {tmp_homepage}, get info from the latest version.'
+                                break
+                        except urllib.error.HTTPError as e:
+                            if e.code == 429:
+                                logger.info(f"{e} ({homepage_i}), Retrying to connect after 20 seconds")
+                                time.sleep(20)
+                                continue
+                            else:
+                                logger.info(f"{e} ({homepage_i})")
+                                break
+                        except Exception as e:
+                            logger.warning(f"{e} ({homepage_i})")
                             break
-                    except Exception:
-                        continue
+                    if urlopen_success:
+                        break
 
                 if urlopen_success:
                     content = res.read().decode('utf8')
