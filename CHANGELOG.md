@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.13 (09/06/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Retry to get go pkg info when http error @dd-jy (#254)
+
+## 🔧 Maintenance
+
+- Change dn loc and homepage for Npm @dd-jy (#251)
+
+---
+
 ## v4.1.12 (09/05/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -317,19 +329,3 @@
 ## 🔧 Maintenance
 
 - Change the sheet name @dd-jy (#179)
-
----
-
-## v3.13.5 (13/10/2023)
-## Changes
-
-## 🐛 Hotfixes
-
-- Fix the bug of direct/transitive npm packages @dd-jy (#176, #177)
-- Fix the maven direct/transitive comment @dd-jy (#175)
-
-## 🔧 Maintenance
-
-- Update readme @dd-jy (#174)
-- Fix the vulnerability @dd-jy (#171)
-- Change None string to N/A for pub homepage @dd-jy (#139)
