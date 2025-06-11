@@ -118,37 +118,39 @@ class Go(PackageManager):
                 if f'{package_path}({oss_item.version})' in self.relation_tree:
                     dep_item.depends_on_raw = self.relation_tree[f'{package_path}({oss_item.version})']
 
-                homepage_set = []
-                oss_item.homepage = self.dn_url + package_path
-                dep_item.purl = get_url_to_purl(f"{oss_item.homepage}@{oss_item.version}", self.package_manager_name)
+                dn_loc_set = []
+                tmp_dn_loc = self.dn_url + package_path
+                dep_item.purl = get_url_to_purl(f"{tmp_dn_loc}@{oss_item.version}", self.package_manager_name)
                 purl_dict[f'{package_path}({oss_item.version})'] = dep_item.purl
 
                 if oss_origin_version:
-                    tmp_homepage = f"{oss_item.homepage}@{oss_origin_version}"
-                    homepage_set.append(tmp_homepage)
-                homepage_set.append(oss_item.homepage)
+                    oss_item.download_location = f"{tmp_dn_loc}@{oss_origin_version}"
+                    dn_loc_set.append(oss_item.download_location)
+                dn_loc_set.append(tmp_dn_loc)
 
-                for homepage_i in homepage_set:
+                for dn_loc_i in dn_loc_set:
                     urlopen_success = False
                     while True:
                         try:
-                            res = urllib.request.urlopen(homepage_i)
+                            res = urllib.request.urlopen(dn_loc_i)
                             if res.getcode() == 200:
                                 urlopen_success = True
-                                if homepage_i == oss_item.homepage:
+                                if dn_loc_i == tmp_dn_loc:
                                     if oss_item.version:
-                                        oss_item.comment = f'Cannot connect {tmp_homepage}, get info from the latest version.'
+                                        oss_item.comment = (f'Not found {oss_item.download_location}, '
+                                                            'get info from latest version.')
+                                        oss_item.download_location = tmp_dn_loc
                                 break
                         except urllib.error.HTTPError as e:
                             if e.code == 429:
-                                logger.info(f"{e} ({homepage_i}), Retrying to connect after 20 seconds")
+                                logger.info(f"{e} ({dn_loc_i}), Retrying to connect after 20 seconds")
                                 time.sleep(20)
                                 continue
                             else:
-                                logger.info(f"{e} ({homepage_i})")
+                                logger.info(f"{e} ({dn_loc_i})")
                                 break
                         except Exception as e:
-                            logger.warning(f"{e} ({homepage_i})")
+                            logger.warning(f"{e} ({dn_loc_i})")
                             break
                     if urlopen_success:
                         break
@@ -163,9 +165,9 @@ class Go(PackageManager):
 
                     repository_data = bs_obj.find('div', {'class': 'UnitMeta-repo'})
                     if repository_data:
-                        oss_item.download_location = repository_data.find('a')['href']
+                        oss_item.homepage = repository_data.find('a')['href']
                     else:
-                        oss_item.download_location = oss_item.homepage
+                        oss_item.homepage = oss_item.download_location
 
             except Exception as e:
                 logging.warning(f"Fail to parse {package_path} in go mod : {e}")
