@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.1.14 (12/06/2025)
+## Changes
+## 🔧 Maintenance
+
+- Add oss version in npm download location @dd-jy (#256)
+- Switch download location and homepage for go @dd-jy (#255)
+
+---
+
 ## v4.1.13 (09/06/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -313,19 +322,3 @@
 ## 🔧 Maintenance
 
 - Normalize pypi package name (PEP 0503) @dd-jy (#181)
-
----
-
-## v3.13.6 (09/11/2023)
-## Changes
-## 🚀 Features
-
-- Find the top directory where the manifest file is located @dd-jy (#180)
-
-## 🐛 Hotfixes
-
-- Fix the direct/transitive bug @dd-jy (#178)
-
-## 🔧 Maintenance
-
-- Change the sheet name @dd-jy (#179)
