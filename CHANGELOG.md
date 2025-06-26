@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.15 (26/06/2025)
+## Changes
+## 🔧 Maintenance
+
+- Add comment if no manifest but package manager found @dd-jy (#257)
+
+---
+
 ## v4.1.14 (12/06/2025)
 ## Changes
 ## 🔧 Maintenance
@@ -310,15 +318,3 @@
 
 - Fix the typo @dd-jy (#184)
 
-
----
-
-## v3.13.7 (22/12/2023)
-## Changes
-## 🐛 Hotfixes
-
-- Add the exception when the maven subprocess raises the error @dd-jy (#182)
-
-## 🔧 Maintenance
-
-- Normalize pypi package name (PEP 0503) @dd-jy (#181)
