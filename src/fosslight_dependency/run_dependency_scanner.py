@@ -61,6 +61,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                 manifest_file_name.append(value)
 
     found_manifest_file = []
+    suggested_files = []
     for parent, dirs, files in os.walk(input_dir):
         if len(files) < 1:
             continue
@@ -76,6 +77,8 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                 continue
             if file in manifest_file_name:
                 found_manifest_file.append(file)
+            if file in const.SUGGESTED_PACKAGE.keys():
+                suggested_files.append(os.path.join(parent, file))
         for dir in dirs:
             for manifest_f in manifest_file_name:
                 manifest_l = manifest_f.split(os.path.sep)
@@ -111,7 +114,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
         ret = False
         logger.info("Cannot find the manifest file.")
 
-    return ret, found_package_manager, input_dir
+    return ret, found_package_manager, input_dir, suggested_files
 
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
@@ -213,7 +216,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         manifest_file_name = []
 
     try:
-        ret, found_package_manager, input_dir = find_package_manager(input_dir, abs_path_to_exclude, manifest_file_name)
+        ret, found_package_manager, input_dir, suggested_files = find_package_manager(input_dir,
+                                                                                      abs_path_to_exclude,
+                                                                                      manifest_file_name)
         if ret:
             os.chdir(input_dir)
     except Exception as e:
@@ -226,9 +231,18 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 logger.info('Try to analyze dependency without manifest file. (Manual mode)')
                 found_package_manager[package_manager] = []
             else:
-                logger.error("Terminated: package manager could not be found.")
                 ret = False
-                return False, scan_item
+                if suggested_files:
+                    suggested_files_str = []
+                    suggested_files_str.append("Please check the following files and try again:")
+                    for f in suggested_files:
+                        pm = const.SUGGESTED_PACKAGE[f.split(os.path.sep)[-1]]
+                        suggested_files_str.append(f"\t\t\t{f} ({pm}) detected, but {const.SUPPORT_PACKAE[pm]} missing.")
+
+                    suggested_files_str.append("\t\t\tRefer: https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html.")
+                    scan_item.set_cover_comment('\n'.join(suggested_files_str))
+                else:
+                    scan_item.set_cover_comment("No Package manager detected.")
 
     pass_key = 'PASS'
     success_pm = []
@@ -264,9 +278,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             info_msg = 'Check log file(fosslight_log*.txt) ' \
                        'and https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
             scan_item.set_cover_comment(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
-    else:
-        if autodetect:
-            scan_item.set_cover_comment("No Package manager detected.")
 
     if ret and graph_path:
         graph_path = os.path.abspath(graph_path)
@@ -300,12 +311,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             else:
                 logger.warning(f"{err_msg}")
             for i in scan_item.get_cover_comment():
-                logger.info(i)
+                if ret:
+                    logger.info(i)
+                else:
+                    logger.warning(i)
         else:
             ret = False
             logger.error(f"Fail to generate result file. msg:({err_msg})")
 
-    logger.warning("### FINISH ###")
     return ret, scan_item
 
 

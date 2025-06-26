@@ -45,5 +45,11 @@ SUPPORT_PACKAE = {
     CARGO: 'Cargo.toml'
 }
 
+SUGGESTED_PACKAGE = {
+    'Podfile': COCOAPODS,
+    'Package.swift': SWIFT,
+    'Cartfile': CARTHAGE
+}
+
 # default android app name
 default_app_name = 'app'
