@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.16 (01/07/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix nuget api call error @dd-jy (#258)
+
+---
+
 ## v4.1.15 (26/06/2025)
 ## Changes
 ## 🔧 Maintenance
@@ -309,12 +317,3 @@
 
 - Add exception when no dependencies in Chart.yaml @dd-jy (#186)
 - Fix the npm issue (no dependencies in package.json) @dd-jy (#185)
-
----
-
-## v3.13.8 (27/12/2023)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the typo @dd-jy (#184)
-
