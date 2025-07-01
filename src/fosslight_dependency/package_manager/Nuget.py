@@ -54,8 +54,8 @@ class Nuget(PackageManager):
                 oss_item.version = oss_version
 
                 license_name = ''
-                response = requests.get(f'{self.nuget_api_url.lower()}{oss_origin_name.lower()}/ \
-                                        {oss_item.version.lower()}/{oss_origin_name.lower()}.nuspec')
+                response = requests.get(f'{self.nuget_api_url.lower()}{oss_origin_name.lower()}/'
+                                        f'{oss_item.version.lower()}/{oss_origin_name.lower()}.nuspec')
                 if response.status_code == 200:
                     root = fromstring(response.text)
                     xmlns = ''
