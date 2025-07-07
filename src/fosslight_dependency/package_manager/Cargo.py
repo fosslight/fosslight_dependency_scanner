@@ -92,11 +92,12 @@ class Cargo(PackageManager):
 
                 oss_item.name = f"{self.package_manager_name}:{oss_origin_name}"
                 oss_item.version = json_data['version']
-                oss_item.homepage = f"{self.dn_url}{oss_origin_name}"
-                oss_item.download_location = json_data['repository']
-                if oss_item.download_location is None:
-                    oss_item.download_location = oss_item.homepage
-                dep_item.purl = get_url_to_purl(oss_item.homepage, self.package_manager_name, oss_origin_name, oss_item.version)
+                dn_without_ver = f"{self.dn_url}{oss_origin_name}"
+                oss_item.homepage = json_data['repository']
+                if oss_item.homepage is None:
+                    oss_item.homepage = dn_without_ver
+                dep_item.purl = get_url_to_purl(dn_without_ver, self.package_manager_name, oss_origin_name, oss_item.version)
+                oss_item.download_location = f'{dn_without_ver}/{oss_item.version}'
                 purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
                 if json_data['license'] is not None:
                     oss_item.license = json_data['license']
