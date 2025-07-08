@@ -277,6 +277,8 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
                         purl = f'{purl}#{match.group(2)}'
                 elif pkg_manager == 'go':
                     purl = f'{purl_prefix}lang/{match.group(1)}@{match.group(2)}'
+                elif pkg_manager == 'cargo':
+                    purl = f'{purl_prefix}/{oss_name}@{oss_version}'
             else:
                 if pkg_manager == 'swift':
                     if oss_version:
@@ -286,8 +288,6 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
                 elif pkg_manager == 'carthage':
                     if oss_version:
                         purl = f'{purl}@{oss_version}'
-                elif pkg_manager == 'cargo':
-                    purl = f'{purl_prefix}/{oss_name}@{oss_version}'
         except Exception:
             logger.debug('Fail to get purl. So use the link purl({purl}).')
     return purl
