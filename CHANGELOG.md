@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.17 (09/07/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the cargo purl bug @dd-jy (#260)
+
+## 🔧 Maintenance
+
+- Change cargo dn loc with crates.io url @dd-jy (#259)
+
+---
+
 ## v4.1.16 (01/07/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -308,12 +320,3 @@
 
 - Modify the oss info for local package of cocoapods @dd-jy (#189)
 - Use common github actions @bjk7119 (#188)
-
----
-
-## v3.13.9 (05/01/2024)
-## Changes
-## 🐛 Hotfixes
-
-- Add exception when no dependencies in Chart.yaml @dd-jy (#186)
-- Fix the npm issue (no dependencies in package.json) @dd-jy (#185)
