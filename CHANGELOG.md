@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.18 (11/07/2025)
+## Changes
+## 🔧 Maintenance
+
+- Remove the pkg_resources @dd-jy (#261)
+
+---
+
 ## v4.1.17 (09/07/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -303,20 +311,3 @@
 ## 🔧 Maintenance
 
 - Change col name @dd-jy (#193)
-
----
-
-## v3.14.0 (29/02/2024)
-## Changes
-## 🚀 Features
-
-- Fix the pypi direct/transitive bug, Support pyproject.toml @dd-jy (#187)
-
-## 🐛 Hotfixes
-
-- Fix the pypi direct/transitive bug, Support pyproject.toml @dd-jy (#187)
-
-## 🔧 Maintenance
-
-- Modify the oss info for local package of cocoapods @dd-jy (#189)
-- Use common github actions @bjk7119 (#188)
