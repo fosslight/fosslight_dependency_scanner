@@ -7,7 +7,6 @@ import os
 import platform
 import sys
 import argparse
-import pkg_resources
 import warnings
 from datetime import datetime
 import logging
@@ -16,7 +15,7 @@ import fosslight_dependency.constant as const
 from collections import defaultdict
 from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
-from fosslight_dependency._help import print_help_msg
+from fosslight_dependency._help import print_version, print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_formats_v2, write_output_file
 from fosslight_util.oss_item import ScannerItem
@@ -361,9 +360,7 @@ def main():
         print_help_msg()
 
     if args.version:  # -v option
-        cur_version = pkg_resources.get_distribution(_PKG_NAME).version
-        print(f"FOSSLight Dependency Scanner Version: {cur_version}")
-        sys.exit(0)
+        print_version(_PKG_NAME)
 
     if args.manager:  # -m option
         package_manager = ''.join(args.manager)

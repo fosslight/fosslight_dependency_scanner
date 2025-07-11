@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
-from fosslight_util.help import PrintHelpMsg
+from fosslight_util.help import PrintHelpMsg, print_package_version
 
 _HELP_MESSAGE_DEPENDENCY = """
     Usage: fosslight_dependency [option1] <arg1> [option2] <arg2>...
@@ -62,6 +62,10 @@ _HELP_MESSAGE_DEPENDENCY = """
         Optional only for android
             -n <app_name>\t\t    Enter the application directory name where the plugin output file is located(default: app)
         """
+
+
+def print_version(pkg_name: str) -> None:
+    print_package_version(pkg_name, "FOSSLight Dependency Scanner Version:")
 
 
 def print_help_msg():
