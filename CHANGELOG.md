@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.19 (17/07/2025)
+## Changes
+## 🔧 Maintenance
+
+- Update python support ver 3.10-3.12 @dd-jy (#262)
+
+---
+
 ## v4.1.18 (11/07/2025)
 ## Changes
 ## 🔧 Maintenance
@@ -297,17 +305,3 @@
 ## 🐛 Hotfixes
 
 - Fix the fail package manager comment @dd-jy (#196)
-
----
-
-## v3.14.1 (26/04/2024)
-## Changes
-
-## 🚀 Features
-
-- Add detection summary message (cover sheet) @dd-jy (#191)
-- Change manifest col to purl col @dd-jy (#190)
-
-## 🔧 Maintenance
-
-- Change col name @dd-jy (#193)
