@@ -1,6 +1,6 @@
-flake8==3.9.2
-pyinstaller>=6.10.0
-tox>=4.18.1
+flake8
+pyinstaller
+tox
 pytest
 pytest-cov
 pytest-flake8
