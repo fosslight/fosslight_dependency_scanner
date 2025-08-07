@@ -13,7 +13,7 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import check_license_name, get_url_to_purl
+from fosslight_dependency._package_manager import get_url_to_purl, check_license_name
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -26,7 +26,6 @@ class Pypi(PackageManager):
     dn_url = 'https://pypi.org/project/'
     venv_tmp_dir = 'venv_osc_dep_tmp'
     tmp_file_name = "tmp_pip_license_output.json"
-    tmp_pip_license_info_file_name = "tmp_pip_license_info_output.json"
     tmp_deptree_file = "tmp_pipdeptree.json"
     pip_activate_cmd = ''
     pip_deactivate_cmd = ''
@@ -40,9 +39,6 @@ class Pypi(PackageManager):
     def __del__(self):
         if os.path.isfile(self.tmp_file_name):
             os.remove(self.tmp_file_name)
-
-        if os.path.isfile(self.tmp_pip_license_info_file_name):
-            os.remove(self.tmp_pip_license_info_file_name)
 
         shutil.rmtree(self.venv_tmp_dir, ignore_errors=True)
 
@@ -73,7 +69,7 @@ class Pypi(PackageManager):
             ret = self.create_virtualenv()
 
         if ret:
-            ret = self.start_pip_licenses()
+            ret = self.start_pip_inspect()
 
         return ret
 
@@ -103,7 +99,7 @@ class Pypi(PackageManager):
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
             cmd_separator = "&"
         else:
-            create_venv_cmd = f"python3 -m venv {self.venv_tmp_dir}"
+            create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
@@ -117,11 +113,12 @@ class Pypi(PackageManager):
             return False
 
         deactivate_cmd = "deactivate"
+        pip_upgrade_cmd = "pip install --upgrade pip"
 
         self.set_pip_activate_cmd(activate_cmd)
         self.set_pip_deactivate_cmd(deactivate_cmd)
 
-        cmd_list = [create_venv_cmd, activate_cmd, install_cmd, deactivate_cmd]
+        cmd_list = [create_venv_cmd, activate_cmd, install_cmd, pip_upgrade_cmd, deactivate_cmd]
         cmd = cmd_separator.join(cmd_list)
 
         try:
@@ -139,9 +136,9 @@ class Pypi(PackageManager):
             try:
                 if (not ret) and (self.platform != const.WINDOWS):
                     ret = True
-                    create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
+                    create_venv_cmd = f"python3 -m venv {self.venv_tmp_dir}"
 
-                    cmd_list = [create_venv_cmd, activate_cmd, install_cmd, deactivate_cmd]
+                    cmd_list = [create_venv_cmd, activate_cmd, install_cmd, pip_upgrade_cmd, deactivate_cmd]
                     cmd = cmd_separator.join(cmd_list)
                     cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
                     if cmd_ret.returncode != 0:
@@ -160,14 +157,9 @@ class Pypi(PackageManager):
 
         return ret
 
-    def start_pip_licenses(self):
+    def start_pip_inspect(self):
         ret = True
-        pip_licenses = 'pip-licenses'
-        prettytable = 'prettytable'
-        wcwidth = 'wcwidth'
         pipdeptree = 'pipdeptree'
-        pip_licenses_default_options = ' --from=mixed --with-url --format=json --with-license-file'
-        pip_licenses_system_option = ' --with-system -p '
         tmp_pip_list = "tmp_list.txt"
         python_cmd = "python -m"
 
@@ -193,11 +185,21 @@ class Pypi(PackageManager):
         command_list = [activate_command, pip_list_command, deactivate_command]
         command = command_separator.join(command_list)
 
+        exists_pipdeptree = False
         try:
             cmd_ret = subprocess.call(command, shell=True)
             if cmd_ret != 0:
                 ret = False
                 err_msg = f"cmd ret code({cmd_ret})"
+            else:
+                if os.path.isfile(tmp_pip_list):
+                    with open(tmp_pip_list, 'r', encoding='utf-8') as pip_list_file:
+                        for pip_list in pip_list_file.readlines():
+                            pip_list_name = pip_list.split('==')[0]
+                            if pip_list_name == pipdeptree:
+                                exists_pipdeptree = True
+                                break
+                    os.remove(tmp_pip_list)
         except Exception as e:
             ret = False
             err_msg = str(e)
@@ -206,63 +208,11 @@ class Pypi(PackageManager):
                 logger.error(f"Failed to freeze dependencies ({command}): {err_msg})")
                 return False
 
-        exists_pip_licenses = False
-        exists_prettytable = False
-        exists_wcwidth = False
-        pip_license_pkg_list = []
-        uninstall_pkg_list = []
-        exists_pipdeptree = False
-
-        if os.path.isfile(tmp_pip_list):
-            try:
-                with open(tmp_pip_list, 'r', encoding='utf-8') as pip_list_file:
-                    for pip_list in pip_list_file.readlines():
-                        pip_list_name = pip_list.split('==')[0]
-                        if pip_list_name == pip_licenses:
-                            exists_pip_licenses = True
-                        if pip_list_name == prettytable:
-                            exists_prettytable = True
-                        if pip_list_name == wcwidth:
-                            exists_wcwidth = True
-                        if pip_list_name == pipdeptree:
-                            exists_pipdeptree = True
-                os.remove(tmp_pip_list)
-            except Exception as e:
-                logger.error(f"Failed to read freezed package list file: {e}")
-                return False
-        if exists_pip_licenses:
-            pip_license_pkg_list.append(pip_licenses)
-        else:
-            uninstall_pkg_list.append(pip_licenses)
-        if exists_prettytable:
-            pip_license_pkg_list.append(prettytable)
-        else:
-            uninstall_pkg_list.append(prettytable)
-        if exists_wcwidth:
-            pip_license_pkg_list.append(wcwidth)
-        else:
-            uninstall_pkg_list.append(wcwidth)
-
         command_list = []
         command_list.append(activate_command)
-        if not exists_pip_licenses:
-            install_pip_command = f"{python_cmd} pip install {pip_licenses}"
-            command_list.append(install_pip_command)
 
-        pip_licenses_command = f"{pip_licenses}{pip_licenses_default_options} > {self.tmp_file_name}"
-        command_list.append(pip_licenses_command)
-
-        if len(pip_license_pkg_list) != 0:
-            pip_licenses_info_command = f"{pip_licenses}{pip_licenses_default_options}{pip_licenses_system_option}"
-            pip_licenses_info_command += " ".join(pip_license_pkg_list)
-
-            pip_licenses_info_command += f" > {self.tmp_pip_license_info_file_name}"
-            command_list.append(pip_licenses_info_command)
-
-        if len(uninstall_pkg_list) > 0:
-            uninstall_pip_command = f"{python_cmd} pip uninstall -y "
-            uninstall_pip_command += ' '.join(uninstall_pkg_list)
-            command_list.append(uninstall_pip_command)
+        pip_inspect_command = f"{python_cmd} pip inspect > {self.tmp_file_name}"
+        command_list.append(pip_inspect_command)
 
         if not exists_pipdeptree:
             install_deptree_command = f"{python_cmd} pip install {pipdeptree}"
@@ -270,30 +220,37 @@ class Pypi(PackageManager):
             uninstall_deptree_command = f"{python_cmd} pip uninstall -y {pipdeptree}"
         pipdeptree_command = f"{pipdeptree} --json-tree -e 'pipdeptree,pip,wheel,setuptools' > {self.tmp_deptree_file}"
         command_list.append(pipdeptree_command)
-        command_list.append(uninstall_deptree_command)
+
+        if not exists_pipdeptree:
+            command_list.append(uninstall_deptree_command)
+
         command_list.append(deactivate_command)
         command = command_separator.join(command_list)
 
         try:
             cmd_ret = subprocess.call(command, shell=True)
             if cmd_ret == 0:
-                self.append_input_package_list_file(self.tmp_file_name)
-                with open(self.tmp_file_name, 'r', encoding='utf-8') as json_f:
-                    json_data = json.load(json_f)
-                    for d in json_data:
-                        self.total_dep_list.append(re.sub(r"[-_.]+", "-", d['Name']).lower())
-                if len(pip_license_pkg_list) != 0:
-                    self.append_input_package_list_file(self.tmp_pip_license_info_file_name)
-                    with open(self.tmp_pip_license_info_file_name, 'r', encoding='utf-8') as json_f:
-                        json_data = json.load(json_f)
-                        for d in json_data:
-                            self.total_dep_list.append(re.sub(r"[-_.]+", "-", d['Name']).lower())
+                if os.path.exists(self.tmp_file_name):
+                    self.append_input_package_list_file(self.tmp_file_name)
+
+                    with open(self.tmp_file_name, 'r', encoding='utf-8') as json_f:
+                        inspect_data = json.load(json_f)
+                        for package in inspect_data.get('installed', []):
+                            metadata = package.get('metadata', {})
+                            package_name = metadata.get('name', '')
+                            if package_name:
+                                if package_name in ['pip', 'setuptools']:
+                                    continue
+                                self.total_dep_list.append(re.sub(r"[-_.]+", "-", package_name).lower())
+                else:
+                    logger.error(f"pip inspect output file not found: {self.tmp_file_name}")
+                    ret = False
             else:
                 logger.error(f"Failed to run command: {command}")
                 ret = False
         except Exception as e:
             ret = False
-            logger.error(f"Failed to install/uninstall pypi packages: {e}")
+            logger.error(f"Failed to get package information using pip inspect: {e}")
 
         return ret
 
@@ -302,25 +259,70 @@ class Pypi(PackageManager):
         try:
             oss_init_name = ''
             with open(f_name, 'r', encoding='utf-8') as json_file:
-                json_data = json.load(json_file)
+                inspect_data = json.load(json_file)
 
-            for d in json_data:
+            for package in inspect_data.get('installed', []):
                 dep_item = DependencyItem()
                 oss_item = OssItem()
-                oss_init_name = d['Name']
+                metadata = package.get('metadata', {})
+                if not metadata:
+                    continue
+
+                oss_init_name = metadata.get('name', '')
                 oss_init_name = re.sub(r"[-_.]+", "-", oss_init_name).lower()
+                if oss_init_name not in self.total_dep_list:
+                    continue
                 oss_item.name = f"{self.package_manager_name}:{oss_init_name}"
-                license_name = check_UNKNOWN(d['License'])
-                oss_item.homepage = check_UNKNOWN(d['URL'])
-                oss_item.version = d['Version']
+                oss_item.version = metadata.get('version', '')
+
+                # license_expression > license > classifier
+                license_info = check_UNKNOWN(metadata.get('license_expression', ''))
+                if not license_info:
+                    license_info = metadata.get('license', '')
+                    if '\n' in license_info:
+                        license_info = check_UNKNOWN(check_license_name(license_info))
+                if not license_info:
+                    classifiers = metadata.get('classifier', [])
+                    license_classifiers = [c for c in classifiers if c.startswith('License ::')]
+                    if license_classifiers:
+                        license_info_l = []
+                        for license_classifier in license_classifiers:
+                            if license_classifier.startswith('License :: OSI Approved ::'):
+                                license_info_l.append(license_classifier.split('::')[-1].strip())
+                                break
+                        license_info = ','.join(license_info_l)
+                license_name = check_UNKNOWN(license_info)
+                if license_name:
+                    license_name = license_name.replace(';', ',')
+                oss_item.license = license_name
+
                 oss_item.download_location = f"{self.dn_url}{oss_init_name}/{oss_item.version}"
+
+                # project_url 'source' > download_url > project_url 'homepage' > homepage
+                homepage_url = check_UNKNOWN(metadata.get('home_page', ''))
+                download_url = check_UNKNOWN(metadata.get('download_url', ''))
+                project_urls = check_UNKNOWN(metadata.get('project_url', []))
+                if project_urls:
+                    priority_order = ['source', 'repository', 'github', 'code', 'source code', 'homepage']
+                    for priority in priority_order:
+                        for url_entry in project_urls:
+                            url_entry_lower = url_entry.lower()
+                            if url_entry_lower.startswith(priority):
+                                download_url = url_entry.split(', ')[-1]
+                                break
+                        if download_url:
+                            break
+                oss_item.homepage = download_url or homepage_url or f"{self.dn_url}{oss_init_name}"
+
                 dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
                 purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
-                if license_name is not None:
-                    license_name = license_name.replace(';', ',')
-                else:
-                    license_name = check_license_name(d['LicenseFile'], True)
-                oss_item.license = license_name
+
+                direct_url = package.get('direct_url', {})
+                if direct_url:
+                    oss_item.download_location = direct_url.get('url', '')
+                    oss_item.homepage = oss_item.download_location
+                if not package.get('installer', ''):
+                    oss_item.download_location = oss_item.homepage
 
                 if oss_init_name == self.package_name:
                     oss_item.comment = 'root package'
