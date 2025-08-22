@@ -178,7 +178,7 @@ class Npm(PackageManager):
 
             oss_item.download_location = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
             dn_loc = f"{self.dn_url}{oss_init_name}"
-            dep_item.purl = get_url_to_purl(dn_loc, self.package_manager_name)
+            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
             if d[_repository]:
                 dn_loc = d[_repository]
