@@ -31,12 +31,12 @@ class Npm(PackageManager):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
 
     def __del__(self):
-        if os.path.isfile(self.input_file_name):
-            os.remove(self.input_file_name)
+        if os.path.isfile(os.path.join(self.input_dir, self.input_file_name)):
+            os.remove(os.path.join(self.input_dir, self.input_file_name))
         if self.flag_tmp_node_modules:
-            shutil.rmtree(node_modules, ignore_errors=True)
-        if os.path.exists(self.tmp_custom_json):
-            os.remove(self.tmp_custom_json)
+            shutil.rmtree(os.path.join(self.input_dir, node_modules), ignore_errors=True)
+        if os.path.exists(os.path.join(self.input_dir, self.tmp_custom_json)):
+            os.remove(os.path.join(self.input_dir, self.tmp_custom_json))
 
     def run_plugin(self):
         ret = self.start_license_checker()
@@ -122,9 +122,9 @@ class Npm(PackageManager):
                 if len(rel_json) < 1:
                     ret = False
                 else:
-                    self.package_name = f'{rel_json[_name]}({rel_json[_version]})'
+                    self.package_name = f'{rel_json[_name]}({rel_json.get(_version, "")})'
                     if _dependencies in rel_json:
-                        self.parse_rel_dependencies(rel_json[_name], rel_json[_version], rel_json[_dependencies])
+                        self.parse_rel_dependencies(rel_json[_name], rel_json.get(_version, ""), rel_json[_dependencies])
             except Exception as e:
                 ret = False
                 err_msg = e

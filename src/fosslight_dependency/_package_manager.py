@@ -108,6 +108,7 @@ class PackageManager:
                     cmd_gradle = "./gradlew"
             else:
                 ret_task = False
+                self.set_direct_dependencies(False)
                 logger.warning('No gradlew file exists (Skip to find dependencies relationship.).')
                 if ret_plugin:
                     logger.warning('Also it cannot run android-dependency-scanning plugin.')
