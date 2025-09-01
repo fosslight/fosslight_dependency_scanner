@@ -30,7 +30,7 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Depends On']}
-_exclude_dir = ['node_moduels', 'venv']
+_exclude_dir = ['node_modules', 'venv', 'Pods', 'Carthage']
 
 
 def get_terminal_size():
@@ -50,7 +50,7 @@ def paginate_file(file_path):
             input("Press Enter to see the next page...")
 
 
-def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[]):
+def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[], recursive=False):
     ret = True
     if not manifest_file_name:
         for value in const.SUPPORT_PACKAE.values():
@@ -62,9 +62,8 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
     found_manifest_file = []
     suggested_files = []
     for parent, dirs, files in os.walk(input_dir):
-        if len(files) < 1:
-            continue
-        if os.path.basename(parent) in _exclude_dir:
+        parent_parts = parent.split(os.sep)
+        if any(ex_dir in parent_parts for ex_dir in _exclude_dir):
             continue
         if os.path.abspath(parent) in abs_path_to_exclude:
             continue
@@ -75,7 +74,8 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                    for exclude_path in abs_path_to_exclude):
                 continue
             if file in manifest_file_name:
-                found_manifest_file.append(file)
+                path_with_filename = os.path.join(parent, file)
+                found_manifest_file.append(path_with_filename)
             if file in const.SUGGESTED_PACKAGE.keys():
                 suggested_files.append(os.path.join(parent, file))
         for dir in dirs:
@@ -84,31 +84,32 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                 if len(manifest_l) > 1:
                     if manifest_l[0] == dir:
                         if os.path.exists(os.path.join(parent, manifest_f)):
-                            found_manifest_file.append(manifest_f)
-        if len(found_manifest_file) > 0:
-            input_dir = parent
-            break
-    found_package_manager = defaultdict(list)
-    for f_idx in found_manifest_file:
+                            found_manifest_file.append(os.path.join(parent, manifest_f))
+        if not recursive:
+            if len(found_manifest_file) > 0:
+                input_dir = parent
+                break
+
+    found_package_manager = defaultdict(lambda: defaultdict(list))
+    for f_with_path in found_manifest_file:
+        f_name = os.path.basename(f_with_path)
+        dir_path = os.path.dirname(f_with_path)
         for key, value in const.SUPPORT_PACKAE.items():
             if isinstance(value, list):
-                for v in value:
-                    if f_idx == v:
-                        if key in found_package_manager.keys():
-                            found_package_manager[key].append(f_idx)
-                        else:
-                            found_package_manager[key] = [f_idx]
+                if f_name in value:
+                    found_package_manager[key][dir_path].append(f_name)
             else:
-                if value == f_idx:
-                    found_package_manager[key] = [f_idx]
+                if f_name == value:
+                    found_package_manager[key][dir_path].append(f_name)
+    found_package_manager = {k: dict(v) for k, v in found_package_manager.items()}
 
     # both npm and pnpm are detected, remove npm.
-    if 'npm' in found_package_manager and 'pnpm' in found_package_manager:
+    if 'npm' in found_package_manager.keys() and 'pnpm' in found_package_manager.keys():
         del found_package_manager['npm']
     if len(found_package_manager) >= 1:
-        manifest_file_w_path = [os.path.join(input_dir, file) for pkg, files in found_package_manager.items() for file in files]
-        logger.info(f"Found the manifest file({','.join(manifest_file_w_path)}) automatically.")
-        logger.warning(f"### Set Package Manager = {', '.join(found_package_manager.keys())}")
+        log_lines = ["\nDetected Manifest Files automatically"]
+        log_lines = print_package_info(found_package_manager, log_lines)
+        logger.info('\n'.join(log_lines))
     else:
         ret = False
         logger.info("Cannot find the manifest file.")
@@ -116,10 +117,20 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
     return ret, found_package_manager, input_dir, suggested_files
 
 
+def print_package_info(success_pm, log_lines):
+    if success_pm:
+        for pm, dir_dict in success_pm.items():
+            log_lines.append(f"- {pm}:")
+            for path, files in dir_dict.items():
+                file_list = ', '.join(files)
+                log_lines.append(f"  {path}: {file_list}")
+    return log_lines
+
+
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
                            github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
-                           graph_size=(600, 600)):
+                           graph_size=(600, 600), recursive=False):
     global logger
 
     ret = True
@@ -217,9 +228,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     try:
         ret, found_package_manager, input_dir, suggested_files = find_package_manager(input_dir,
                                                                                       abs_path_to_exclude,
-                                                                                      manifest_file_name)
-        if ret:
-            os.chdir(input_dir)
+                                                                                      manifest_file_name,
+                                                                                      recursive)
     except Exception as e:
         if autodetect:
             logger.error(f'Fail to find package manager: {e}')
@@ -228,7 +238,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         if not ret:
             if not autodetect:
                 logger.info('Try to analyze dependency without manifest file. (Manual mode)')
-                found_package_manager[package_manager] = []
+                found_package_manager[package_manager] = {}
             else:
                 ret = False
                 if suggested_files:
@@ -243,40 +253,53 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 else:
                     scan_item.set_cover_comment("No Package manager detected.")
 
-    pass_key = 'PASS'
-    success_pm = []
-    fail_pm = []
+    pass_key = ['PASS']
+    success_pm = defaultdict(lambda: defaultdict(list))
+    fail_pm = defaultdict(lambda: defaultdict(list))
     cover_comment = ''
-    for pm, manifest_file_name in found_package_manager.items():
-        if manifest_file_name == pass_key:
-            continue
-        ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
-                                                                       pip_activate_cmd, pip_deactivate_cmd,
-                                                                       output_custom_dir, app_name, github_token,
-                                                                       manifest_file_name, direct)
-        if ret:
-            success_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
-            scan_item.append_file_items(package_dep_item_list)
-            if pm == const.GRADLE:
-                if const.ANDROID in found_package_manager.keys():
-                    found_package_manager[const.ANDROID] = pass_key
-                    if f"{const.ANDROID} ({', '.join(manifest_file_name)})" in fail_pm:
-                        fail_pm.remove(f"{const.ANDROID} ({', '.join(manifest_file_name)})")
-            elif pm == const.ANDROID:
-                if const.GRADLE in found_package_manager.keys():
-                    found_package_manager[const.GRADLE] = pass_key
-                    if f"{const.GRADLE} ({', '.join(manifest_file_name)})" in fail_pm:
-                        fail_pm.remove(f"{const.GRADLE} ({', '.join(manifest_file_name)})")
-        else:
-            fail_pm.append(f"{pm} ({', '.join(manifest_file_name)})")
+    for pm, manifest_file_name_list in found_package_manager.items():
+        for manifest_dir, manifest_file_name in manifest_file_name_list.items():
+            input_dir = manifest_dir
+            if manifest_file_name == pass_key:
+                continue
+            os.chdir(input_dir)
+            ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
+                                                                           pip_activate_cmd, pip_deactivate_cmd,
+                                                                           output_custom_dir, app_name, github_token,
+                                                                           manifest_file_name, direct)
+            if ret:
+                success_pm[pm][input_dir].extend(manifest_file_name)
+                scan_item.append_file_items(package_dep_item_list)
 
+                dup_pm = None
+                if pm == const.GRADLE and const.ANDROID in found_package_manager:
+                    dup_pm = const.ANDROID
+                elif pm == const.ANDROID and const.GRADLE in found_package_manager:
+                    dup_pm = const.GRADLE
+
+                if dup_pm:
+                    if dup_pm in fail_pm and input_dir in fail_pm[dup_pm]:
+                        fail_pm[dup_pm].pop(input_dir, None)
+                        if not fail_pm[dup_pm]:
+                            fail_pm.pop(dup_pm, None)
+                    else:
+                        found_package_manager[dup_pm][manifest_dir] = pass_key
+            else:
+                fail_pm[pm][input_dir].extend(manifest_file_name)
+
+    success_pm = {k: dict(v) for k, v in success_pm.items()}
+    fail_pm = {k: dict(v) for k, v in fail_pm.items()}
     if len(found_package_manager.keys()) > 0:
         if len(success_pm) > 0:
-            scan_item.set_cover_comment(f"Analyzed Package manager: {', '.join(success_pm)}")
+            log_lines = ["Success to analyze:"]
+            log_lines = print_package_info(success_pm, log_lines)
+            scan_item.set_cover_comment('\n'.join(log_lines))
         if len(fail_pm) > 0:
-            info_msg = 'Check log file(fosslight_log*.txt) ' \
-                       'and https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.'
-            scan_item.set_cover_comment(f"Analysis failed Package manager: {', '.join(fail_pm)} ({info_msg})")
+            log_lines = ["Fail to analyze:"]
+            log_lines = print_package_info(fail_pm, log_lines)
+            scan_item.set_cover_comment('\n'.join(log_lines))
+            scan_item.set_cover_comment('Check log file(fosslight_log*.txt) '
+                                        'and https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.')
 
     if ret and graph_path:
         graph_path = os.path.abspath(graph_path)
@@ -335,6 +358,7 @@ def main():
     graph_path = ''
     graph_size = (600, 600)
     direct = True
+    recursive = False
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-h', '--help', action='store_true', required=False)
@@ -353,6 +377,7 @@ def main():
     parser.add_argument('--graph-size', nargs=2, type=int, metavar=("WIDTH", "HEIGHT"), required=False)
     parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
     parser.add_argument('--notice', action='store_true', required=False)
+    parser.add_argument('-r', '--recursive', action='store_true', required=False)
 
     args = parser.parse_args()
 
@@ -405,10 +430,12 @@ def main():
             paginate_file(source_file)
             shutil.copyfile(source_file, destination_file)
         sys.exit(0)
+    if args.recursive:  # -r option
+        recursive = True
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
                            output_custom_dir, app_name, github_token, format, direct, path_to_exclude,
-                           graph_path, graph_size)
+                           graph_path, graph_size, recursive)
 
 
 if __name__ == '__main__':

@@ -92,11 +92,11 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
             package_manager.parse_oss_information_for_pnpm()
             package_dep_item_list.extend(package_manager.dep_items)
     if ret:
-        logger.warning(f"### Complete to analyze: {package_manager_name}")
+        logger.warning(f"### Complete to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
         if package_manager.cover_comment:
             cover_comment = package_manager.cover_comment
     else:
-        logger.error(f"### Fail to analyze: {package_manager_name}")
+        logger.error(f"### Fail to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
 
     del package_manager
 

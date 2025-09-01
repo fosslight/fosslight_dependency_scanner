@@ -46,6 +46,7 @@ _HELP_MESSAGE_DEPENDENCY = """
             \t\t\t\t\t--graph-path option is required
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
                                 \t\tChoice 'True' or 'False'. (default:True)
+            -r\t\t\t\t    Recursive mode. Scan all subdirectories for manifest files.
             --notice\t\t\t    Print the open source license notice text.
 
         Required only for swift, carthage
