@@ -24,7 +24,7 @@ License: Apache-2.0
 
 Files: requirements.txt
 Copyright: 2021 LG Electronics
-License: LicenseRef-3rd_party_licenses
+License: Apache-2.0
 
 Files: .gitignore
 Copyright: 2021 LG Electronics
