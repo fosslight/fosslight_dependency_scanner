@@ -121,3 +121,8 @@ License: Apache-2.0
 Files: tests/test_mod/*
 Copyright: 2024 junegunn(Junegunn Choi)
 License: MIT
+
+Files: LICENSES/LicenseRef-3rd_party_licenses.txt
+Copyright: NOASSERTION
+License: CC0-1.0
+Comment: This license text is unused
