@@ -154,6 +154,7 @@ class PackageManager:
                     shutil.move(module_gradle_backup, module_build_gradle)
         if os.path.isfile(self.input_file_name):
             logger.info(f'Found {self.input_file_name}, skip to run plugin.')
+            self.set_direct_dependencies(False)
             ret_task = True
         return ret_task
 
