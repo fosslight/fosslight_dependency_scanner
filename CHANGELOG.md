@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.20 (02/09/2025)
+## Changes
+## 🚀 Features
+
+- Support recursive dependency analysis @dd-jy (#264)
+- Update to use pip inspect to get pypi oss info @dd-jy (#263)
+
+## 🐛 Hotfixes
+
+- Fix the android detect mode bug @dd-jy (#266)
+
+---
+
 ## v4.1.19 (17/07/2025)
 ## Changes
 ## 🔧 Maintenance
@@ -293,15 +306,3 @@
 - Fix the issue of adding allDeps task for android @dd-jy (#201)
 - Add the version into unity purl @dd-jy (#198)
 - Fix the issue for go.work (go 1.18 or later) @dd-jy (#199)
-
----
-
-## v3.14.2 (08/05/2024)
-## Changes
-## 🚀 Features
-
-- Support unity package manager @dd-jy (#197)
-
-## 🐛 Hotfixes
-
-- Fix the fail package manager comment @dd-jy (#196)
