@@ -258,34 +258,45 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     fail_pm = defaultdict(lambda: defaultdict(list))
     cover_comment = ''
     for pm, manifest_file_name_list in found_package_manager.items():
-        for manifest_dir, manifest_file_name in manifest_file_name_list.items():
-            input_dir = manifest_dir
-            if manifest_file_name == pass_key:
-                continue
-            os.chdir(input_dir)
+        if not manifest_file_name_list and not autodetect:
             ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
                                                                            pip_activate_cmd, pip_deactivate_cmd,
                                                                            output_custom_dir, app_name, github_token,
-                                                                           manifest_file_name, direct)
+                                                                           [], direct)
             if ret:
-                success_pm[pm][input_dir].extend(manifest_file_name)
+                success_pm[pm][input_dir].extend(['manual mode (-m option)'])
                 scan_item.append_file_items(package_dep_item_list)
-
-                dup_pm = None
-                if pm == const.GRADLE and const.ANDROID in found_package_manager:
-                    dup_pm = const.ANDROID
-                elif pm == const.ANDROID and const.GRADLE in found_package_manager:
-                    dup_pm = const.GRADLE
-
-                if dup_pm:
-                    if dup_pm in fail_pm and input_dir in fail_pm[dup_pm]:
-                        fail_pm[dup_pm].pop(input_dir, None)
-                        if not fail_pm[dup_pm]:
-                            fail_pm.pop(dup_pm, None)
-                    else:
-                        found_package_manager[dup_pm][manifest_dir] = pass_key
             else:
-                fail_pm[pm][input_dir].extend(manifest_file_name)
+                fail_pm[pm][input_dir].extend(['manual mode (-m option)'])
+        else:
+            for manifest_dir, manifest_file_name in manifest_file_name_list.items():
+                input_dir = manifest_dir
+                if manifest_file_name == pass_key:
+                    continue
+                os.chdir(input_dir)
+                ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
+                                                                               pip_activate_cmd, pip_deactivate_cmd,
+                                                                               output_custom_dir, app_name, github_token,
+                                                                               manifest_file_name, direct)
+                if ret:
+                    success_pm[pm][input_dir].extend(manifest_file_name)
+                    scan_item.append_file_items(package_dep_item_list)
+
+                    dup_pm = None
+                    if pm == const.GRADLE and const.ANDROID in found_package_manager:
+                        dup_pm = const.ANDROID
+                    elif pm == const.ANDROID and const.GRADLE in found_package_manager:
+                        dup_pm = const.GRADLE
+
+                    if dup_pm:
+                        if dup_pm in fail_pm and input_dir in fail_pm[dup_pm]:
+                            fail_pm[dup_pm].pop(input_dir, None)
+                            if not fail_pm[dup_pm]:
+                                fail_pm.pop(dup_pm, None)
+                        else:
+                            found_package_manager[dup_pm][manifest_dir] = pass_key
+                else:
+                    fail_pm[pm][input_dir].extend(manifest_file_name)
 
     success_pm = {k: dict(v) for k, v in success_pm.items()}
     fail_pm = {k: dict(v) for k, v in fail_pm.items()}
