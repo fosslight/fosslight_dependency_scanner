@@ -16,7 +16,7 @@ License: Apache-2.0
 
 Files: requirements*.txt
 Copyright: 2021 LG Electronics
-License: Apache-2.0
+License: LicenseRef-3rd_party_licenses
 
 Files: setup.cfg
 Copyright: 2021 LG Electronics
@@ -123,6 +123,6 @@ Copyright: 2024 junegunn(Junegunn Choi)
 License: MIT
 
 Files: LICENSES/LicenseRef-3rd_party_licenses.txt
-Copyright: NOASSERTION
-License: CC0-1.0
-Comment: This license text is unused
+Copyright: 2021 LG Electronics
+License: Apache-2.0
+Comment: Third-party license information file
