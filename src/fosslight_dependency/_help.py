@@ -16,6 +16,7 @@ _HELP_MESSAGE_DEPENDENCY = """
         Maven (Java)
         NPM (Node.js)
         PNPM (Node.js)
+        Yarn (Node.js)
         PIP (Python)
         Pub (Dart with flutter)
         Cocoapods (Swift/Obj-C)
