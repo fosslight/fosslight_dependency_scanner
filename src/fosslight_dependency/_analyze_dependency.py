@@ -35,7 +35,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     if package_manager_name == const.PYPI:
         package_manager = Pypi(input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd)
-    elif package_manager_name == const.NPM:
+    elif package_manager_name == const.NPM or package_manager_name == const.YARN:
         package_manager = Npm(input_dir, output_dir)
     elif package_manager_name == const.MAVEN:
         package_manager = Maven(input_dir, output_dir, output_custom_dir)

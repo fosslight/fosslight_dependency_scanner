@@ -207,6 +207,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     autodetect = True
     found_package_manager = {}
     if package_manager:
+        scan_item.set_cover_comment(f"Manual detect mode (-m {package_manager})")
+        if package_manager == const.YARN:
+            package_manager = const.NPM
         autodetect = False
         support_packagemanager = list(const.SUPPORT_PACKAE.keys())
 
@@ -221,7 +224,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             manifest_file_name.extend(value)
         else:
             manifest_file_name.append(value)
-        scan_item.set_cover_comment(f"Manual detect mode (-m {package_manager})")
     else:
         manifest_file_name = []
 

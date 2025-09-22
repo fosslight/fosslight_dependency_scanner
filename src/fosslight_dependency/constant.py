@@ -25,6 +25,7 @@ HELM = 'helm'
 UNITY = 'unity'
 CARGO = 'cargo'
 PNPM = 'pnpm'
+YARN = 'yarn'
 
 # Supported package name and manifest file
 SUPPORT_PACKAE = {
