@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.21 (23/09/2025)
+## Changes
+## 🚀 Features
+
+- Try to install with yarn if npm failed @soimkim (#267)
+
+---
+
 ## v4.1.20 (02/09/2025)
 ## Changes
 ## 🚀 Features
@@ -296,13 +304,3 @@
 ## 🚀 Features
 
 - Add android-dependency-scanning plugin automatically @dd-jy (#202)
-
----
-
-## v3.14.3 (16/05/2024)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the issue of adding allDeps task for android @dd-jy (#201)
-- Add the version into unity purl @dd-jy (#198)
-- Fix the issue for go.work (go 1.18 or later) @dd-jy (#199)
