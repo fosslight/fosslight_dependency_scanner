@@ -46,12 +46,13 @@ class Maven(PackageManager):
         ret = True
 
         if not os.path.isfile(self.input_file_name):
-            self.is_run_plugin = True
             pom_backup = 'pom.xml_backup'
 
             ret = self.add_plugin_in_pom(pom_backup)
             if ret:
-                self.run_maven_plugin()
+                ret_plugin = self.run_maven_plugin()
+                if ret_plugin:
+                    self.is_run_plugin = True
 
             if os.path.isfile(pom_backup):
                 shutil.move(pom_backup, const.SUPPORT_PACKAE.get(self.package_manager_name))
@@ -133,6 +134,7 @@ class Maven(PackageManager):
             shutil.rmtree(top_path)
 
     def run_maven_plugin(self):
+        ret_plugin = True
         logger.info('Run maven license scanning plugin with temporary pom.xml')
         current_mode = ''
         if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
@@ -148,21 +150,24 @@ class Maven(PackageManager):
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
             logger.error(f"Failed to run maven plugin: {cmd}")
+            ret_plugin = False
 
-        cmd = f"{cmd_mvn} dependency:tree"
-        try:
-            ret_txt = subprocess.check_output(cmd, text=True, shell=True)
-            if ret_txt is not None:
-                self.parse_dependency_tree(ret_txt)
-                self.set_direct_dependencies(True)
-            else:
-                logger.error(f"Failed to run: {cmd}")
+        if ret_plugin:
+            cmd = f"{cmd_mvn} dependency:tree"
+            try:
+                ret_txt = subprocess.check_output(cmd, text=True, shell=True)
+                if ret_txt is not None:
+                    self.parse_dependency_tree(ret_txt)
+                    self.set_direct_dependencies(True)
+                else:
+                    logger.error(f"Failed to run: {cmd}")
+                    self.set_direct_dependencies(False)
+            except Exception as e:
+                logger.error(f"Failed to run '{cmd}': {e}")
                 self.set_direct_dependencies(False)
-        except Exception as e:
-            logger.error(f"Failed to run '{cmd}': {e}")
-            self.set_direct_dependencies(False)
         if current_mode:
             change_file_mode(cmd_mvn, current_mode)
+        return ret_plugin
 
     def create_dep_stack(self, dep_line):
         dep_stack = []

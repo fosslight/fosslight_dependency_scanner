@@ -53,14 +53,8 @@ class Npm(PackageManager):
             self.flag_tmp_node_modules = True
             cmd_ret = subprocess.call(npm_install_cmd, shell=True)
             if cmd_ret != 0:
-                logger.warning(f"{npm_install_cmd} returns an error. Trying yarn as fallback...")
-                yarn_install_cmd = 'yarn install --production --ignore-scripts'
-                cmd_ret = subprocess.call(yarn_install_cmd, shell=True)
-                if cmd_ret != 0:
-                    logger.error(f"Both {npm_install_cmd} and {yarn_install_cmd} failed")
-                    return False
-                else:
-                    logger.info(f"Successfully executed {yarn_install_cmd}")
+                logger.error(f"{npm_install_cmd} failed")
+                return False
 
         # customized json file for obtaining specific items with license-checker
         self.make_custom_json(self.tmp_custom_json)
@@ -115,13 +109,15 @@ class Npm(PackageManager):
         cmd = 'npm ls -a --omit=dev --json -s'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8')
         rel_tree = result.stdout
-        if rel_tree is None:
-            logger.error(f"It returns the error: {cmd}")
-            logger.error(f"No output for {cmd}")
+        if not rel_tree or rel_tree.strip() == '':
+            logger.error(f"No output for {cmd}, stderr: {result.stderr}")
+            ret = False
+        elif result.returncode > 1:
+            logger.error(f"'{cmd}' failed with exit code({result.returncode}), stderr: {result.stderr}")
             ret = False
         if ret:
             if result.returncode == 1:
-                logger.warning(f"'{cmd}' returns error code: {result.stderr}")
+                logger.debug(f"'{cmd}' has warnings: {result.stderr}")
 
             try:
                 rel_json = json.loads(rel_tree)
