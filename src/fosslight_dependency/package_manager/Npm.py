@@ -115,13 +115,15 @@ class Npm(PackageManager):
         cmd = 'npm ls -a --omit=dev --json -s'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8')
         rel_tree = result.stdout
-        if rel_tree is None:
-            logger.error(f"It returns the error: {cmd}")
-            logger.error(f"No output for {cmd}")
+        if not rel_tree or rel_tree.strip() == '':
+            logger.error(f"No output for {cmd}, stderr: {result.stderr}")
+            ret = False
+        elif result.returncode > 1:
+            logger.error(f"'{cmd}' failed with exit code({result.returncode}), stderr: {result.stderr}")
             ret = False
         if ret:
             if result.returncode == 1:
-                logger.warning(f"'{cmd}' returns error code: {result.stderr}")
+                logger.debug(f"'{cmd}' has warnings: {result.stderr}")
 
             try:
                 rel_json = json.loads(rel_tree)

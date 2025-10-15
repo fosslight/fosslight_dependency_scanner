@@ -32,6 +32,7 @@ SUPPORT_PACKAE = {
     PYPI: ['requirements.txt', 'setup.py', 'pyproject.toml'],
     PNPM: 'pnpm-lock.yaml',
     NPM: 'package.json',
+    YARN: 'yarn.lock',
     MAVEN: 'pom.xml',
     GRADLE: 'build.gradle',
     PUB: 'pubspec.yaml',

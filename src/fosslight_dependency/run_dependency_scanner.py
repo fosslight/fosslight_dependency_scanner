@@ -106,6 +106,22 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
     # both npm and pnpm are detected, remove npm.
     if 'npm' in found_package_manager.keys() and 'pnpm' in found_package_manager.keys():
         del found_package_manager['npm']
+    
+    # both npm and yarn are detected, check which one to use based on lock file
+    if 'npm' in found_package_manager.keys() and 'yarn' in found_package_manager.keys():
+        # Remove npm from directories where yarn.lock exists
+        dirs_to_remove_from_npm = []
+        for yarn_dir in found_package_manager['yarn'].keys():
+            if yarn_dir in found_package_manager['npm']:
+                dirs_to_remove_from_npm.append(yarn_dir)
+        
+        for dir_to_remove in dirs_to_remove_from_npm:
+            del found_package_manager['npm'][dir_to_remove]
+        
+        # If npm has no directories left, remove it entirely
+        if not found_package_manager['npm']:
+            del found_package_manager['npm']
+    
     if len(found_package_manager) >= 1:
         log_lines = ["\nDetected Manifest Files automatically"]
         log_lines = print_package_info(found_package_manager, log_lines)
@@ -208,8 +224,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     found_package_manager = {}
     if package_manager:
         scan_item.set_cover_comment(f"Manual detect mode (-m {package_manager})")
-        if package_manager == const.YARN:
-            package_manager = const.NPM
         autodetect = False
         support_packagemanager = list(const.SUPPORT_PACKAE.keys())
 
