@@ -33,11 +33,13 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     ret = True
     package_dep_item_list = []
     cover_comment = ''
+    npm_fallback_to_yarn = False
 
     if package_manager_name == const.PYPI:
         package_manager = Pypi(input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd)
     elif package_manager_name == const.NPM:
         package_manager = Npm(input_dir, output_dir)
+        npm_fallback_to_yarn = True
     elif package_manager_name == const.YARN:
         package_manager = Yarn(input_dir, output_dir)
     elif package_manager_name == const.MAVEN:
@@ -69,7 +71,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     else:
         logger.error(f"Not supported package manager name: {package_manager_name}")
         ret = False
-        return ret, package_dep_item_list
+        return ret, package_dep_item_list, cover_comment, package_manager_name
 
     if manifest_file_name:
         package_manager.set_manifest_file(manifest_file_name)
@@ -77,6 +79,24 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     if direct:
         package_manager.set_direct_dependencies(direct)
     ret = package_manager.run_plugin()
+
+    if not ret and npm_fallback_to_yarn:
+        logger.warning("Npm analysis failed. Attempting to use Yarn as fallback...")
+        del package_manager
+        package_manager = Yarn(input_dir, output_dir)
+        package_manager_name = const.YARN
+
+        if manifest_file_name:
+            package_manager.set_manifest_file(manifest_file_name)
+        if direct:
+            package_manager.set_direct_dependencies(direct)
+
+        ret = package_manager.run_plugin()
+        if ret:
+            logger.info("Successfully switched to Yarn")
+        else:
+            logger.error("Yarn also failed")
+
     if ret:
         if direct:
             package_manager.parse_direct_dependencies()
@@ -103,4 +123,4 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     del package_manager
 
-    return ret, package_dep_item_list, cover_comment
+    return ret, package_dep_item_list, cover_comment, package_manager_name

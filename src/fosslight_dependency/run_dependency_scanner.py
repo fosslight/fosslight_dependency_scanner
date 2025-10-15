@@ -275,33 +275,34 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     cover_comment = ''
     for pm, manifest_file_name_list in found_package_manager.items():
         if not manifest_file_name_list and not autodetect:
-            ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
-                                                                           pip_activate_cmd, pip_deactivate_cmd,
-                                                                           output_custom_dir, app_name, github_token,
-                                                                           [], direct)
+            ret, package_dep_item_list, cover_comment, actual_pm = analyze_dependency(pm, input_dir, output_path,
+                                                                                      pip_activate_cmd, pip_deactivate_cmd,
+                                                                                      output_custom_dir, app_name, github_token,
+                                                                                      [], direct)
             if ret:
-                success_pm[pm][input_dir].extend(['manual mode (-m option)'])
+                success_pm[actual_pm][input_dir].extend(['manual mode (-m option)'])
                 scan_item.append_file_items(package_dep_item_list)
             else:
-                fail_pm[pm][input_dir].extend(['manual mode (-m option)'])
+                fail_pm[actual_pm][input_dir].extend(['manual mode (-m option)'])
         else:
             for manifest_dir, manifest_file_name in manifest_file_name_list.items():
                 input_dir = manifest_dir
                 if manifest_file_name == pass_key:
                     continue
                 os.chdir(input_dir)
-                ret, package_dep_item_list, cover_comment = analyze_dependency(pm, input_dir, output_path,
-                                                                               pip_activate_cmd, pip_deactivate_cmd,
-                                                                               output_custom_dir, app_name, github_token,
-                                                                               manifest_file_name, direct)
+                ret, package_dep_item_list, cover_comment, actual_pm = analyze_dependency(pm, input_dir, output_path,
+                                                                                          pip_activate_cmd, pip_deactivate_cmd,
+                                                                                          output_custom_dir, app_name,
+                                                                                          github_token,
+                                                                                          manifest_file_name, direct)
                 if ret:
-                    success_pm[pm][input_dir].extend(manifest_file_name)
+                    success_pm[actual_pm][input_dir].extend(manifest_file_name)
                     scan_item.append_file_items(package_dep_item_list)
 
                     dup_pm = None
-                    if pm == const.GRADLE and const.ANDROID in found_package_manager:
+                    if actual_pm == const.GRADLE and const.ANDROID in found_package_manager:
                         dup_pm = const.ANDROID
-                    elif pm == const.ANDROID and const.GRADLE in found_package_manager:
+                    elif actual_pm == const.ANDROID and const.GRADLE in found_package_manager:
                         dup_pm = const.GRADLE
 
                     if dup_pm:
@@ -312,7 +313,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                         else:
                             found_package_manager[dup_pm][manifest_dir] = pass_key
                 else:
-                    fail_pm[pm][input_dir].extend(manifest_file_name)
+                    fail_pm[actual_pm][input_dir].extend(manifest_file_name)
 
     success_pm = {k: dict(v) for k, v in success_pm.items()}
     fail_pm = {k: dict(v) for k, v in fail_pm.items()}
