@@ -53,14 +53,8 @@ class Npm(PackageManager):
             self.flag_tmp_node_modules = True
             cmd_ret = subprocess.call(npm_install_cmd, shell=True)
             if cmd_ret != 0:
-                logger.warning(f"{npm_install_cmd} returns an error. Trying yarn as fallback...")
-                yarn_install_cmd = 'yarn install --production --ignore-scripts'
-                cmd_ret = subprocess.call(yarn_install_cmd, shell=True)
-                if cmd_ret != 0:
-                    logger.error(f"Both {npm_install_cmd} and {yarn_install_cmd} failed")
-                    return False
-                else:
-                    logger.info(f"Successfully executed {yarn_install_cmd}")
+                logger.error(f"{npm_install_cmd} failed")
+                return False
 
         # customized json file for obtaining specific items with license-checker
         self.make_custom_json(self.tmp_custom_json)

@@ -19,17 +19,17 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 
 class Yarn(Npm):
-    
+
     def __init__(self, input_dir, output_dir):
         super().__init__(input_dir, output_dir)
         self.package_manager_name = const.YARN
         self.yarn_version = None
-    
+
     def detect_yarn_version(self):
         """Detect Yarn version (1.x = Classic, 2+ = Berry)"""
         if self.yarn_version is not None:
             return self.yarn_version
-            
+
         try:
             result = subprocess.run('yarn -v', shell=True, capture_output=True, text=True, encoding='utf-8')
             if result.returncode == 0:
@@ -47,10 +47,9 @@ class Yarn(Npm):
         license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
         node_modules = 'node_modules'
-        
-        # Detect Yarn version
+
         self.detect_yarn_version()
-        
+
         # For Yarn Berry (2+), check if using PnP mode
         is_pnp_mode = False
         if self.yarn_version and self.yarn_version >= 2:
@@ -58,21 +57,20 @@ class Yarn(Npm):
             if os.path.exists('.pnp.cjs') or os.path.exists('.pnp.js'):
                 is_pnp_mode = True
                 logger.info("Detected Yarn Berry with PnP mode")
-        
+
         if not os.path.isdir(node_modules):
-            logger.info(f"node_modules directory does not exist.")
+            logger.info("node_modules directory does not exist.")
             self.flag_tmp_node_modules = True
-            
+
             # For PnP mode, try to force node_modules creation
             if is_pnp_mode:
                 logger.info("Attempting to create node_modules for PnP project...")
-                # Try setting nodeLinker to node-modules temporarily
                 yarn_install_cmd = 'YARN_NODE_LINKER=node-modules yarn install --production --ignore-scripts'
                 logger.info(f"Executing: {yarn_install_cmd}")
             else:
                 yarn_install_cmd = 'yarn install --production --ignore-scripts'
                 logger.info(f"Executing: {yarn_install_cmd}")
-            
+
             cmd_ret = subprocess.call(yarn_install_cmd, shell=True)
             if cmd_ret != 0:
                 logger.error(f"{yarn_install_cmd} failed")
