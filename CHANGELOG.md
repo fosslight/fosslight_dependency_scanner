@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.22 (16/10/2025)
+## Changes
+## 🚀 Features
+
+- Support yarn dependency tree @dd-jy (#268)
+
+## 🔧 Maintenance
+
+- Remove wheel pkg in pypi oss list @dd-jy (#269)
+
+---
+
 ## v4.1.21 (23/09/2025)
 ## Changes
 ## 🚀 Features
@@ -296,11 +308,3 @@
 ## 🔧 Maintenance
 
 - Change Package URL col name @dd-jy (#203)
-
----
-
-## v3.15.0 (22/05/2024)
-## Changes
-## 🚀 Features
-
-- Add android-dependency-scanning plugin automatically @dd-jy (#202)
