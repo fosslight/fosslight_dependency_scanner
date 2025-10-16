@@ -239,7 +239,7 @@ class Pypi(PackageManager):
                             metadata = package.get('metadata', {})
                             package_name = metadata.get('name', '')
                             if package_name:
-                                if package_name in ['pip', 'setuptools']:
+                                if package_name in ['pip', 'setuptools', 'wheel']:
                                     continue
                                 self.total_dep_list.append(re.sub(r"[-_.]+", "-", package_name).lower())
                 else:
