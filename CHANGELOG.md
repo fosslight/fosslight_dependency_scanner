@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.23 (12/11/2025)
+## Changes
+## 🐛 Hotfixes
+
+- Distinguish flutter sdk in package list @dd-jy (#270)
+
+---
+
 ## v4.1.22 (16/10/2025)
 ## Changes
 ## 🚀 Features
@@ -296,15 +304,3 @@
 ## v3.15.2 (14/06/2024)
 ## Changes
 - Change depends on to purl @dd-jy (#195)
-
----
-
-## v3.15.1 (10/06/2024)
-## Changes
-## 🚀 Features
-
-- Supports for excluding paths @SeongjunJo (#200)
-
-## 🔧 Maintenance
-
-- Change Package URL col name @dd-jy (#203)
