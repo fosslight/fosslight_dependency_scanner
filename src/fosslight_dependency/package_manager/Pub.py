@@ -131,6 +131,9 @@ class Pub(PackageManager):
                     oss_item.homepage = ''
                 oss_item.download_location = f"{self.dn_url}{oss_origin_name}/versions/{oss_item.version}"
                 dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+                if json_data['isSdk']:
+                    oss_item.download_location = json_data['repository'] or json_data['homepage'] or ''
+                    oss_item.comment = 'SDK'
                 purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
                 license_txt = json_data['license']
                 if license_txt is not None:
