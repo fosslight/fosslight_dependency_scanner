@@ -15,6 +15,7 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl, change_file_mode
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -246,6 +247,10 @@ class Maven(PackageManager):
                     if key_license.findtext("name") is not None:
                         license_names.append(key_license.findtext("name").replace(",", ""))
                 oss_item.license = ', '.join(license_names)
+            if not oss_item.license:
+                license_names = get_license_from_pom(groupid, artifactid, version)
+                if license_names:
+                    oss_item.license = license_names
 
             dep_key = f"{oss_item.name}({version})"
 
