@@ -9,6 +9,7 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -55,6 +56,13 @@ class Android(PackageManager):
                         oss_item.download_location, oss_item.homepage = split_str[:7]
                 else:
                     continue
+                if not oss_item.license:
+                    license_names = get_license_from_pom(oss_item.name.split(':')[0],
+                                                         oss_item.name.split(':')[1],
+                                                         oss_item.version)
+                    if license_names:
+                        oss_item.license = license_names
+
                 dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
                 purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
 

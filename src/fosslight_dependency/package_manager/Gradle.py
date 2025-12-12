@@ -11,6 +11,7 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -69,6 +70,10 @@ class Gradle(PackageManager):
                 oss_item.license = ', '.join(license_names)
             except Exception:
                 logger.info("Cannot find the license name")
+            if not oss_item.license:
+                license_names = get_license_from_pom(group_id, artifact_id, oss_ini_version)
+                if license_names:
+                    oss_item.license = license_names
 
             if used_filename or group_id == "":
                 oss_item.download_location = 'Unknown'
