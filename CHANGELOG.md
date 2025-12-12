@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.24 (12/12/2025)
+## Changes
+## 🔧 Maintenance
+
+- Add to get license from pom additionally @dd-jy (#271)
+
+---
+
 ## v4.1.23 (12/11/2025)
 ## Changes
 ## 🐛 Hotfixes
@@ -298,9 +306,3 @@
 ## 🐛 Hotfixes
 
 - Change to print depends on with purl @dd-jy (#204)
-
----
-
-## v3.15.2 (14/06/2024)
-## Changes
-- Change depends on to purl @dd-jy (#195)
