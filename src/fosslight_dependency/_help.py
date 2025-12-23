@@ -3,8 +3,9 @@
 # Copyright (c) 2021 LG Electronics Inc.
 # SPDX-License-Identifier: Apache-2.0
 from fosslight_util.help import PrintHelpMsg, print_package_version
+from fosslight_util.output_format import SUPPORT_FORMAT
 
-_HELP_MESSAGE_DEPENDENCY = """
+_HELP_MESSAGE_DEPENDENCY = f"""
     Usage: fosslight_dependency [option1] <arg1> [option2] <arg2>...
 
     FOSSLight Dependency Scanner is the tool that supports the analysis of dependencies for multiple package managers.
@@ -39,10 +40,11 @@ _HELP_MESSAGE_DEPENDENCY = """
             -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
-            -f <format> [<format> ...]\t    Output formats (excel, csv, opossum, yaml, spdx-tag, spdx-yaml, spdx-json, spdx-xml)
-        \t\t\t\t    Multiple formats can be specified separated by space.
+            -f <format> [<format> ...]\t    Output formats
+            \t\t\t\t    \t({', '.join(SUPPORT_FORMAT)})
+            \t\t\t\t    Multiple formats can be specified separated by space.
             --graph-path <save_path> \t    Enter the path where the graph image will be saved
-            \t\t\t\t\t(ex. /your/directory/path/filename.{pdf, jpg, png}) (recommend pdf extension)
+            \t\t\t\t\t(ex. /your/directory/path/filename.[pdf, jpg, png]) (recommend pdf extension)
             --graph-size <width> <height>   Enter the size of the graph image (The size unit is pixels)
             \t\t\t\t\t--graph-path option is required
             --direct\t\t\t    Print the direct/transitive dependency type in comment.
