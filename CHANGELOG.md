@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.25 (24/12/2025)
+## Changes
+## 🔧 Maintenance
+
+- Update supported format @dd-jy (#272)
+
+---
+
 ## v4.1.24 (12/12/2025)
 ## Changes
 ## 🔧 Maintenance
@@ -294,15 +302,3 @@
 
 - Fix the pub encoding issue @dd-jy (#207)
 - Fix the pub_deps.json parsing issue @dd-jy (#206)
-
----
-
-## v3.15.3 (20/06/2024)
-## Changes
-## 🚀 Features
-
-- Print external-index-url in comment @dd-jy (#205)
-
-## 🐛 Hotfixes
-
-- Change to print depends on with purl @dd-jy (#204)
