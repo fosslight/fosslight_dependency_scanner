@@ -60,6 +60,7 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                 manifest_file_name.append(value)
 
     found_manifest_file = []
+    found_manifest_set = set()
     suggested_files = []
     for parent, dirs, files in os.walk(input_dir):
         parent_parts = parent.split(os.sep)
@@ -74,17 +75,30 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                    for exclude_path in abs_path_to_exclude):
                 continue
             if file in manifest_file_name:
-                path_with_filename = os.path.join(parent, file)
-                found_manifest_file.append(path_with_filename)
+                candidate = os.path.join(parent, file)
+                norm_candidate = os.path.normpath(candidate)
+                if norm_candidate not in found_manifest_set:
+                    found_manifest_set.add(norm_candidate)
+                    found_manifest_file.append(candidate)
+            for manifest_f in manifest_file_name:
+                candidate = os.path.join(parent, manifest_f)
+                norm_candidate = os.path.normpath(candidate)
+                if os.path.exists(candidate) and norm_candidate not in found_manifest_set:
+                    found_manifest_set.add(norm_candidate)
+                    found_manifest_file.append(candidate)
             if file in const.SUGGESTED_PACKAGE.keys():
                 suggested_files.append(os.path.join(parent, file))
+
         for dir in dirs:
             for manifest_f in manifest_file_name:
                 manifest_l = manifest_f.split(os.path.sep)
-                if len(manifest_l) > 1:
-                    if manifest_l[0] == dir:
-                        if os.path.exists(os.path.join(parent, manifest_f)):
-                            found_manifest_file.append(os.path.join(parent, manifest_f))
+                if len(manifest_l) > 1 and manifest_l[0] == dir:
+                    candidate = os.path.join(parent, manifest_f)
+                    norm_candidate = os.path.normpath(candidate)
+                    if os.path.exists(candidate) and norm_candidate not in found_manifest_set:
+                        found_manifest_set.add(norm_candidate)
+                        found_manifest_file.append(candidate)
+
         if not recursive:
             if len(found_manifest_file) > 0:
                 input_dir = parent
@@ -95,12 +109,22 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
         f_name = os.path.basename(f_with_path)
         dir_path = os.path.dirname(f_with_path)
         for key, value in const.SUPPORT_PACKAE.items():
-            if isinstance(value, list):
-                if f_name in value:
-                    found_package_manager[key][dir_path].append(f_name)
-            else:
-                if f_name == value:
-                    found_package_manager[key][dir_path].append(f_name)
+            manifest_patterns = value if isinstance(value, list) else [value]
+
+            for pattern in manifest_patterns:
+                if os.path.sep not in pattern:
+                    if f_name == pattern:
+                        if pattern not in found_package_manager[key][dir_path]:
+                            found_package_manager[key][dir_path].append(pattern)
+                else:
+                    rel_dir, rel_file = os.path.split(pattern)
+                    expected_path = os.path.join(dir_path, rel_file)
+
+                    if f_name == rel_file:
+                        candidate = os.path.join(os.path.dirname(dir_path), rel_dir, rel_file) if rel_dir else expected_path
+                        if os.path.normpath(candidate) == os.path.normpath(f_with_path):
+                            if pattern not in found_package_manager[key][dir_path]:
+                                found_package_manager[key][dir_path].append(pattern)
     found_package_manager = {k: dict(v) for k, v in found_package_manager.items()}
 
     # both npm and pnpm are detected, remove npm.
