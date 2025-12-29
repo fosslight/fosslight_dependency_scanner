@@ -157,10 +157,12 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
     return ret, found_package_manager, input_dir, suggested_files
 
 
-def print_package_info(success_pm, log_lines):
-    if success_pm:
-        for pm, dir_dict in success_pm.items():
-            log_lines.append(f"- {pm}:")
+def print_package_info(pm, log_lines, status=''):
+    if pm:
+        if status:
+            status = f"[{status}] "
+        for pm, dir_dict in pm.items():
+            log_lines.append(f"- {status} {pm}:")
             for path, files in dir_dict.items():
                 file_list = ', '.join(files)
                 log_lines.append(f"  {path}: {file_list}")
@@ -342,16 +344,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     success_pm = {k: dict(v) for k, v in success_pm.items()}
     fail_pm = {k: dict(v) for k, v in fail_pm.items()}
     if len(found_package_manager.keys()) > 0:
+        log_lines = ["Dependency Analysis Summary"]
         if len(success_pm) > 0:
-            log_lines = ["Success to analyze:"]
-            log_lines = print_package_info(success_pm, log_lines)
-            scan_item.set_cover_comment('\n'.join(log_lines))
+            log_lines = print_package_info(success_pm, log_lines, 'Success')
         if len(fail_pm) > 0:
-            log_lines = ["Fail to analyze:"]
-            log_lines = print_package_info(fail_pm, log_lines)
-            scan_item.set_cover_comment('\n'.join(log_lines))
-            scan_item.set_cover_comment('Check log file(fosslight_log*.txt) '
-                                        'and https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.')
+            log_lines = print_package_info(fail_pm, log_lines, 'Fail')
+            log_lines.append('If analysis fails, see fosslight_log*.txt and the prerequisite guide: '
+                             'https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.')
+        scan_item.set_cover_comment('\n'.join(log_lines))
 
     if ret and graph_path:
         graph_path = os.path.abspath(graph_path)
