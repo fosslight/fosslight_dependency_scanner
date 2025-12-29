@@ -369,3 +369,29 @@ def change_file_mode(filepath, mode=''):
         os.chmod(filepath, new_mode)
         logger.debug(f"File mode of {filepath} has been changed to {oct(new_mode)}.")
     return current_mode
+
+
+def deduplicate_dep_items(dep_items):
+    if not dep_items:
+        return dep_items
+
+    unique_items = []
+    seen = set()
+
+    for item in dep_items:
+        first_oss = item.oss_items[0] if getattr(item, "oss_items", None) else None
+        oss_name = getattr(first_oss, "name", None) if first_oss else None
+        oss_ver = getattr(first_oss, "version", None) if first_oss else None
+        comment = getattr(first_oss, "comment", None) if first_oss else None
+
+        depends_on = None
+        if getattr(item, "depends_on", None):
+            depends_on = tuple(sorted(item.depends_on))
+
+        key = (getattr(item, "purl", None), oss_name, oss_ver, comment, depends_on)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_items.append(item)
+
+    return unique_items
