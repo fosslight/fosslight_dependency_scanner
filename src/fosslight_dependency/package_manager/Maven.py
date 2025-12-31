@@ -255,10 +255,11 @@ class Maven(PackageManager):
             dep_key = f"{oss_item.name}({version})"
 
             if self.direct_dep:
-                if dep_key in self.direct_dep_list:
-                    oss_item.comment = 'direct'
-                else:
-                    oss_item.comment = 'transitive'
+                if len(self.direct_dep_list) > 0:
+                    if dep_key in self.direct_dep_list:
+                        oss_item.comment = 'direct'
+                    else:
+                        oss_item.comment = 'transitive'
                 try:
                     if dep_key in self.relation_tree:
                         dep_item.depends_on_raw = self.relation_tree[dep_key]
