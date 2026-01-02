@@ -37,7 +37,9 @@ _HELP_MESSAGE_DEPENDENCY = f"""
                                         \t(npm, maven, gradle, pypi, pub, cocoapods, android, swift, carthage,
                                         \t go, nuget, helm, unity, cargo, pnpm, yarn)
             -p <input_path>\t\t    Enter the path where the script will be run.
-            -e <exclude_path>\t\t    Enter the path where the analysis will not be performed.
+            -e <exclude_path>\t\t    Enter the path where the analysis will not be performed (files and directories).
+            \t\t\t\t    * IMPORTANT: Always wrap patterns in double quotes ("") to avoid shell expansion.
+            \t\t\t\t      Example) fosslight_dependency -e "test/abc.py" "*.jar"
             -o <output_path>\t\t    Output path
             \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
             -f <format> [<format> ...]\t    Output formats
