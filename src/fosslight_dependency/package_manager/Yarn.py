@@ -121,24 +121,33 @@ class Yarn(Npm):
             package_path = d['path']
 
             private_pkg = False
-            if _private in d:
-                if d[_private]:
-                    private_pkg = True
+            if _private in d and d[_private]:
+                private_pkg = True
 
-            oss_item.download_location = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
-            dn_loc = f"{self.dn_url}{oss_init_name}"
-            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+            oss_item.download_location = ''
+
+            npm_dl_url = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
+            npm_home_url = f"{self.dn_url}{oss_init_name}"
+            dep_item.purl = get_url_to_purl(npm_dl_url, self.package_manager_name)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
-            if d[_repository]:
-                dn_loc = d[_repository]
-            elif private_pkg:
-                dn_loc = ''
 
-            oss_item.homepage = dn_loc
-
+            repo_url = d[_repository] if d[_repository] else ''
             if private_pkg:
+                oss_item.homepage = repo_url or ''
                 oss_item.download_location = oss_item.homepage
                 oss_item.comment = 'private'
+            else:
+                npm_url_exists = False
+                if self._network_available is True:
+                    npm_url_exists = self._npm_url_exists(oss_init_name, oss_item.version)
+
+                if self._network_available and not npm_url_exists:
+                    oss_item.homepage = repo_url or ""
+                    oss_item.download_location = oss_item.homepage
+                else:
+                    oss_item.homepage = repo_url or npm_home_url
+                    oss_item.download_location = npm_dl_url
+
             if self.package_name == f'{oss_init_name}({oss_item.version})':
                 oss_item.comment = 'root package'
             elif self.direct_dep and len(self.relation_tree) > 0:

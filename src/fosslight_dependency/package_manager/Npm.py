@@ -9,6 +9,7 @@ import subprocess
 import json
 import shutil
 import re
+import requests
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
@@ -26,9 +27,11 @@ class Npm(PackageManager):
     input_file_name = 'tmp_npm_license_output.json'
     tmp_custom_json = 'custom.json'
     flag_tmp_node_modules = False
+    _network_available = False
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self._check_network_available()
 
     def __del__(self):
         if os.path.isfile(os.path.join(self.input_dir, self.input_file_name)):
@@ -174,24 +177,33 @@ class Npm(PackageManager):
             package_path = d['path']
 
             private_pkg = False
-            if _private in d:
-                if d[_private]:
-                    private_pkg = True
+            if _private in d and d[_private]:
+                private_pkg = True
 
-            oss_item.download_location = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
-            dn_loc = f"{self.dn_url}{oss_init_name}"
-            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
+            oss_item.download_location = ''
+
+            npm_dl_url = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
+            npm_home_url = f"{self.dn_url}{oss_init_name}"
+            dep_item.purl = get_url_to_purl(npm_dl_url, self.package_manager_name)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
-            if d[_repository]:
-                dn_loc = d[_repository]
-            elif private_pkg:
-                dn_loc = ''
 
-            oss_item.homepage = dn_loc
-
+            repo_url = d[_repository] if d[_repository] else ''
             if private_pkg:
+                oss_item.homepage = repo_url or ''
                 oss_item.download_location = oss_item.homepage
                 oss_item.comment = 'private'
+            else:
+                npm_url_exists = False
+                if self._network_available is True:
+                    npm_url_exists = self._npm_url_exists(oss_init_name)
+
+                if self._network_available and not npm_url_exists:
+                    oss_item.homepage = repo_url or ""
+                    oss_item.download_location = oss_item.homepage
+                else:
+                    oss_item.homepage = repo_url or npm_home_url
+                    oss_item.download_location = npm_dl_url
+
             if self.package_name == f'{oss_init_name}({oss_item.version})':
                 oss_item.comment = 'root package'
             elif self.direct_dep and len(self.relation_tree) > 0:
@@ -220,6 +232,25 @@ class Npm(PackageManager):
         if self.direct_dep:
             self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
         return
+
+    def _check_network_available(self) -> bool:
+        test_url = 'https://registry.npmjs.org/'
+        try:
+            resp = requests.head(test_url, timeout=3, allow_redirects=True)
+            self._network_available = resp.status_code < 400
+        except Exception:
+            self._network_available = False
+        return self._network_available
+
+    def _npm_url_exists(self, package_name: str) -> bool:
+        url = f"https://registry.npmjs.org/{package_name}"
+        try:
+            resp = requests.head(url, timeout=3, allow_redirects=True)
+            if resp.status_code == 405:
+                resp = requests.get(url, timeout=3, allow_redirects=True)
+            return resp.status_code < 400
+        except Exception:
+            return False
 
 
 def check_multi_license(license_name, manifest_file_path):
