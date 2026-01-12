@@ -6,6 +6,7 @@
 import os
 import logging
 import fosslight_dependency.constant as const
+from fosslight_dependency._package_manager import deduplicate_dep_items
 from fosslight_dependency.package_manager.Pypi import Pypi
 from fosslight_dependency.package_manager.Npm import Npm
 from fosslight_dependency.package_manager.Yarn import Yarn
@@ -104,16 +105,19 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         for f_name in package_manager.input_package_list_file:
             logger.info(f"Parse oss information with file: {f_name}")
 
-            if os.path.isfile(f_name):
+            file_path = os.path.join(input_dir, f_name) if not os.path.isabs(f_name) else f_name
+            if os.path.isfile(file_path):
                 package_manager.parse_oss_information(f_name)
                 package_dep_item_list.extend(package_manager.dep_items)
             else:
-                logger.error(f"Failed to open input file: {f_name}")
+                logger.error(f"Failed to open input file: {file_path}")
                 ret = False
         if package_manager_name == const.PNPM:
             logger.info("Parse oss information for pnpm")
             package_manager.parse_oss_information_for_pnpm()
             package_dep_item_list.extend(package_manager.dep_items)
+        if package_dep_item_list:
+            package_dep_item_list = deduplicate_dep_items(package_dep_item_list)
     if ret:
         logger.warning(f"### Complete to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
         if package_manager.cover_comment:

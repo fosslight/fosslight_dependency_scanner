@@ -6,6 +6,7 @@
 import logging
 import re
 import os
+import subprocess
 from defusedxml.ElementTree import parse, fromstring
 import json
 import requests
@@ -24,30 +25,140 @@ class Nuget(PackageManager):
 
     dn_url = "https://nuget.org/packages/"
     packageReference = False
+    directory_packages_props = 'Directory.Packages.props'
     nuget_api_url = 'https://api.nuget.org/v3-flatcontainer/'
     dotnet_ver = []
+    _exclude_dirs = {"test", "tests", "sample", "samples", "example", "examples"}
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
 
         for manifest_i in const.SUPPORT_PACKAE.get(self.package_manager_name):
-            if os.path.isfile(manifest_i):
-                self.append_input_package_list_file(manifest_i)
+            if os.path.exists(os.path.basename(manifest_i)):
+                self.append_input_package_list_file(os.path.basename(manifest_i))
                 if manifest_i != 'packages.config':
                     self.packageReference = True
 
+    def run_plugin(self):
+        ret = True
+        directory_packages_props_path = os.path.join(self.input_dir, self.directory_packages_props)
+        if not os.path.isfile(directory_packages_props_path):
+            return ret
+
+        logger.info(f"Found {self.directory_packages_props}. Using NuGet CPM flow.")
+        self.packageReference = True
+
+        has_any_assets = False
+        for root, dirs, files in os.walk(self.input_dir):
+            rel_root = os.path.relpath(root, self.input_dir)
+            parts = rel_root.split(os.sep) if rel_root != os.curdir else []
+            if any(p.lower() in self._exclude_dirs for p in parts):
+                continue
+            assets_candidate = os.path.join(root, 'obj', 'project.assets.json')
+            if os.path.isfile(assets_candidate):
+                has_any_assets = True
+                break
+
+        if not has_any_assets:
+            logger.info("No project.assets.json found. Running 'dotnet restore'...")
+            try:
+                result = subprocess.run(
+                    ['dotnet', 'restore'],
+                    cwd=self.input_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+                if result.returncode != 0:
+                    logger.warning(f"'dotnet restore' failed with return code {result.returncode}")
+                    if result.stderr:
+                        logger.warning(result.stderr)
+                    return False
+            except FileNotFoundError:
+                logger.error("'dotnet' command not found. Please install .NET SDK.")
+                return False
+            except subprocess.TimeoutExpired:
+                logger.warning("'dotnet restore' timed out.")
+                return False
+            except Exception as e:
+                logger.warning(f"Failed to run 'dotnet restore': {e}")
+                return False
+
+        self.project_dirs = []
+        found_projects = False
+
+        for root, dirs, files in os.walk(self.input_dir):
+            rel_root = os.path.relpath(root, self.input_dir)
+            parts = rel_root.split(os.sep) if rel_root != os.curdir else []
+            if any(p.lower() in self._exclude_dirs for p in parts):
+                continue
+            assets_json = os.path.join(root, 'obj', 'project.assets.json')
+            if os.path.isfile(assets_json):
+                found_projects = True
+
+                rel_path = os.path.relpath(assets_json, self.input_dir)
+                logger.info(f"Found project.assets.json at: {rel_path}")
+
+                if rel_path not in self.input_package_list_file:
+                    self.append_input_package_list_file(rel_path)
+
+                project_dir = os.path.dirname(assets_json)
+                if project_dir.endswith(os.sep + 'obj'):
+                    project_dir = project_dir[: -len(os.sep + 'obj')]
+
+                if project_dir and project_dir not in self.project_dirs:
+                    self.project_dirs.append(project_dir)
+
+        if not found_projects:
+            logger.warning(
+                "Directory.Packages.props found and 'dotnet restore' completed, "
+                "but no obj/project.assets.json files were discovered."
+            )
+
+        return ret
+
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
-        with open(f_name, 'r', encoding='utf8') as input_fp:
-            purl_dict = {}
+        if f_name == self.directory_packages_props:
+            return
+
+        relation_tree = {}
+        direct_dep_list = []
+        if not hasattr(self, 'global_purl_dict'):
+            self.global_purl_dict = {}
+        if not hasattr(self, 'processed_packages'):
+            self.processed_packages = {}
+
+        file_path = os.path.join(self.input_dir, f_name) if not os.path.isabs(f_name) else f_name
+        with open(file_path, 'r', encoding='utf8') as input_fp:
             package_list = []
             if self.packageReference:
-                package_list = self.get_package_info_in_packagereference(input_fp)
+                package_list = self.get_package_info_in_packagereference(input_fp, relation_tree, direct_dep_list)
             else:
                 package_list = self.get_package_list_in_packages_config(input_fp)
 
         for oss_origin_name, oss_version in package_list:
             try:
+                pkg_key = f'{oss_origin_name}({oss_version})'
+                if pkg_key in self.processed_packages:
+                    existing_idx = self.processed_packages[pkg_key]
+                    existing_dep_item = self.dep_items[existing_idx]
+
+                    if pkg_key in relation_tree:
+                        new_deps = relation_tree[pkg_key]
+                        if existing_dep_item.depends_on_raw:
+                            existing_deps_set = set(existing_dep_item.depends_on_raw)
+                            new_deps_set = set(new_deps)
+                            merged_deps = sorted(existing_deps_set | new_deps_set)
+                            existing_dep_item.depends_on_raw = merged_deps
+                        else:
+                            existing_dep_item.depends_on_raw = new_deps
+                    if self.direct_dep and self.packageReference:
+                        if oss_origin_name in direct_dep_list:
+                            if 'direct' not in existing_dep_item.oss_items[0].comment:
+                                existing_dep_item.oss_items[0].comment = 'direct'
+                    continue
+
                 dep_item = DependencyItem()
                 oss_item = OssItem()
                 oss_item.name = f'{self.package_manager_name}:{oss_origin_name}'
@@ -88,7 +199,7 @@ class Nuget(PackageManager):
                         if proj_url_id is not None:
                             oss_item.download_location = proj_url_id.text
                     oss_item.homepage = f'{self.dn_url}{oss_origin_name}'
-                    if oss_item.download_location == '':
+                    if not oss_item.download_location:
                         oss_item.download_location = f'{oss_item.homepage}/{oss_item.version}'
                     else:
                         if oss_item.download_location.endswith('.git'):
@@ -97,24 +208,26 @@ class Nuget(PackageManager):
                 else:
                     oss_item.comment = 'Fail to response for nuget api'
                     dep_item.purl = f'pkg:nuget/{oss_origin_name}@{oss_item.version}'
-                purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
+                self.global_purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
 
                 if self.direct_dep and self.packageReference:
-                    if oss_origin_name in self.direct_dep_list:
+                    if oss_origin_name in direct_dep_list:
                         oss_item.comment = 'direct'
                     else:
                         oss_item.comment = 'transitive'
 
-                    if f'{oss_origin_name}({oss_item.version})' in self.relation_tree:
-                        dep_item.depends_on_raw = self.relation_tree[f'{oss_origin_name}({oss_item.version})']
+                    key = f'{oss_origin_name}({oss_item.version})'
+                    if key in relation_tree:
+                        dep_item.depends_on_raw = relation_tree[key]
 
                 dep_item.oss_items.append(oss_item)
                 self.dep_items.append(dep_item)
+                self.processed_packages[pkg_key] = len(self.dep_items) - 1
 
             except Exception as e:
                 logger.warning(f"Failed to parse oss information: {e}")
         if self.direct_dep:
-            self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+            self.dep_items = change_dependson_to_purl(self.global_purl_dict, self.dep_items)
 
         if os.path.isfile(tmp_license_txt_file_name):
             os.remove(tmp_license_txt_file_name)
@@ -128,13 +241,14 @@ class Nuget(PackageManager):
             package_list.append([p.get("id"), p.get("version")])
         return package_list
 
-    def get_package_info_in_packagereference(self, input_fp):
+    def get_package_info_in_packagereference(self, input_fp, relation_tree, direct_dep_list):
         json_f = json.load(input_fp)
 
-        self.get_dotnet_ver_list(json_f)
+        dotnet_ver = self.get_dotnet_ver_list(json_f)
         package_list = self.get_package_list_in_packages_assets(json_f)
-        self.get_dependency_tree(json_f)
-        self.get_direct_package_in_packagereference()
+        self.get_dependency_tree(json_f, relation_tree, dotnet_ver)
+        self.get_direct_dependencies_from_assets_json(json_f, direct_dep_list)
+        self.get_direct_package_in_packagereference(direct_dep_list)
 
         return package_list
 
@@ -147,14 +261,35 @@ class Nuget(PackageManager):
         return package_list
 
     def get_dotnet_ver_list(self, json_f):
+        dotnet_ver = []
         json_project_group = json_f['projectFileDependencyGroups']
-        for dotnet_ver in json_project_group:
-            self.dotnet_ver.append(dotnet_ver)
+        for ver in json_project_group:
+            dotnet_ver.append(ver)
+        return dotnet_ver
 
-    def get_dependency_tree(self, json_f):
+    def get_direct_dependencies_from_assets_json(self, json_f, direct_dep_list):
+        try:
+            json_project_group = json_f.get('projectFileDependencyGroups', {})
+            for _, dependencies in json_project_group.items():
+                if not dependencies:
+                    continue
+                for dep_string in dependencies:
+                    package_name = dep_string.split()[0] if dep_string else ''
+                    if package_name and package_name not in direct_dep_list:
+                        direct_dep_list.append(package_name)
+        except Exception as e:
+            logger.warning(f"Failed to extract direct dependencies from project.assets.json: {e}")
+
+    def get_dependency_tree(self, json_f, relation_tree, dotnet_ver):
+        actual_versions = {}
+        for lib_key in json_f.get('libraries', {}):
+            if '/' in lib_key:
+                lib_name, lib_version = lib_key.split('/', 1)
+                actual_versions[lib_name.lower()] = lib_version
+
         json_target = json_f['targets']
         for item in json_target:
-            if item not in self.dotnet_ver:
+            if item not in dotnet_ver:
                 continue
             json_item = json_target[item]
             for pkg in json_item:
@@ -166,21 +301,39 @@ class Nuget(PackageManager):
                 if json_pkg['type'] != 'package':
                     continue
                 oss_info = pkg.split('/')
-                self.relation_tree[f'{oss_info[0]}({oss_info[1]})'] = []
+                relation_tree[f'{oss_info[0]}({oss_info[1]})'] = []
                 for dep in json_pkg['dependencies']:
                     oss_name = dep
-                    oss_ver = json_pkg['dependencies'][dep]
-                    self.relation_tree[f'{oss_info[0]}({oss_info[1]})'].append(f'{oss_name}({oss_ver})')
+                    dep_ver_in_spec = json_pkg['dependencies'][dep]
+                    actual_ver = actual_versions.get(oss_name.lower(), dep_ver_in_spec)
+                    relation_tree[f'{oss_info[0]}({oss_info[1]})'].append(f'{oss_name}({actual_ver})')
 
-    def get_direct_package_in_packagereference(self):
-        for f in os.listdir(self.input_dir):
-            if os.path.isfile(f) and ((f.split('.')[-1] == 'csproj') or (f.split('.')[-1] == 'xproj')):
-                with open(f, 'r', encoding='utf8') as input_fp:
-                    root = parse(input_fp).getroot()
-                itemgroups = root.findall('ItemGroup')
-                for itemgroup in itemgroups:
-                    for item in itemgroup.findall('PackageReference'):
-                        self.direct_dep_list.append(item.get('Include'))
+    def get_direct_package_in_packagereference(self, direct_dep_list):
+        if hasattr(self, 'project_dirs') and self.project_dirs:
+            for project_dir in self.project_dirs:
+                for f in os.listdir(project_dir):
+                    f_path = os.path.join(project_dir, f)
+                    if os.path.isfile(f_path) and ((f.split('.')[-1] == 'csproj') or (f.split('.')[-1] == 'xproj')):
+                        with open(f_path, 'r', encoding='utf8') as input_fp:
+                            root = parse(input_fp).getroot()
+                        itemgroups = root.findall('ItemGroup')
+                        for itemgroup in itemgroups:
+                            for item in itemgroup.findall('PackageReference'):
+                                pkg_name = item.get('Include')
+                                if pkg_name and pkg_name not in direct_dep_list:
+                                    direct_dep_list.append(pkg_name)
+        else:
+            for f in os.listdir(self.input_dir):
+                f_path = os.path.join(self.input_dir, f)
+                if os.path.isfile(f_path) and ((f.split('.')[-1] == 'csproj') or (f.split('.')[-1] == 'xproj')):
+                    with open(f_path, 'r', encoding='utf8') as input_fp:
+                        root = parse(input_fp).getroot()
+                    itemgroups = root.findall('ItemGroup')
+                    for itemgroup in itemgroups:
+                        for item in itemgroup.findall('PackageReference'):
+                            pkg_name = item.get('Include')
+                            if pkg_name and pkg_name not in direct_dep_list:
+                                direct_dep_list.append(pkg_name)
 
     def check_multi_license(self, license_name):
         multi_license = license_name
