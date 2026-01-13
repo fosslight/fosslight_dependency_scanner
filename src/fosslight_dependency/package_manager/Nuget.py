@@ -61,27 +61,38 @@ class Nuget(PackageManager):
 
         if not has_any_assets:
             logger.info("No project.assets.json found. Running 'dotnet restore'...")
-            try:
-                result = subprocess.run(
-                    ['dotnet', 'restore'],
-                    cwd=self.input_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=300
-                )
-                if result.returncode != 0:
-                    logger.warning(f"'dotnet restore' failed with return code {result.returncode}")
-                    if result.stderr:
-                        logger.warning(result.stderr)
+            restore_targets = self._find_restore_targets()
+            if not restore_targets:
+                logger.warning("No .sln or .csproj files found to restore.")
+                return False
+
+            success = False
+            for target_path, target_file in restore_targets:
+                logger.info(f"Restoring: {os.path.relpath(target_file, self.input_dir)}")
+                try:
+                    result = subprocess.run(
+                        ['dotnet', 'restore', target_file, '/p:EnableWindowsTargeting=true'],
+                        cwd=target_path,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                    if result.returncode == 0:
+                        success = True
+                    else:
+                        logger.warning(f"'dotnet restore' failed for {target_file} with return code {result.returncode}")
+                        if result.stderr:
+                            logger.warning(result.stderr)
+                except FileNotFoundError:
+                    logger.error("'dotnet' command not found. Please install .NET SDK.")
                     return False
-            except FileNotFoundError:
-                logger.error("'dotnet' command not found. Please install .NET SDK.")
-                return False
-            except subprocess.TimeoutExpired:
-                logger.warning("'dotnet restore' timed out.")
-                return False
-            except Exception as e:
-                logger.warning(f"Failed to run 'dotnet restore': {e}")
+                except subprocess.TimeoutExpired:
+                    logger.warning(f"'dotnet restore' timed out for {target_file}.")
+                except Exception as e:
+                    logger.warning(f"Failed to run 'dotnet restore' for {target_file}: {e}")
+
+            if not success:
+                logger.warning("All 'dotnet restore' attempts failed.")
                 return False
 
         self.project_dirs = []
@@ -347,3 +358,30 @@ class Nuget(PackageManager):
             logger.warning(f'Fail to parse multi license in npm: {e}')
 
         return multi_license, license_comment
+
+    def _find_restore_targets(self):
+        sln_files = []
+        csproj_files = []
+
+        for root, dirs, files in os.walk(self.input_dir):
+            rel_root = os.path.relpath(root, self.input_dir)
+            parts = rel_root.split(os.sep) if rel_root != os.curdir else []
+            if any(p.lower() in self._exclude_dirs for p in parts):
+                continue
+
+            depth = len(parts) if parts and parts[0] != '.' else 0
+
+            for f in files:
+                if f.endswith('.sln'):
+                    sln_files.append((depth, root, os.path.join(root, f)))
+                elif f.endswith('.csproj'):
+                    csproj_files.append((depth, root, os.path.join(root, f)))
+
+        if sln_files:
+            sln_files.sort(key=lambda x: x[0])
+            min_depth = sln_files[0][0]
+            return [(d, f) for depth, d, f in sln_files if depth == min_depth]
+        if csproj_files:
+            return [(d, f) for _, d, f in csproj_files]
+
+        return []
