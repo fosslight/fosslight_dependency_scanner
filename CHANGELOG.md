@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.27 (14/01/2026)
+## Changes
+## 🚀 Features
+
+- Run dotnet restore for all .sln and .csproj @dd-jy (#280)
+
+---
+
 ## v4.1.26 (13/01/2026)
 ## Changes
 ## 🚀 Features
@@ -301,15 +309,3 @@
 - Limit installation to fosslight_util 1.4.* @soimkim (#223)
 - Modify homepage to empty if it is external repo @dd-jy (#217)
 - Add dummy in github action token @dd-jy (#216)
-
----
-
-## v3.15.5 (24/07/2024)
-## Changes
-## 🚀 Features
-
-- Enable multiple input for -f option @JustinWonjaePark (#210)
-
-## 🔧 Maintenance
-
-- Change pip to pypi in the help message @soimkim (#208)
