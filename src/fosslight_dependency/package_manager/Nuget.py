@@ -48,25 +48,9 @@ class Nuget(PackageManager):
         logger.info(f"Found {self.directory_packages_props}. Using NuGet CPM flow.")
         self.packageReference = True
 
-        has_any_assets = False
-        for root, dirs, files in os.walk(self.input_dir):
-            rel_root = os.path.relpath(root, self.input_dir)
-            parts = rel_root.split(os.sep) if rel_root != os.curdir else []
-            if any(p.lower() in self._exclude_dirs for p in parts):
-                continue
-            assets_candidate = os.path.join(root, 'obj', 'project.assets.json')
-            if os.path.isfile(assets_candidate):
-                has_any_assets = True
-                break
-
-        if not has_any_assets:
-            logger.info("No project.assets.json found. Running 'dotnet restore'...")
-            restore_targets = self._find_restore_targets()
-            if not restore_targets:
-                logger.warning("No .sln or .csproj files found to restore.")
-                return False
-
-            success = False
+        restore_targets = self._find_restore_targets()
+        if restore_targets:
+            logger.info("Found .sln or .csproj files. Running 'dotnet restore'...")
             for target_path, target_file in restore_targets:
                 logger.info(f"Restoring: {os.path.relpath(target_file, self.input_dir)}")
                 try:
@@ -78,22 +62,19 @@ class Nuget(PackageManager):
                         timeout=300
                     )
                     if result.returncode == 0:
-                        success = True
+                        logger.info(f"Successfully restored {os.path.relpath(target_file, self.input_dir)}")
                     else:
                         logger.warning(f"'dotnet restore' failed for {target_file} with return code {result.returncode}")
                         if result.stderr:
                             logger.warning(result.stderr)
                 except FileNotFoundError:
                     logger.error("'dotnet' command not found. Please install .NET SDK.")
-                    return False
                 except subprocess.TimeoutExpired:
                     logger.warning(f"'dotnet restore' timed out for {target_file}.")
                 except Exception as e:
                     logger.warning(f"Failed to run 'dotnet restore' for {target_file}: {e}")
-
-            if not success:
-                logger.warning("All 'dotnet restore' attempts failed.")
-                return False
+        else:
+            logger.warning("No .sln or .csproj files found to restore.")
 
         self.project_dirs = []
         found_projects = False
@@ -377,11 +358,11 @@ class Nuget(PackageManager):
                 elif f.endswith('.csproj'):
                     csproj_files.append((depth, root, os.path.join(root, f)))
 
+        result = []
         if sln_files:
-            sln_files.sort(key=lambda x: x[0])
-            min_depth = sln_files[0][0]
-            return [(d, f) for depth, d, f in sln_files if depth == min_depth]
-        if csproj_files:
-            return [(d, f) for _, d, f in csproj_files]
+            result.extend([(d, f) for _, d, f in sln_files])
 
-        return []
+        if csproj_files:
+            result.extend([(d, f) for _, d, f in csproj_files])
+
+        return result
