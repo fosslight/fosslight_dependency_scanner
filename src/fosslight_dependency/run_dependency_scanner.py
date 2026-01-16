@@ -20,6 +20,7 @@ from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_formats_v2, write_output_file
 from fosslight_util.oss_item import ScannerItem
 from fosslight_dependency._graph_convertor import GraphConvertor
+from fosslight_util.exclude import get_excluded_paths
 
 # Package Name
 _PKG_NAME = "fosslight_dependency"
@@ -244,7 +245,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     else:
         input_dir = os.getcwd()
         os.chdir(input_dir)
-    scan_item.set_cover_pathinfo(input_dir, path_to_exclude)
 
     autodetect = True
     found_package_manager = {}
@@ -268,6 +268,12 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         manifest_file_name = []
 
     try:
+        excluded_path_with_default_exclusion, excluded_path_without_dot, _, _ = (
+            get_excluded_paths(input_dir, path_to_exclude, ''))
+        logger.debug(f"Skipped paths: {excluded_path_with_default_exclusion}")
+        scan_item.set_cover_pathinfo(input_dir, excluded_path_without_dot)
+        abs_path_to_exclude = [os.path.abspath(os.path.join(input_dir, path))
+                               for path in excluded_path_with_default_exclusion]
         ret, found_package_manager, input_dir, suggested_files = find_package_manager(input_dir,
                                                                                       abs_path_to_exclude,
                                                                                       manifest_file_name,
