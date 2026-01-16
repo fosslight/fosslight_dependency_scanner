@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.28 (16/01/2026)
+## Changes
+## 🔧 Maintenance
+
+- Replace exclude function to fosslight_util @dd-jy (#281)
+
+---
+
 ## v4.1.27 (14/01/2026)
 ## Changes
 ## 🚀 Features
@@ -291,21 +299,3 @@
 ## 🔧 Maintenance
 
 - Refactoring OSS item @dd-jy (#213)
-
----
-
-## v3.15.6 (28/08/2024)
-## Changes
-## 🚀 Features
-
-- Add feature that save graph image @fhdufhdu (#214)
-
-## 🐛 Hotfixes
-
-- Fix the macos npm github action bug @dd-jy (#215)
-
-## 🔧 Maintenance
-
-- Limit installation to fosslight_util 1.4.* @soimkim (#223)
-- Modify homepage to empty if it is external repo @dd-jy (#217)
-- Add dummy in github action token @dd-jy (#216)
