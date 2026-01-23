@@ -6,16 +6,13 @@
 import os
 import platform
 import sys
-import argparse
 import warnings
 from datetime import datetime
 import logging
-import shutil
 import fosslight_dependency.constant as const
 from collections import defaultdict
 from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
-from fosslight_dependency._help import print_version, print_help_msg
 from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_formats_v2, write_output_file
 from fosslight_util.oss_item import ScannerItem
@@ -31,27 +28,9 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Depends On']}
-_exclude_dir = ['node_modules', 'venv', 'Pods', 'Carthage']
 
 
-def get_terminal_size():
-    size = shutil.get_terminal_size()
-    return size.lines
-
-
-def paginate_file(file_path):
-    lines_per_page = get_terminal_size() - 1
-    with open(file_path, 'r', encoding='utf8') as file:
-        lines = file.readlines()
-
-    for i in range(0, len(lines), lines_per_page):
-        os.system('clear' if os.name == 'posix' else 'cls')
-        print(''.join(lines[i: i + lines_per_page]))
-        if i + lines_per_page < len(lines):
-            input("Press Enter to see the next page...")
-
-
-def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[], recursive=False):
+def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], recursive=False, excluded_files=[]):
     ret = True
     if not manifest_file_name:
         for value in const.SUPPORT_PACKAE.values():
@@ -64,16 +43,14 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
     found_manifest_set = set()
     suggested_files = []
     for parent, dirs, files in os.walk(input_dir):
-        parent_parts = parent.split(os.sep)
-        if any(ex_dir in parent_parts for ex_dir in _exclude_dir):
-            continue
-        if os.path.abspath(parent) in abs_path_to_exclude:
+        rel_parent = os.path.relpath(parent, input_dir)
+        if rel_parent != '.' and rel_parent in path_to_exclude:
+            dirs[:] = []
             continue
         for file in files:
             file_path = os.path.join(parent, file)
-            file_abs_path = os.path.abspath(file_path)
-            if any(os.path.commonpath([file_abs_path, exclude_path]) == exclude_path
-                   for exclude_path in abs_path_to_exclude):
+            rel_file_path = os.path.relpath(file_path, input_dir)
+            if rel_file_path in excluded_files:
                 continue
             if file in manifest_file_name:
                 candidate = os.path.join(parent, file)
@@ -84,7 +61,13 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
             for manifest_f in manifest_file_name:
                 candidate = os.path.join(parent, manifest_f)
                 norm_candidate = os.path.normpath(candidate)
-                if os.path.exists(candidate) and norm_candidate not in found_manifest_set:
+                if norm_candidate in found_manifest_set:
+                    continue
+                rel_candidate = os.path.relpath(candidate, input_dir)
+                if rel_candidate in excluded_files:
+                    logger.debug(f'Skipping excluded manifest: {rel_candidate}')
+                    continue
+                if os.path.exists(candidate):
                     found_manifest_set.add(norm_candidate)
                     found_manifest_file.append(candidate)
             if file in const.SUGGESTED_PACKAGE.keys():
@@ -96,7 +79,13 @@ def find_package_manager(input_dir, abs_path_to_exclude=[], manifest_file_name=[
                 if len(manifest_l) > 1 and manifest_l[0] == dir:
                     candidate = os.path.join(parent, manifest_f)
                     norm_candidate = os.path.normpath(candidate)
-                    if os.path.exists(candidate) and norm_candidate not in found_manifest_set:
+                    if norm_candidate in found_manifest_set:
+                        continue
+                    rel_candidate = os.path.relpath(candidate, input_dir)
+                    if rel_candidate in excluded_files:
+                        logger.debug(f'Skipping excluded manifest in dir: {rel_candidate}')
+                        continue
+                    if os.path.exists(candidate):
                         found_manifest_set.add(norm_candidate)
                         found_manifest_file.append(candidate)
 
@@ -173,7 +162,7 @@ def print_package_info(pm, log_lines, status=''):
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
                            github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
-                           graph_size=(600, 600), recursive=False):
+                           graph_size=(600, 600), recursive=False, all_exclude_mode=()):
     global logger
 
     ret = True
@@ -226,7 +215,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     logger, _result_log = init_log(os.path.join(output_path, "fosslight_log_dep_" + _start_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME, "", path_to_exclude)
-    abs_path_to_exclude = [os.path.abspath(os.path.join(input_dir, path)) for path in path_to_exclude]
 
     logger.info(f"Tool Info : {_result_log['Tool Info']}")
 
@@ -268,16 +256,19 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         manifest_file_name = []
 
     try:
-        excluded_path_with_default_exclusion, excluded_path_without_dot, _, _ = (
-            get_excluded_paths(input_dir, path_to_exclude, ''))
-        logger.debug(f"Skipped paths: {excluded_path_with_default_exclusion}")
+        if all_exclude_mode and len(all_exclude_mode) == 4:
+            excluded_path_with_default_exclusion, excluded_path_without_dot, excluded_files, _ = all_exclude_mode
+            logger.debug(f"Skipped paths: {excluded_path_with_default_exclusion}")
+        else:
+            excluded_path_with_default_exclusion, excluded_path_without_dot, excluded_files, _ = (
+                get_excluded_paths(input_dir, path_to_exclude))
+
         scan_item.set_cover_pathinfo(input_dir, excluded_path_without_dot)
-        abs_path_to_exclude = [os.path.abspath(os.path.join(input_dir, path))
-                               for path in excluded_path_with_default_exclusion]
         ret, found_package_manager, input_dir, suggested_files = find_package_manager(input_dir,
-                                                                                      abs_path_to_exclude,
+                                                                                      excluded_path_with_default_exclusion,
                                                                                       manifest_file_name,
-                                                                                      recursive)
+                                                                                      recursive,
+                                                                                      excluded_files)
     except Exception as e:
         if autodetect:
             logger.error(f'Fail to find package manager: {e}')
@@ -400,101 +391,3 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             logger.error(f"Fail to generate result file. msg:({err_msg})")
 
     return ret, scan_item
-
-
-def main():
-    package_manager = ''
-    input_dir = ''
-    output_dir = ''
-    path_to_exclude = []
-    pip_activate_cmd = ''
-    pip_deactivate_cmd = ''
-    output_custom_dir = ''
-    app_name = const.default_app_name
-    github_token = ''
-    format = []
-    graph_path = ''
-    graph_size = (600, 600)
-    direct = True
-    recursive = False
-
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('-h', '--help', action='store_true', required=False)
-    parser.add_argument('-v', '--version', action='store_true', required=False)
-    parser.add_argument('-m', '--manager', nargs=1, type=str, default='', required=False)
-    parser.add_argument('-p', '--path', nargs=1, type=str, required=False)
-    parser.add_argument('-e', '--exclude', nargs='*', required=False, default=[])
-    parser.add_argument('-o', '--output', nargs=1, type=str, required=False)
-    parser.add_argument('-a', '--activate', nargs=1, type=str, default='', required=False)
-    parser.add_argument('-d', '--deactivate', nargs=1, type=str, default='', required=False)
-    parser.add_argument('-c', '--customized', nargs=1, type=str, required=False)
-    parser.add_argument('-n', '--appname', nargs=1, type=str, required=False)
-    parser.add_argument('-t', '--token', nargs=1, type=str, required=False)
-    parser.add_argument('-f', '--format', nargs="*", type=str, required=False)
-    parser.add_argument('--graph-path', nargs=1, type=str, required=False)
-    parser.add_argument('--graph-size', nargs=2, type=int, metavar=("WIDTH", "HEIGHT"), required=False)
-    parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
-    parser.add_argument('--notice', action='store_true', required=False)
-    parser.add_argument('-r', '--recursive', action='store_true', required=False)
-
-    args = parser.parse_args()
-
-    if args.help:  # -h option
-        print_help_msg()
-
-    if args.version:  # -v option
-        print_version(_PKG_NAME)
-
-    if args.manager:  # -m option
-        package_manager = ''.join(args.manager)
-    if args.path:  # -p option
-        input_dir = ''.join(args.path)
-    if args.exclude:  # -e option
-        path_to_exclude = args.exclude
-    if args.output:  # -o option
-        output_dir = ''.join(args.output)
-    if args.activate:  # -a option
-        pip_activate_cmd = ''.join(args.activate)
-    if args.deactivate:  # -d option
-        pip_deactivate_cmd = ''.join(args.deactivate)
-    if args.customized:  # -c option
-        output_custom_dir = ''.join(args.customized)
-    if args.appname:  # -n option
-        app_name = ''.join(args.appname)
-    if args.token:  # -t option
-        github_token = ''.join(args.token)
-    if args.format:  # -f option
-        format = list(args.format)
-    if args.graph_path:
-        graph_path = ''.join(args.graph_path)
-    if args.graph_size:
-        graph_size = args.graph_size
-    if args.direct:  # --direct option
-        if args.direct == 'true' or args.direct == 'True':
-            direct = True
-        elif args.direct == 'false' or args.direct == 'False':
-            direct = False
-    if args.notice:  # --notice option
-        try:
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.dirname(__file__)
-
-        data_path = os.path.join(base_path, 'LICENSES')
-        print(f"*** {_PKG_NAME} open source license notice ***")
-        for ff in os.listdir(data_path):
-            source_file = os.path.join(data_path, ff)
-            destination_file = os.path.join(base_path, ff)
-            paginate_file(source_file)
-            shutil.copyfile(source_file, destination_file)
-        sys.exit(0)
-    if args.recursive:  # -r option
-        recursive = True
-
-    run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
-                           output_custom_dir, app_name, github_token, format, direct, path_to_exclude,
-                           graph_path, graph_size, recursive)
-
-
-if __name__ == '__main__':
-    main()

@@ -56,7 +56,7 @@ if __name__ == "__main__":
         include_package_data=True,
         entry_points={
             "console_scripts": [
-                "fosslight_dependency = fosslight_dependency.run_dependency_scanner:main"
+                "fosslight_dependency = fosslight_dependency.cli:main"
             ]
         }
     )
