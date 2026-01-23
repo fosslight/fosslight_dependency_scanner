@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.29 (23/01/2026)
+## Changes
+## 🔧 Maintenance
+
+- Remove duplicated exclude logic for all mode @dd-jy (#282)
+
+---
+
 ## v4.1.28 (16/01/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -291,11 +299,3 @@
 - Update spdx function @dd-jy (#226)
 - Refactor existing tox test to pytest @YongGoose (#225)
 - Fix tox version & delete tox-wheel @bjk7119 (#224)
-
----
-
-## v4.0.0 (06/09/2024)
-## Changes
-## 🔧 Maintenance
-
-- Refactoring OSS item @dd-jy (#213)
