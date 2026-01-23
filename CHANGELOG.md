@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.30 (23/01/2026)
+## Changes
+## 🔧 Maintenance
+
+- Fix skipped path log not printed when all_mode @dd-jy (#283)
+
+---
+
 ## v4.1.29 (23/01/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -289,13 +297,3 @@
 ## 🔧 Maintenance
 
 - Support swift package.resolved v3 @dd-jy (#227)
-
----
-
-## v4.1.0 (08/10/2024)
-## Changes
-## 🔧 Maintenance
-
-- Update spdx function @dd-jy (#226)
-- Refactor existing tox test to pytest @YongGoose (#225)
-- Fix tox version & delete tox-wheel @bjk7119 (#224)
