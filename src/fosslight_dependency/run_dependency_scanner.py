@@ -258,10 +258,10 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     try:
         if all_exclude_mode and len(all_exclude_mode) == 4:
             excluded_path_with_default_exclusion, excluded_path_without_dot, excluded_files, _ = all_exclude_mode
-            logger.debug(f"Skipped paths: {excluded_path_with_default_exclusion}")
         else:
             excluded_path_with_default_exclusion, excluded_path_without_dot, excluded_files, _ = (
                 get_excluded_paths(input_dir, path_to_exclude))
+            logger.debug(f"Skipped paths: {excluded_path_with_default_exclusion}")
 
         scan_item.set_cover_pathinfo(input_dir, excluded_path_without_dot)
         ret, found_package_manager, input_dir, suggested_files = find_package_manager(input_dir,
