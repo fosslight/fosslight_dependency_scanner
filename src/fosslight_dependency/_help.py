@@ -6,68 +6,89 @@ from fosslight_util.help import PrintHelpMsg, print_package_version
 from fosslight_util.output_format import SUPPORT_FORMAT
 
 _HELP_MESSAGE_DEPENDENCY = f"""
-    Usage: fosslight_dependency [option1] <arg1> [option2] <arg2>...
+    📖 Usage
+    ────────────────────────────────────────────────────────────────────
+    fosslight_dependency [options] <arguments>
 
-    FOSSLight Dependency Scanner is the tool that supports the analysis of dependencies for multiple package managers.
-    It detects the manifest file of package managers automatically and analyzes the dependencies with using open source tools.
-    Then, it generates the report file that contains OSS information of dependencies.
+    📝 Description
+    ────────────────────────────────────────────────────────────────────
+    FOSSLight Dependency Scanner analyzes dependencies for multiple package
+    managers. It detects manifest files automatically and generates reports
+    containing OSS information of dependencies.
 
-    Currently, it supports the following package managers:
-        Gradle (Java)
-        Maven (Java)
-        NPM (Node.js)
-        PNPM (Node.js)
-        Yarn (Node.js)
-        PIP (Python)
-        Pub (Dart with flutter)
-        Cocoapods (Swift/Obj-C)
-        Swift (Swift)
-        Carthage (Swift/Obj-C)
-        Go (Go)
-        Nuget (.NET)
-        Helm (Kubernetes)
-        Unity (Unity)
-        Cargo (Rust)
+    📚 Guide: https://fosslight.org/fosslight-guide/scanner/3_dependency.html
 
-    Options:
-        Optional
-            -h\t\t\t\t    Print help message.
-            -v\t\t\t\t    Print the version of the script.
-            -m <package_manager>\t    Enter the package manager.
-                                        \t(npm, maven, gradle, pypi, pub, cocoapods, android, swift, carthage,
-                                        \t go, nuget, helm, unity, cargo, pnpm, yarn)
-            -p <input_path>\t\t    Enter the path where the script will be run.
-            -e <exclude_path>\t\t    Enter the path where the analysis will not be performed (files and directories).
-            \t\t\t\t    * IMPORTANT: Always wrap patterns in double quotes ("") to avoid shell expansion.
-            \t\t\t\t      Example) fosslight_dependency -e "test/abc.py" "*.jar"
-            -o <output_path>\t\t    Output path
-            \t\t\t\t\t(If you want to generate the specific file name, add the output path with file name.)
-            -f <format> [<format> ...]\t    Output formats
-            \t\t\t\t    \t({', '.join(SUPPORT_FORMAT)})
-            \t\t\t\t    Multiple formats can be specified separated by space.
-            --graph-path <save_path> \t    Enter the path where the graph image will be saved
-            \t\t\t\t\t(ex. /your/directory/path/filename.[pdf, jpg, png]) (recommend pdf extension)
-            --graph-size <width> <height>   Enter the size of the graph image (The size unit is pixels)
-            \t\t\t\t\t--graph-path option is required
-            --direct\t\t\t    Print the direct/transitive dependency type in comment.
-                                \t\tChoice 'True' or 'False'. (default:True)
-            -r\t\t\t\t    Recursive mode. Scan all subdirectories for manifest files.
-            --notice\t\t\t    Print the open source license notice text.
+    📦 Supported Package Managers
+    ────────────────────────────────────────────────────────────────────
+    Gradle, Maven (Java)          │ NPM, PNPM, Yarn (Node.js)
+    PIP (Python)                  │ Pub (Dart/Flutter)
+    Cocoapods, Swift, Carthage    │ Go (Go)
+    Nuget (.NET)                  │ Helm (Kubernetes)
+    Unity (Unity)                 │ Cargo (Rust)
 
-        Required only for swift, carthage
-            -t <token>\t\t\t    Enter the github personal access token.
+    ⚙️  General Options
+    ────────────────────────────────────────────────────────────────────
+    -p <path>              Path to analyze (default: current directory)
+    -o <path>              Output file path or directory
+    -f <format>            Output formats: {', '.join(SUPPORT_FORMAT)}
+    -e <pattern>           Exclude paths from analysis (files and directories)
+                           ⚠️  IMPORTANT: Always wrap in quotes to avoid shell expansion
+                           Example: fosslight_dependency -e "test/" "node_modules/"
+    -h                     Show this help message
+    -v                     Show version information
 
-        Optional only for pypi
-            -a <activate_cmd>\t\t    Virtual environment activate command(ex, 'conda activate (venv name)')
-            -d <deactivate_cmd>\t\t    Virtual environment deactivate command(ex, 'conda deactivate')
+    🔍 Scanner-Specific Options
+    ────────────────────────────────────────────────────────────────────
+    -m <manager>           Specify package manager (npm, maven, gradle, pypi, pub,
+                           cocoapods, android, swift, carthage, go, nuget, helm,
+                           unity, cargo, pnpm, yarn)
+    -r                     Recursive mode: scan all subdirectories for manifest files
+    --graph-path <path>    Save dependency graph image (pdf, jpg, png) (recommend pdf extension)
+                           Example: fosslight_dependency --graph-path /your/path/filename.[pdf, jpg, png]
+    --graph-format <format> Set graph image format (default: pdf)
+    --graph-size <w> <h>   Set graph image size in pixels (requires --graph-path)
+    --direct <True|False>  Print direct/transitive dependency type
+                           Choose True or False (default: True)
+    --notice               Print the open source license notice text
 
-        Optional only for gradle, maven
-            -c <dir_name>\t\t    Enter the customized build output directory name
-                                    \t\t-Default name : 'build' for gradle, 'target' for maven
+    🔧 Package Manager Specific Options
+    ────────────────────────────────────────────────────────────────────
+    Swift, Carthage:
+      -t <token>           GitHub personal access token
 
-        Optional only for android
-            -n <app_name>\t\t    Enter the application directory name where the plugin output file is located(default: app)
-        """
+    Pypi:
+      -a <cmd>             Virtual environment activate command
+                           (ex: 'conda activate myenv')
+      -d <cmd>             Virtual environment deactivate command
+                           (ex: 'conda deactivate')
+
+    Gradle, Maven:
+      -c <dir>             Customized build output directory
+                           (default: 'build' for gradle, 'target' for maven)
+
+    Android:
+      -n <name>            Application directory name (default: app)
+
+    💡 Examples
+    ────────────────────────────────────────────────────────────────────
+    # Scan current directory
+    fosslight_dependency
+
+    # Scan specific path with exclusions
+    fosslight_dependency -p /path/to/project -e "test/" "vendor/"
+
+    # Generate output in specific format
+    fosslight_dependency -f excel -o results/
+
+    # Specify package manager
+    fosslight_dependency -m npm -p /path/to/nodejs/project
+
+    # Recursive scan with all subdirectories
+    fosslight_dependency -r
+
+    # Generate dependency graph
+    fosslight_dependency --graph-path dependency_tree.pdf
+"""
 
 
 def print_version(pkg_name: str) -> None:
