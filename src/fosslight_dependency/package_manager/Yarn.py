@@ -139,7 +139,7 @@ class Yarn(Npm):
             else:
                 npm_url_exists = False
                 if self._network_available is True:
-                    npm_url_exists = self._npm_url_exists(oss_init_name, oss_item.version)
+                    npm_url_exists = self._npm_url_exists(oss_init_name)
 
                 if self._network_available and not npm_url_exists:
                     oss_item.homepage = repo_url or ""
