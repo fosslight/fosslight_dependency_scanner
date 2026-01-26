@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.31 (26/01/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Fix the yarn bug when it checks url exists @dd-jy (#285)
+
+---
+
 ## v4.1.30 (23/01/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -289,11 +297,3 @@
 ## 🔧 Maintenance
 
 - Print option name with error msg @bjk7119 (#228)
-
----
-
-## v4.1.1 (10/10/2024)
-## Changes
-## 🔧 Maintenance
-
-- Support swift package.resolved v3 @dd-jy (#227)
