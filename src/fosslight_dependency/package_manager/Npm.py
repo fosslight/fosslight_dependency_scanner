@@ -195,8 +195,7 @@ class Npm(PackageManager):
             else:
                 npm_url_exists = False
                 if self._network_available is True:
-                    npm_url_exists = self._npm_url_exists(oss_init_name)
-
+                    npm_url_exists = self._npm_url_exists(oss_init_name, oss_item.version)
                 if self._network_available and not npm_url_exists:
                     oss_item.homepage = repo_url or ""
                     oss_item.download_location = oss_item.homepage
@@ -242,8 +241,11 @@ class Npm(PackageManager):
             self._network_available = False
         return self._network_available
 
-    def _npm_url_exists(self, package_name: str) -> bool:
-        url = f"https://registry.npmjs.org/{package_name}"
+    def _npm_url_exists(self, package_name: str, oss_version="") -> bool:
+        if oss_version:
+            url = f"https://registry.npmjs.org/{package_name}/{oss_version}"
+        else:
+            url = f"https://registry.npmjs.org/{package_name}"
         try:
             resp = requests.head(url, timeout=3, allow_redirects=True)
             if resp.status_code == 405:
