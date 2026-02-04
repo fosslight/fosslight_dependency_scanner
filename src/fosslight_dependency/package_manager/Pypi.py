@@ -294,8 +294,15 @@ class Pypi(PackageManager):
                 license_name = check_UNKNOWN(license_info)
                 if license_name:
                     license_name = license_name.replace(';', ',')
-                oss_item.license = license_name
+                else:
+                    license_file_content = _read_license_file_content(
+                        self.input_dir, self.venv_tmp_dir, metadata,
+                        metadata.get('name', ''), metadata.get('version', '')
+                    )
+                    if license_file_content:
+                        license_name = check_UNKNOWN(check_license_name(license_file_content))
 
+                oss_item.license = license_name
                 oss_item.download_location = f"{self.dn_url}{oss_init_name}/{oss_item.version}"
 
                 # project_url 'source' > download_url > project_url 'homepage' > homepage
@@ -387,6 +394,141 @@ class Pypi(PackageManager):
                     self.relation_tree = self.get_dependencies(self.relation_tree, package)
         except Exception as e:
             logger.warning(f'Fail to parse direct dependency: {e}')
+
+
+def _get_license_file_paths_from_metadata(metadata):
+    """Extract License-File path(s) from package metadata (PEP 639).
+    Returns a list of filename strings, e.g. ['LICENSE', 'NOTICE'].
+    """
+    if not metadata:
+        return []
+    # Core metadata uses "License-File"; pip JSON may normalize to "license_file"
+    license_file = metadata.get('License-File') or metadata.get('license_file') or ''
+    if not license_file or license_file == 'UNKNOWN':
+        return []
+    # May be a list (e.g. from pip JSON) or comma-separated string
+    if isinstance(license_file, list):
+        paths = [str(p).strip() for p in license_file if p and str(p).strip()]
+    else:
+        paths = [p.strip() for p in str(license_file).split(',') if p.strip()]
+    return paths
+
+
+def _find_package_dist_info_dir(input_dir, venv_tmp_dir, package_name, version):
+    """Find the .dist-info directory for an installed package in the venv.
+    package_name: normalized name (e.g. from metadata, may be 'Some-Package' or 'some-package').
+    Returns the absolute path to the dist-info dir, or None if not found.
+    """
+    venv_root = os.path.join(input_dir, venv_tmp_dir)
+    if not os.path.isdir(venv_root):
+        return None
+    lib = os.path.join(venv_root, 'lib')
+    if not os.path.isdir(lib):
+        return None
+    canonical = re.sub(r"[-_.]+", "-", package_name).lower()
+    for name in os.listdir(lib):
+        if name.startswith('python'):
+            site_packages = os.path.join(lib, name, 'site-packages')
+            if not os.path.isdir(site_packages):
+                continue
+            for d in os.listdir(site_packages):
+                if not d.endswith('.dist-info') or version not in d:
+                    continue
+                meta_path = os.path.join(site_packages, d, 'METADATA')
+                if not os.path.isfile(meta_path):
+                    continue
+                try:
+                    with open(meta_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        for line in f:
+                            if line.startswith('Name:'):
+                                meta_name = line.split(':', 1)[1].strip()
+                                if re.sub(r"[-_.]+", "-", meta_name).lower() == canonical:
+                                    return os.path.join(site_packages, d)
+                                break
+                except Exception:
+                    pass
+    return None
+
+
+def _find_license_path_in_record(site_packages, dist_info_dir, license_filename):
+    """Find the actual installed path of a license file from RECORD (PEP 376).
+    RECORD paths are relative to site_packages. Returns absolute path or None.
+    """
+    record_path = os.path.join(dist_info_dir, 'RECORD')
+    if not os.path.isfile(record_path):
+        return None
+    norm_name = license_filename.replace('\\', '/').strip('/')
+    try:
+        with open(record_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                line = line.rstrip('\n\r')
+                if not line:
+                    continue
+                record_rel = line.split(',')[0].strip()
+                if not record_rel:
+                    continue
+                if record_rel == norm_name or record_rel.endswith('/' + norm_name):
+                    full = os.path.normpath(os.path.join(site_packages, record_rel))
+                    sp_norm = os.path.normpath(site_packages)
+                    if os.path.isfile(full) and (full == sp_norm or full.startswith(sp_norm + os.sep)):
+                        return full
+    except Exception as e:
+        logger.debug("Reading RECORD %s: %s", record_path, e)
+    return None
+
+
+def _read_license_file_content(input_dir, venv_tmp_dir, metadata, package_name, version):
+    """Read content of file(s) listed in metadata License-File.
+    Returns a single string (multiple files concatenated with newlines), or empty string.
+    """
+    paths = _get_license_file_paths_from_metadata(metadata)
+    if not paths:
+        return ''
+    dist_info_dir = _find_package_dist_info_dir(input_dir, venv_tmp_dir, package_name, version)
+    if not dist_info_dir:
+        logger.debug("License-File paths %s: dist-info not found for %s %s", paths, package_name, version)
+        return ''
+    site_packages = os.path.dirname(dist_info_dir)
+
+    parts = []
+    for rel_path in paths:
+        license_filename = os.path.basename(rel_path)
+        full_path = None
+
+        # 1) Resolve from RECORD (actual installed path)
+        full_path = _find_license_path_in_record(site_packages, dist_info_dir, license_filename)
+        if not full_path and rel_path != license_filename:
+            full_path = _find_license_path_in_record(site_packages, dist_info_dir, rel_path)
+
+        # 2) Try .dist-info, site_packages, then package dir (e.g. site_packages/pyaskalono/)
+        if not full_path:
+            canonical = re.sub(r"[-_.]+", "-", package_name).lower()
+            candidates = [dist_info_dir, site_packages]
+            for d in os.listdir(site_packages):
+                if d.endswith('.dist-info'):
+                    continue
+                dir_path = os.path.join(site_packages, d)
+                if os.path.isdir(dir_path) and re.sub(r"[-_.]+", "-", d).lower() == canonical:
+                    candidates.append(dir_path)
+                    break
+            for base in candidates:
+                candidate = os.path.normpath(os.path.join(base, rel_path))
+                base_norm = os.path.normpath(base)
+                if not (candidate.startswith(base_norm) or candidate.startswith(base_norm + os.sep)):
+                    continue
+                if os.path.isfile(candidate):
+                    full_path = candidate
+                    break
+
+        if full_path:
+            try:
+                with open(full_path, 'r', encoding='utf-8', errors='replace') as f:
+                    parts.append(f.read())
+            except Exception as e:
+                logger.debug("Could not read license file %s: %s", full_path, e)
+        else:
+            logger.debug("License file not found: %s (tried RECORD, dist-info, site-packages)", rel_path)
+    return '\n\n'.join(parts) if parts else ''
 
 
 def check_UNKNOWN(text):
