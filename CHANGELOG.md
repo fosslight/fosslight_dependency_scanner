@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.32 (05/02/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Check npm pkg version existence in registry @dd-jy (#286)
+
+## 🔧 Maintenance
+
+- Change pypi license priority order @dd-jy (#288)
+- Update help message @bjk7119 (#284)
+
+---
+
 ## v4.1.31 (26/01/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -285,15 +298,3 @@
 - Fix -m option, notice screen, dinamic graph size, case insensitive @ethanleelge (#234)
 - Change cover sheet fail str @dd-jy (#231)
 - test/golang: Added Golang test code and test case. @rewrite0w0 (#229)
-
----
-
-## v4.1.2 (30/10/2024)
-## Changes
-## 🚀 Features
-
-- Support cargo package manager @dd-jy (#230)
-
-## 🔧 Maintenance
-
-- Print option name with error msg @bjk7119 (#228)
