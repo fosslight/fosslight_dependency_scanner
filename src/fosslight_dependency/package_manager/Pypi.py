@@ -10,6 +10,7 @@ import json
 import shutil
 import copy
 import re
+import sys
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -50,6 +51,89 @@ class Pypi(PackageManager):
 
     def set_pip_deactivate_cmd(self, pip_deactivate_cmd):
         self.pip_deactivate_cmd = pip_deactivate_cmd
+
+    def get_virtualenv_site_packages(self):
+        site_packages = ''
+        try:
+            venv_path = os.path.join(self.input_dir, self.venv_tmp_dir)
+            if os.path.exists(venv_path):
+                site_packages = os.path.join(
+                    venv_path, 'lib',
+                    f"python{sys.version_info.major}.{sys.version_info.minor}",
+                    'site-packages'
+                )
+                if os.path.exists(site_packages):
+                    return site_packages
+
+            if self.pip_activate_cmd:
+                activate_cmd = self.pip_activate_cmd
+                if activate_cmd.startswith('. '):
+                    activate_cmd = activate_cmd[2:]
+                elif activate_cmd.startswith('source '):
+                    activate_cmd = activate_cmd[7:]
+
+                if 'bin/activate' in activate_cmd or 'Scripts/activate' in activate_cmd:
+                    venv_path = activate_cmd.replace('/bin/activate', '')
+                    venv_path = venv_path.replace('\\Scripts\\activate.bat', '')
+                    venv_path = venv_path.replace('\\Scripts\\activate', '')
+
+                    if not os.path.isabs(venv_path):
+                        venv_path = os.path.join(self.input_dir, venv_path)
+
+                    if os.path.exists(venv_path):
+                        for lib_dir in ['lib', 'Lib']:
+                            site_packages = os.path.join(
+                                venv_path, lib_dir,
+                                f"python{sys.version_info.major}.{sys.version_info.minor}",
+                                'site-packages'
+                            )
+                            if os.path.exists(site_packages):
+                                return site_packages
+                        site_packages = os.path.join(venv_path, 'Lib', 'site-packages')
+                        if os.path.exists(site_packages):
+                            return site_packages
+
+                if 'conda' in activate_cmd:
+                    site_packages = ''
+        except Exception as e:
+            logger.debug(f"Failed to get virtualenv site-packages: {e}")
+            site_packages = ''
+        return site_packages
+
+    def get_license_from_file(self, package_name, version, license_files_metadata=None):
+        license_names = []
+        try:
+            if not license_files_metadata:
+                return []
+            normalized_name = re.sub(r"[-_.]+", "_", package_name)
+            dist_info_name = f"{normalized_name}-{version}.dist-info"
+
+            site_packages = self.get_virtualenv_site_packages()
+            if not site_packages:
+                logger.debug("Could not find site-packages directory")
+                return []
+
+            dist_info_path = os.path.join(site_packages, dist_info_name)
+            if not os.path.exists(dist_info_path):
+                return []
+
+            for license_file in license_files_metadata:
+                license_file_path = os.path.join(dist_info_path, license_file)
+                if os.path.isfile(license_file_path):
+                    license_name = check_license_name(license_file_path, is_filepath=True)
+                    if license_name and license_name not in license_names:
+                        license_names.append(license_name)
+                else:
+                    if '/' not in license_file:
+                        for root, _, files in os.walk(dist_info_path):
+                            if license_file in files:
+                                found_path = os.path.join(root, license_file)
+                                license_name = check_license_name(found_path, is_filepath=True)
+                                if license_name and license_name not in license_names:
+                                    license_names.append(license_name)
+        except Exception as e:
+            logger.debug(f"Failed to read license file for {package_name}: {e}")
+        return license_names
 
     def run_plugin(self):
         ret = True
@@ -275,22 +359,34 @@ class Pypi(PackageManager):
                 oss_item.name = f"{self.package_manager_name}:{oss_init_name}"
                 oss_item.version = metadata.get('version', '')
 
-                # license_expression > license > classifier
+                # license_expression > classifier > license > license_file
                 license_info = check_UNKNOWN(metadata.get('license_expression', ''))
-                if not license_info:
-                    license_info = metadata.get('license', '')
-                    if '\n' in license_info:
-                        license_info = check_UNKNOWN(check_license_name(license_info))
                 if not license_info:
                     classifiers = metadata.get('classifier', [])
                     license_classifiers = [c for c in classifiers if c.startswith('License ::')]
                     if license_classifiers:
                         license_info_l = []
                         for license_classifier in license_classifiers:
-                            if license_classifier.startswith('License :: OSI Approved ::'):
-                                license_info_l.append(license_classifier.split('::')[-1].strip())
-                                break
+                            parts = license_classifier.split(' :: ')
+                            if len(parts) >= 2:
+                                license_name = parts[-1].strip()
+                                if license_name and license_name != 'OSI Approved':
+                                    license_info_l.append(license_name)
+                                    break
                         license_info = ','.join(license_info_l)
+                if not license_info:
+                    license_info = metadata.get('license', '')
+                    if '\n' in license_info:
+                        license_info = check_UNKNOWN(check_license_name(license_info))
+                if not license_info:
+                    license_files_meta = metadata.get('license_file')
+                    license_info_list = self.get_license_from_file(
+                        oss_init_name,
+                        oss_item.version,
+                        license_files_meta
+                    )
+                    if license_info_list:
+                        license_info = ','.join(license_info_list)
                 license_name = check_UNKNOWN(license_info)
                 if license_name:
                     license_name = license_name.replace(';', ',')
