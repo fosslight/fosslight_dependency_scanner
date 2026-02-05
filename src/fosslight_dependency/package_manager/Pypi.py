@@ -275,22 +275,25 @@ class Pypi(PackageManager):
                 oss_item.name = f"{self.package_manager_name}:{oss_init_name}"
                 oss_item.version = metadata.get('version', '')
 
-                # license_expression > license > classifier
+                # license_expression > classifier > license
                 license_info = check_UNKNOWN(metadata.get('license_expression', ''))
-                if not license_info:
-                    license_info = metadata.get('license', '')
-                    if '\n' in license_info:
-                        license_info = check_UNKNOWN(check_license_name(license_info))
                 if not license_info:
                     classifiers = metadata.get('classifier', [])
                     license_classifiers = [c for c in classifiers if c.startswith('License ::')]
                     if license_classifiers:
                         license_info_l = []
                         for license_classifier in license_classifiers:
-                            if license_classifier.startswith('License :: OSI Approved ::'):
-                                license_info_l.append(license_classifier.split('::')[-1].strip())
-                                break
+                            parts = license_classifier.split(' :: ')
+                            if len(parts) >= 2:
+                                license_name = parts[-1].strip()
+                                if license_name and license_name != 'OSI Approved':
+                                    license_info_l.append(license_name)
+                                    break
                         license_info = ','.join(license_info_l)
+                if not license_info:
+                    license_info = metadata.get('license', '')
+                    if '\n' in license_info:
+                        license_info = check_UNKNOWN(check_license_name(license_info))
                 license_name = check_UNKNOWN(license_info)
                 if license_name:
                     license_name = license_name.replace(';', ',')
