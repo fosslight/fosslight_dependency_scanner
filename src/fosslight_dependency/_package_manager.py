@@ -395,3 +395,135 @@ def deduplicate_dep_items(dep_items):
         unique_items.append(item)
 
     return unique_items
+
+
+def get_gradle_cmd():
+    cmd_gradle = ''
+    current_mode = ''
+    if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
+        if platform.system() == const.WINDOWS:
+            cmd_gradle = "gradlew.bat"
+        else:
+            cmd_gradle = "./gradlew"
+            current_mode = change_file_mode(cmd_gradle)
+    return cmd_gradle, current_mode
+
+
+def collect_gradle_download_urls(input_dir, package_manager_name, app_name=None):
+    download_url_map = {}
+    cmd_gradle, current_mode = get_gradle_cmd()
+    if not cmd_gradle:
+        return download_url_map
+    try:
+        if app_name:
+            cmd = f"{cmd_gradle} :{app_name}:dependencies --refresh-dependencies --debug"
+        else:
+            cmd = f"{cmd_gradle} dependencies --debug"
+        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=input_dir, timeout=600)
+        if proc.returncode == 0:
+            download_url_map = parse_gradle_download_lines(proc.stdout, package_manager_name)
+        else:
+            logger.debug(f"[{package_manager_name}] Command '{cmd}' failed (rc={proc.returncode})")
+    except subprocess.TimeoutExpired:
+        logger.warning(f"[{package_manager_name}] Gradle dependencies command timed out")
+    finally:
+        if current_mode:
+            change_file_mode(cmd_gradle, current_mode)
+
+    return download_url_map
+
+
+def parse_gradle_download_lines(stdout_text, package_manager_name=''):
+    download_url_map = {}
+    for raw in stdout_text.splitlines():
+        line = raw.strip()
+        try:
+            if "Download " not in line and "Metadata of " not in line:
+                continue
+            m = re.search(r'(?:Download|Metadata of) (https?://\S+)', line)
+            if not m:
+                continue
+            url = m.group(1)
+            url = url.rstrip("'\")>,")
+            m2 = re.match(r'([^-]+)-([0-9][^-]*?)(?:-sources)?\.(?:jar|pom|aar)', url.split('/')[-1])
+            if not m2:
+                continue
+            artifactid = m2.group(1)
+            version = m2.group(2)
+
+            parts = url.split('/')
+            art_idx = None
+            for i, p in enumerate(parts):
+                if p == artifactid and i + 1 < len(parts) and parts[i + 1] == version:
+                    art_idx = i
+                    break
+            if art_idx is None or art_idx < 4:
+                continue
+
+            common_roots = ['com', 'org', 'io', 'net', 'edu', 'gov']
+            group_start_idx = None
+            for i in range(3, art_idx):
+                if parts[i] in common_roots:
+                    group_start_idx = i
+                    break
+
+            if group_start_idx is None:
+                repo_keywords = ['maven2', 'maven', 'repository', 'nexus', 'content', 'groups', 'public', 'releases', 'snapshots']
+                group_parts = []
+                for i in range(art_idx - 1, 2, -1):
+                    part = parts[i]
+                    if part.lower() in repo_keywords:
+                        break
+                    if part and re.match(r'^[a-z][a-z0-9\-]*$', part.lower()):
+                        group_parts.insert(0, part)
+                    else:
+                        break
+                if not group_parts:
+                    continue
+                groupid = '.'.join(group_parts)
+            else:
+                group_parts = parts[group_start_idx:art_idx]
+                groupid = '.'.join(group_parts)
+
+            key = f"{groupid}:{artifactid}:{version}"
+            if '.pom' in url.split('/')[-1]:
+                extension = '.aar' if package_manager_name == const.ANDROID else '.jar'
+                url = url.replace('.pom', extension)
+            tail = url.split('/')[-1]
+            if '-sources.jar' in tail:
+                download_url_map[key] = url
+            elif key not in download_url_map or '-sources.jar' not in download_url_map[key]:
+                if '.jar' in tail or '.aar' in tail:
+                    download_url_map[key] = url
+        except Exception as e:
+            logger.debug(f"Failed to parse gradle URL: {url} ({e})")
+            continue
+
+    return download_url_map
+
+
+def get_download_location(download_url_map, group_id, artifact_id, version, mvnrepo_url):
+    actual_key = f"{group_id}:{artifact_id}:{version}"
+    if download_url_map:
+        try:
+            actual_url = download_url_map.get(actual_key)
+
+            use_mvnrepo = True
+            if actual_url:
+                central_like = ("repo1.maven.org" in actual_url) or ("repo.maven.apache.org" in actual_url)
+                google_like = (("maven.google.com" in actual_url) or
+                            ("dl.google.com/android/maven2" in actual_url) or
+                            ("dl.google.com/dl/android/maven2" in actual_url))
+                if central_like or google_like:
+                    use_mvnrepo = True
+                else:
+                    use_mvnrepo = False
+        except Exception as e:
+            logger.debug(f"Failed to get download location from download_url_map: {e}")
+            use_mvnrepo = True
+    else:
+        use_mvnrepo = True
+    if use_mvnrepo:
+        return f"{mvnrepo_url}{group_id}/{artifact_id}/{version}"
+    else:
+        return actual_url

@@ -10,6 +10,7 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl
+from fosslight_dependency._package_manager import collect_gradle_download_urls, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
@@ -25,6 +26,7 @@ class Gradle(PackageManager):
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.download_url_map = {}
 
         if output_custom_dir:
             self.output_custom_dir = output_custom_dir
@@ -75,12 +77,20 @@ class Gradle(PackageManager):
                 if license_names:
                     oss_item.license = license_names
 
+            if not self.download_url_map:
+                self.download_url_map = collect_gradle_download_urls(
+                    self.input_dir, self.package_manager_name
+                )
+
             if used_filename or group_id == "":
                 oss_item.download_location = 'Unknown'
             else:
-                oss_item.download_location = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
+                oss_item.download_location = get_download_location(
+                    self.download_url_map, group_id, artifact_id, oss_ini_version, self.dn_url
+                )
                 oss_item.homepage = f"{self.dn_url}{group_id}/{artifact_id}"
-                dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
+                mvn_dn_url = f"{oss_item.homepage}/{oss_ini_version}"
+                dep_item.purl = get_url_to_purl(mvn_dn_url, 'maven')
                 purl_dict[f'{oss_item.name}({oss_ini_version})'] = dep_item.purl
 
             if self.direct_dep:
