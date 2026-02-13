@@ -129,13 +129,27 @@ jobs:
         run: |
           echo '{"pr_title": ${{ toJSON(github.event.pull_request.title) }}, "pr_body": ${{ toJSON(github.event.pull_request.body) }}}' > meta.json
           jq -n --rawfile diff diff.txt --slurpfile m meta.json '$m[0] + {diff: $diff}' > payload.json
-          BODY=$(curl -sf --max-time 660 -X POST "${SERVICE_URL}/review" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 660 -X POST "${SERVICE_URL}/review" \
             -H "Content-Type: application/json" \
-            -d @payload.json \
-            | jq -r .body) || true
+            -d @payload.json) || true
+          HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$HTTP_BODY" | jq -r '.body // empty' 2>/dev/null)
+          ERR_MSG=$(echo "$HTTP_BODY" | jq -r '.error // .message // .detail // empty' 2>/dev/null)
           echo "## 🤖 LLM 리뷰 요약" > review_body.md
           echo "" >> review_body.md
-          echo "${BODY:-리뷰 생성에 실패했거나 응답이 비어 있습니다.}" >> review_body.md
+          if [ -n "$BODY" ]; then
+            echo "$BODY" >> review_body.md
+          else
+            echo "리뷰 생성에 실패했거나 응답이 비어 있습니다." >> review_body.md
+            if [ -n "$ERR_MSG" ]; then
+              echo "" >> review_body.md
+              echo "**에러 메시지:** $ERR_MSG" >> review_body.md
+            elif [ -n "$HTTP_CODE" ] && [ "$HTTP_CODE" -ge 400 ]; then
+              echo "" >> review_body.md
+              echo "**HTTP 상태:** $HTTP_CODE" >> review_body.md
+            fi
+          fi
       - name: Post review comment
         if: steps.skip.outputs.skip != 'true' && success()
         uses: peter-evans/create-or-update-comment@v4
