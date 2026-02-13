@@ -124,12 +124,13 @@ jobs:
       - name: Request review from service
         id: review
         if: steps.skip.outputs.skip != 'true'
+        timeout-minutes: 15
         env:
           SERVICE_URL: ${{ secrets.PR_REVIEW_SERVICE_URL }}
         run: |
           echo '{"pr_title": ${{ toJSON(github.event.pull_request.title) }}, "pr_body": ${{ toJSON(github.event.pull_request.body) }}}' > meta.json
           jq -n --rawfile diff diff.txt --slurpfile m meta.json '$m[0] + {diff: $diff}' > payload.json
-          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 660 -X POST "${SERVICE_URL}/review" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" --max-time 900 -X POST "${SERVICE_URL}/review" \
             -H "Content-Type: application/json" \
             -d @payload.json) || true
           HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
