@@ -10,6 +10,7 @@ import shutil
 from bs4 import BeautifulSoup as bs
 from defusedxml.ElementTree import parse
 import re
+from pathlib import Path
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -66,6 +67,7 @@ class Maven(PackageManager):
     def add_plugin_in_pom(self, pom_backup):
         ret = False
         xml = 'xml'
+        f_content = None
 
         manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
         if os.path.isfile(manifest_file) != 1:
@@ -94,25 +96,32 @@ class Maven(PackageManager):
 
             tmp_plugin = bs(license_maven_plugin, xml)
 
-            license_maven_plugins = f"<plugins>{license_maven_plugin}<plugins>"
+            license_maven_plugins = f"<plugins>{license_maven_plugin}</plugins>"
             tmp_plugins = bs(license_maven_plugins, xml)
 
             with open(pom_backup, 'r', encoding='utf8') as f:
                 f_xml = f.read()
                 f_content = bs(f_xml, xml)
 
-                build = f_content.find('build')
-                if build is not None:
-                    plugins = build.find('plugins')
-                    if plugins is not None:
-                        plugins.append(tmp_plugin.plugin)
-                        ret = True
-                    else:
-                        build.append(tmp_plugins.plugins)
-                        ret = True
+            build = f_content.find('build')
+            if build is not None:
+                plugins = build.find('plugins')
+                if plugins is not None:
+                    plugins.append(tmp_plugin.plugin)
+                    ret = True
+                else:
+                    build.append(tmp_plugins.plugins)
+                    ret = True
+            else:
+                project = f_content.find('project')
+                if project is not None:
+                    build_with_plugins = f"<build>{license_maven_plugins}</build>"
+                    tmp_build = bs(build_with_plugins, xml)
+                    project.append(tmp_build.build)
+                    ret = True
         except Exception as e:
             ret = False
-            logger.error(f"Failed to add plugin in pom : {e}")
+            logger.warning(f"Failed to add plugin in pom : {e}")
 
         if ret:
             with open(manifest_file, "w", encoding='utf8') as f_w:
@@ -196,14 +205,88 @@ class Maven(PackageManager):
                     self._parse_downloaded_from_lines_mvn(proc.stdout)
                 else:
                     logger.debug(f"dependency:resolve failed (rc={proc.returncode})")
+            if not self.download_url_map and (include_groups and include_artifacts):
+                logger.debug("No download URLs found, attempting to reconstruct from local repository")
+                self._collect_urls_from_local_repository(include_groups, include_artifacts)
         except Exception as e:
             logger.debug(f"Error occurred while collecting source download URLs: {e}")
         finally:
             if current_mode:
                 change_file_mode(cmd_mvn, current_mode)
 
+    def _collect_urls_from_local_repository(self, include_groups=None, include_artifacts=None):
+        try:
+            m2_repo = Path.home() / ".m2" / "repository"
+            if not m2_repo.exists():
+                return
+            repo_map = self._parse_pom_repositories()
+            if include_groups and include_artifacts:
+                for group_id in include_groups:
+                    group_path = group_id.replace('.', '/')
+                    for artifact_id in include_artifacts:
+                        artifact_path = m2_repo / group_path / artifact_id
+                        if artifact_path.exists():
+                            self._scan_artifact_versions(artifact_path, group_id, artifact_id, repo_map)
+        except Exception as e:
+            logger.debug(f"Failed to collect URLs from local repository: {e}")
+
+    def _parse_pom_repositories(self):
+        repo_map = {}
+        try:
+            pom_file = os.path.join(self.input_dir, 'pom.xml')
+            if not os.path.exists(pom_file):
+                return repo_map
+            with open(pom_file, 'r', encoding='utf8') as f:
+                soup = bs(f.read(), 'xml')
+                repositories = soup.find_all('repository')
+                for repo in repositories:
+                    repo_id = repo.find('id')
+                    repo_url = repo.find('url')
+                    if repo_id and repo_url:
+                        repo_map[repo_id.text.strip()] = repo_url.text.strip().rstrip('/')
+        except Exception as e:
+            logger.debug(f"Failed to parse pom repositories: {e}")
+        return repo_map
+
+    def _scan_artifact_versions(self, artifact_path, group_id, artifact_id, repo_map):
+        try:
+            for version_dir in artifact_path.iterdir():
+                if not version_dir.is_dir():
+                    continue
+                version = version_dir.name
+                remote_repos_file = version_dir / "_remote.repositories"
+
+                if remote_repos_file.exists():
+                    with open(remote_repos_file, 'r') as f:
+                        for line in f:
+                            if line.startswith('#') or '>' not in line:
+                                continue
+                            parts = line.strip().split('>')
+                            if len(parts) != 2:
+                                continue
+                            filename = parts[0]
+                            repo_id = parts[1].rstrip('=')
+
+                            if '-sources.jar' in filename:
+                                if repo_id in repo_map:
+                                    repo_url = repo_map[repo_id]
+                                elif repo_id == 'central':
+                                    repo_url = 'https://repo.maven.apache.org/maven2'
+                                else:
+                                    continue
+                                group_path = group_id.replace('.', '/')
+                                url = f"{repo_url}/{group_path}/{artifact_id}/{version}/{filename}"
+                                key = f"{group_id}:{artifact_id}:{version}"
+                                self.download_url_map[key] = url
+                                logger.debug(f"Reconstructed URL from local repo: {key} -> {url}")
+                                break
+        except Exception as e:
+            logger.debug(f"Failed to scan artifact versions: {e}")
+
     def _parse_downloaded_from_lines_mvn(self, stdout_text: str):
         current_gav = None
+        tld_roots = {'com', 'org', 'io', 'net', 'edu', 'gov', 'mil', 'co', 'de', 'fr', 'uk', 'kr', 'jp', 'cn'}
+
         for raw in stdout_text.splitlines():
             line = raw.strip()
             try:
@@ -217,6 +300,26 @@ class Maven(PackageManager):
                     if not m:
                         continue
                     url = m.group(1)
+
+                    if not current_gav:
+                        parts = url.split('/')
+                        if len(parts) >= 6 and parts[0].startswith('http'):
+                            filename = parts[-1]
+                            version = parts[-2]
+                            artifactid = parts[-3]
+
+                            if filename.startswith(f"{artifactid}-{version}"):
+                                artifact_idx = len(parts) - 3
+                                group_start_idx = -1
+                                for i in range(artifact_idx - 1, 2, -1):
+                                    if parts[i] in tld_roots:
+                                        group_start_idx = i
+                                        break
+                                if group_start_idx > 0:
+                                    group_parts = parts[group_start_idx:artifact_idx]
+                                    groupid = '.'.join(group_parts)
+                                    current_gav = (groupid, artifactid, version)
+
                     if not current_gav:
                         continue
                     groupid, artifactid, version = current_gav
@@ -228,6 +331,8 @@ class Maven(PackageManager):
                     prev = self.download_url_map.get(key)
                     if (prev is None) or (('-sources.' in url) and ('-sources.' not in (prev or ''))):
                         self.download_url_map[key] = url
+
+                    current_gav = None
             except Exception as e:
                 logger.debug(f"Failed to parse mvn line: {line} ({e})")
 

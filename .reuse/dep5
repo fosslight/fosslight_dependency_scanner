@@ -122,6 +122,10 @@ Files: tests/test_mod/*
 Copyright: 2024 junegunn(Junegunn Choi)
 License: MIT
 
+Files: tests/test_maven_custom_repo/*
+Copyright: 2026 LG Electronics
+License: Apache-2.0
+
 Files: LICENSES/LicenseRef-3rd_party_licenses.txt
 Copyright: 2021 LG Electronics
 License: Apache-2.0

@@ -512,8 +512,8 @@ def get_download_location(download_url_map, group_id, artifact_id, version, mvnr
             if actual_url:
                 central_like = ("repo1.maven.org" in actual_url) or ("repo.maven.apache.org" in actual_url)
                 google_like = (("maven.google.com" in actual_url) or
-                            ("dl.google.com/android/maven2" in actual_url) or
-                            ("dl.google.com/dl/android/maven2" in actual_url))
+                               ("dl.google.com/android/maven2" in actual_url) or
+                               ("dl.google.com/dl/android/maven2" in actual_url))
                 if central_like or google_like:
                     use_mvnrepo = True
                 else:
