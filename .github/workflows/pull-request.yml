@@ -96,3 +96,59 @@ jobs:
     - uses: actions/checkout@v3
     - name: REUSE Compliance Check
       uses: fsfe/reuse-action@v1
+
+  pr-review:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get diff
+        id: diff
+        run: |
+          git diff "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" -- . > diff.txt
+          echo "size=$(wc -c < diff.txt)" >> $GITHUB_OUTPUT
+      - name: Skip if no code change
+        id: skip
+        run: |
+          if [ "${{ steps.diff.outputs.size }}" -lt 5 ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Request review from service
+        id: review
+        if: steps.skip.outputs.skip != 'true'
+        env:
+          SERVICE_URL: ${{ secrets.PR_REVIEW_SERVICE_URL }}
+        run: |
+          echo '{"pr_title": ${{ toJSON(github.event.pull_request.title) }}, "pr_body": ${{ toJSON(github.event.pull_request.body) }}}' > meta.json
+          jq -n --rawfile diff diff.txt --slurpfile m meta.json '$m[0] + {diff: $diff}' > payload.json
+          BODY=$(curl -sf --max-time 660 -X POST "${SERVICE_URL}/review" \
+            -H "Content-Type: application/json" \
+            -d @payload.json \
+            | jq -r .body) || true
+          echo "## 🤖 LLM 리뷰 요약" > review_body.md
+          echo "" >> review_body.md
+          echo "${BODY:-리뷰 생성에 실패했거나 응답이 비어 있습니다.}" >> review_body.md
+      - name: Post review comment
+        if: steps.skip.outputs.skip != 'true' && success()
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.TOKEN || secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: review_body.md
+          edit-mode: replace
+      - name: Comment when no code change
+        if: steps.skip.outputs.skip == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.TOKEN || secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: "## 🤖 LLM 리뷰 요약\n\n이 PR에는 리뷰할 코드 변경이 없습니다."
+          edit-mode: replace
