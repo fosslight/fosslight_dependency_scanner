@@ -8,6 +8,7 @@ import logging
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency._package_manager import collect_gradle_download_urls, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
@@ -25,6 +26,7 @@ class Android(PackageManager):
 
     def __init__(self, input_dir, output_dir, app_name):
         super().__init__(self.package_manager_name, '', input_dir, output_dir)
+        self.download_url_map = {}
         if app_name:
             self.app_name = app_name
         self.input_file_name = self.check_input_path()
@@ -42,6 +44,11 @@ class Android(PackageManager):
             return os.path.join(self.app_name, self.plugin_output_file)
 
     def parse_oss_information(self, f_name):
+        if not self.download_url_map:
+            self.download_url_map = collect_gradle_download_urls(
+                self.input_dir, self.package_manager_name, self.app_name
+            )
+
         with open(f_name, 'r', encoding='utf8') as input_fp:
             purl_dict = {}
             for i, line in enumerate(input_fp.readlines()):
@@ -56,6 +63,7 @@ class Android(PackageManager):
                         oss_item.download_location, oss_item.homepage = split_str[:7]
                 else:
                     continue
+
                 if not oss_item.license:
                     license_names = get_license_from_pom(oss_item.name.split(':')[0],
                                                          oss_item.name.split(':')[1],
@@ -65,6 +73,12 @@ class Android(PackageManager):
 
                 dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
                 purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
+
+                if ':' in oss_item.name:
+                    group_id, artifact_id = oss_item.name.split(':', 1)
+                    oss_item.download_location = get_download_location(self.download_url_map,
+                                                                       group_id, artifact_id, oss_item.version,
+                                                                       'https://mvnrepository.com/artifact/')
 
                 if self.direct_dep:
                     dep_key = f"{oss_item.name}({oss_item.version})"

@@ -10,10 +10,11 @@ import shutil
 from bs4 import BeautifulSoup as bs
 from defusedxml.ElementTree import parse
 import re
+from pathlib import Path
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import version_refine, get_url_to_purl, change_file_mode
+from fosslight_dependency._package_manager import version_refine, get_url_to_purl, change_file_mode, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
@@ -32,6 +33,7 @@ class Maven(PackageManager):
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
         self.is_run_plugin = False
+        self.download_url_map = {}
 
         if output_custom_dir:
             self.output_custom_dir = output_custom_dir
@@ -65,6 +67,7 @@ class Maven(PackageManager):
     def add_plugin_in_pom(self, pom_backup):
         ret = False
         xml = 'xml'
+        f_content = None
 
         manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
         if os.path.isfile(manifest_file) != 1:
@@ -93,25 +96,32 @@ class Maven(PackageManager):
 
             tmp_plugin = bs(license_maven_plugin, xml)
 
-            license_maven_plugins = f"<plugins>{license_maven_plugin}<plugins>"
+            license_maven_plugins = f"<plugins>{license_maven_plugin}</plugins>"
             tmp_plugins = bs(license_maven_plugins, xml)
 
             with open(pom_backup, 'r', encoding='utf8') as f:
                 f_xml = f.read()
                 f_content = bs(f_xml, xml)
 
-                build = f_content.find('build')
-                if build is not None:
-                    plugins = build.find('plugins')
-                    if plugins is not None:
-                        plugins.append(tmp_plugin.plugin)
-                        ret = True
-                    else:
-                        build.append(tmp_plugins.plugins)
-                        ret = True
+            build = f_content.find('build')
+            if build is not None:
+                plugins = build.find('plugins')
+                if plugins is not None:
+                    plugins.append(tmp_plugin.plugin)
+                    ret = True
+                else:
+                    build.append(tmp_plugins.plugins)
+                    ret = True
+            else:
+                project = f_content.find('project')
+                if project is not None:
+                    build_with_plugins = f"<build>{license_maven_plugins}</build>"
+                    tmp_build = bs(build_with_plugins, xml)
+                    project.append(tmp_build.build)
+                    ret = True
         except Exception as e:
             ret = False
-            logger.error(f"Failed to add plugin in pom : {e}")
+            logger.warning(f"Failed to add plugin in pom : {e}")
 
         if ret:
             with open(manifest_file, "w", encoding='utf8') as f_w:
@@ -137,15 +147,7 @@ class Maven(PackageManager):
     def run_maven_plugin(self):
         ret_plugin = True
         logger.info('Run maven license scanning plugin with temporary pom.xml')
-        current_mode = ''
-        if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
-            if self.platform == const.WINDOWS:
-                cmd_mvn = "mvnw.cmd"
-            else:
-                cmd_mvn = "./mvnw"
-            current_mode = change_file_mode(cmd_mvn)
-        else:
-            cmd_mvn = "mvn"
+        cmd_mvn, current_mode = self._get_mvn_cmd()
         cmd = f"{cmd_mvn} license:aggregate-download-licenses"
 
         ret = subprocess.call(cmd, shell=True)
@@ -169,6 +171,170 @@ class Maven(PackageManager):
         if current_mode:
             change_file_mode(cmd_mvn, current_mode)
         return ret_plugin
+
+    def _get_mvn_cmd(self):
+        current_mode = ''
+        if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
+            if self.platform == const.WINDOWS:
+                cmd_mvn = "mvnw.cmd"
+            else:
+                cmd_mvn = "./mvnw"
+            current_mode = change_file_mode(cmd_mvn)
+        else:
+            cmd_mvn = "mvn"
+        return cmd_mvn, current_mode
+
+    def collect_source_download_urls(self, include_groups=None, include_artifacts=None):
+        cmd_mvn, current_mode = self._get_mvn_cmd()
+        try:
+            flags = "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=info"
+            includes = []
+            if include_groups:
+                includes.append(f"-DincludeGroupIds={','.join(sorted(set(include_groups)))}")
+            if include_artifacts:
+                includes.append(f"-DincludeArtifactIds={','.join(sorted(set(include_artifacts)))}")
+            cmd = f"{cmd_mvn} {flags} dependency:sources {' '.join(includes)}".strip()
+            proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.input_dir)
+            if proc.returncode == 0:
+                self._parse_downloaded_from_lines_mvn(proc.stdout)
+            else:
+                logger.debug(f"dependency:sources failed (rc={proc.returncode}), trying dependency:resolve")
+                cmd = f"{cmd_mvn} {flags} dependency:resolve {' '.join(includes)}".strip()
+                proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.input_dir)
+                if proc.returncode == 0:
+                    self._parse_downloaded_from_lines_mvn(proc.stdout)
+                else:
+                    logger.debug(f"dependency:resolve failed (rc={proc.returncode})")
+            if not self.download_url_map and (include_groups and include_artifacts):
+                logger.debug("No download URLs found, attempting to reconstruct from local repository")
+                self._collect_urls_from_local_repository(include_groups, include_artifacts)
+        except Exception as e:
+            logger.debug(f"Error occurred while collecting source download URLs: {e}")
+        finally:
+            if current_mode:
+                change_file_mode(cmd_mvn, current_mode)
+
+    def _collect_urls_from_local_repository(self, include_groups=None, include_artifacts=None):
+        try:
+            m2_repo = Path.home() / ".m2" / "repository"
+            if not m2_repo.exists():
+                return
+            repo_map = self._parse_pom_repositories()
+            if include_groups and include_artifacts:
+                for group_id in include_groups:
+                    group_path = group_id.replace('.', '/')
+                    for artifact_id in include_artifacts:
+                        artifact_path = m2_repo / group_path / artifact_id
+                        if artifact_path.exists():
+                            self._scan_artifact_versions(artifact_path, group_id, artifact_id, repo_map)
+        except Exception as e:
+            logger.debug(f"Failed to collect URLs from local repository: {e}")
+
+    def _parse_pom_repositories(self):
+        repo_map = {}
+        try:
+            pom_file = os.path.join(self.input_dir, 'pom.xml')
+            if not os.path.exists(pom_file):
+                return repo_map
+            with open(pom_file, 'r', encoding='utf8') as f:
+                soup = bs(f.read(), 'xml')
+                repositories = soup.find_all('repository')
+                for repo in repositories:
+                    repo_id = repo.find('id')
+                    repo_url = repo.find('url')
+                    if repo_id and repo_url:
+                        repo_map[repo_id.text.strip()] = repo_url.text.strip().rstrip('/')
+        except Exception as e:
+            logger.debug(f"Failed to parse pom repositories: {e}")
+        return repo_map
+
+    def _scan_artifact_versions(self, artifact_path, group_id, artifact_id, repo_map):
+        try:
+            for version_dir in artifact_path.iterdir():
+                if not version_dir.is_dir():
+                    continue
+                version = version_dir.name
+                remote_repos_file = version_dir / "_remote.repositories"
+
+                if remote_repos_file.exists():
+                    with open(remote_repos_file, 'r') as f:
+                        for line in f:
+                            if line.startswith('#') or '>' not in line:
+                                continue
+                            parts = line.strip().split('>')
+                            if len(parts) != 2:
+                                continue
+                            filename = parts[0]
+                            repo_id = parts[1].rstrip('=')
+
+                            if '-sources.jar' in filename:
+                                if repo_id in repo_map:
+                                    repo_url = repo_map[repo_id]
+                                elif repo_id == 'central':
+                                    repo_url = 'https://repo.maven.apache.org/maven2'
+                                else:
+                                    continue
+                                group_path = group_id.replace('.', '/')
+                                url = f"{repo_url}/{group_path}/{artifact_id}/{version}/{filename}"
+                                key = f"{group_id}:{artifact_id}:{version}"
+                                self.download_url_map[key] = url
+                                logger.debug(f"Reconstructed URL from local repo: {key} -> {url}")
+                                break
+        except Exception as e:
+            logger.debug(f"Failed to scan artifact versions: {e}")
+
+    def _parse_downloaded_from_lines_mvn(self, stdout_text: str):
+        current_gav = None
+        tld_roots = {'com', 'org', 'io', 'net', 'edu', 'gov', 'mil', 'co', 'de', 'fr', 'uk', 'kr', 'jp', 'cn'}
+
+        for raw in stdout_text.splitlines():
+            line = raw.strip()
+            try:
+                if 'Resolving ' in line:
+                    m = re.search(r'Resolving\s+([^:]+):([^:]+):[^:]+:([^\s:]+)', line)
+                    if m:
+                        current_gav = (m.group(1), m.group(2), m.group(3))
+                        continue
+                if ('Downloading from' in line) or ('Downloaded from' in line):
+                    m = re.search(r'(https?://\S+)', line)
+                    if not m:
+                        continue
+                    url = m.group(1)
+
+                    if not current_gav:
+                        parts = url.split('/')
+                        if len(parts) >= 6 and parts[0].startswith('http'):
+                            filename = parts[-1]
+                            version = parts[-2]
+                            artifactid = parts[-3]
+
+                            if filename.startswith(f"{artifactid}-{version}"):
+                                artifact_idx = len(parts) - 3
+                                group_start_idx = -1
+                                for i in range(artifact_idx - 1, 2, -1):
+                                    if parts[i] in tld_roots:
+                                        group_start_idx = i
+                                        break
+                                if group_start_idx > 0:
+                                    group_parts = parts[group_start_idx:artifact_idx]
+                                    groupid = '.'.join(group_parts)
+                                    current_gav = (groupid, artifactid, version)
+
+                    if not current_gav:
+                        continue
+                    groupid, artifactid, version = current_gav
+                    tail = url.split('/')[-1]
+
+                    if not tail.startswith(f"{artifactid}-{version}"):
+                        continue
+                    key = f"{groupid}:{artifactid}:{version}"
+                    prev = self.download_url_map.get(key)
+                    if (prev is None) or (('-sources.' in url) and ('-sources.' not in (prev or ''))):
+                        self.download_url_map[key] = url
+
+                    current_gav = None
+            except Exception as e:
+                logger.debug(f"Failed to parse mvn line: {line} ({e})")
 
     def create_dep_stack(self, dep_line):
         dep_stack = []
@@ -221,10 +387,25 @@ class Maven(PackageManager):
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
             tree = parse(input_fp)
-
         root = tree.getroot()
         dependencies = root.find("dependencies")
         purl_dict = {}
+
+        if not getattr(self, 'download_url_map', None):
+            self.download_url_map = {}
+        if not self.download_url_map:
+            groups, arts = set(), set()
+            for d in dependencies.iter("dependency"):
+                g = d.findtext("groupId") or ""
+                a = d.findtext("artifactId") or ""
+                if g:
+                    groups.add(g)
+                if a:
+                    arts.add(a)
+            try:
+                self.collect_source_download_urls(include_groups=groups, include_artifacts=arts)
+            except Exception as e:
+                logger.debug(f"Skip collecting source URLs: {e}")
 
         for d in dependencies.iter("dependency"):
             dep_item = DependencyItem()
@@ -235,10 +416,13 @@ class Maven(PackageManager):
             oss_item.version = version_refine(version)
 
             oss_item.name = f"{groupid}:{artifactid}"
-            oss_item.download_location = f"{self.dn_url}{groupid}/{artifactid}/{version}"
+            oss_item.download_location = get_download_location(
+                self.download_url_map, groupid, artifactid, version, self.dn_url
+            )
             oss_item.homepage = f"{self.dn_url}{groupid}/{artifactid}"
-            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
-            purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
+            mvn_dn_url = f"{oss_item.homepage}/{version}"
+            dep_item.purl = get_url_to_purl(mvn_dn_url, self.package_manager_name)
+            purl_dict[f'{oss_item.name}({version})'] = dep_item.purl
 
             licenses = d.find("licenses")
             if len(licenses):
