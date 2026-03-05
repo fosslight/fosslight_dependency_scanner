@@ -37,10 +37,39 @@ class Pnpm(PackageManager):
         if self.flag_tmp_node_modules:
             shutil.rmtree(node_modules, ignore_errors=True)
 
+    def _parse_json_output(self, json_text):
+        json_text = json_text.strip()
+        if not json_text:
+            return []
+        try:
+            result = json.loads(json_text)
+            if not isinstance(result, list):
+                return [result]
+            return result
+        except json.JSONDecodeError:
+            results = []
+            decoder = json.JSONDecoder()
+            idx = 0
+            while idx < len(json_text):
+                json_text_trimmed = json_text[idx:].lstrip()
+                if not json_text_trimmed:
+                    break
+                try:
+                    obj, end_idx = decoder.raw_decode(json_text_trimmed)
+                    if isinstance(obj, list):
+                        results.extend(obj)
+                    else:
+                        results.append(obj)
+                    idx += len(json_text[idx:]) - len(json_text_trimmed) + end_idx
+                except json.JSONDecodeError as e:
+                    logger.warning(f'Failed to parse JSON at position {idx}: {e}')
+                    break
+            return results
+
     def run_plugin(self):
         ret = True
 
-        pnpm_install_cmd = 'pnpm install --prod --ignore-scripts --ignore-pnpmfile'
+        pnpm_install_cmd = 'pnpm install -r --prod --ignore-scripts --ignore-pnpmfile'
         if os.path.isdir(node_modules) != 1:
             logger.info(f"node_modules directory is not existed. So it executes '{pnpm_install_cmd}'.")
             self.flag_tmp_node_modules = True
@@ -52,9 +81,10 @@ class Pnpm(PackageManager):
             project_cmd = 'pnpm ls -r --depth -1 -P --json'
             ret_txt = subprocess.check_output(project_cmd, text=True, shell=True)
             if ret_txt is not None:
-                deps_l = json.loads(ret_txt)
+                deps_l = self._parse_json_output(ret_txt)
                 for items in deps_l:
-                    self.project_name_list.append(items["name"])
+                    if "name" in items:
+                        self.project_name_list.append(items["name"])
         return ret
 
     def parse_direct_dependencies(self):
@@ -64,7 +94,7 @@ class Pnpm(PackageManager):
             direct_cmd = 'pnpm ls -r --depth 0 -P --json'
             ret_txt = subprocess.check_output(direct_cmd, text=True, shell=True)
             if ret_txt is not None:
-                deps_l = json.loads(ret_txt)
+                deps_l = self._parse_json_output(ret_txt)
                 for item in deps_l:
                     if 'dependencies' in item and isinstance(item['dependencies'], dict):
                         self.direct_dep_list.extend(item['dependencies'].keys())
@@ -142,7 +172,7 @@ class Pnpm(PackageManager):
         project_cmd = 'pnpm ls --json -r --depth Infinity -P --long'
         ret_txt = subprocess.check_output(project_cmd, text=True, shell=True)
         if ret_txt is not None:
-            deps_l = json.loads(ret_txt)
+            deps_l = self._parse_json_output(ret_txt)
             purl_dict = {}
             for items in deps_l:
                 if 'dependencies' in items:
