@@ -96,7 +96,7 @@ class Pnpm(PackageManager):
             if ret_txt is not None:
                 deps_l = self._parse_json_output(ret_txt)
                 for item in deps_l:
-                    if 'dependencies' in item and isinstance(item['dependencies'], dict):
+                    if isinstance(item, dict) and isinstance(item.get('dependencies'), dict):
                         self.direct_dep_list.extend(item['dependencies'].keys())
             else:
                 self.direct_dep = False
@@ -175,7 +175,7 @@ class Pnpm(PackageManager):
             deps_l = self._parse_json_output(ret_txt)
             purl_dict = {}
             for items in deps_l:
-                if 'dependencies' in items:
+                if isinstance(items, dict) and isinstance(items.get('dependencies'), dict):
                     dep_item_list_inner, purl_dict_inner = self.extract_dependencies(items['dependencies'], purl_dict)
                     self.dep_items.extend(dep_item_list_inner)
                     purl_dict.update(purl_dict_inner)
