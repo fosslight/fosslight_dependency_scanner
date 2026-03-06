@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.1.33 (06/03/2026)
+## Changes
+## 🚀 Features
+
+- Collect and print custom dn url for maven/gradle @dd-jy (#289)
+
+## 🐛 Hotfixes
+
+- Fix pnpm workspace install and json parsing @dd-jy (#293)
+
+## 🔧 Maintenance
+
+- Remove "Type of change" section from PR default template @woocheol-lge (#292)
+- Update CodeRabbit config @soimkim (#291)
+
+---
+
 ## v4.1.32 (05/02/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -284,17 +301,3 @@
 ## 🐛 Hotfixes
 
 - Fix the bug @dd-jy (#236)
-
----
-
-## v4.1.3 (05/12/2024)
-## Changes
-## 🚀 Features
-
-- Support cycloneDX format @dd-jy (#235)
-
-## 🔧 Maintenance
-
-- Fix -m option, notice screen, dinamic graph size, case insensitive @ethanleelge (#234)
-- Change cover sheet fail str @dd-jy (#231)
-- test/golang: Added Golang test code and test case. @rewrite0w0 (#229)
