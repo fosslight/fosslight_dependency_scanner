@@ -7,9 +7,9 @@ import os
 import logging
 import json
 import re
-import shutil
 import yaml
 import subprocess
+from pathlib import Path
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -24,153 +24,245 @@ class Pub(PackageManager):
     package_manager_name = const.PUB
 
     dn_url = 'https://pub.dev/packages/'
-    input_file_name = 'tmp_flutter_oss_licenses.json'
-    tmp_dir = "fl_dependency_tmp_dir"
     cur_path = ''
-    pkg_source_list = {}
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
-        self.append_input_package_list_file(self.input_file_name)
+        self.pkg_source_list = {}
+        self.name_version_dict = {}
+        self.pkg_details = {}
+        self.append_input_package_list_file(const.SUPPORT_PACKAE.get(self.package_manager_name))
 
     def __del__(self):
         if self.cur_path != '':
             os.chdir(self.cur_path)
-        if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
 
     def run_plugin(self):
-        if os.path.exists(self.input_file_name):
-            logger.info(f"Found {self.input_file_name}, skip the flutter cmd to analyze dependency.")
-            return True
-
         if not os.path.exists(const.SUPPORT_PACKAE.get(self.package_manager_name)):
             logger.error(f"Cannot find the file({const.SUPPORT_PACKAE.get(self.package_manager_name)})")
-            return False
-
-        if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
-
-        os.mkdir(self.tmp_dir)
-        shutil.copy(const.SUPPORT_PACKAE.get(self.package_manager_name),
-                    os.path.join(self.tmp_dir, const.SUPPORT_PACKAE.get(self.package_manager_name)))
-
-        self.cur_path = os.getcwd()
-        os.chdir(self.tmp_dir)
-
-        with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'r', encoding='utf8') as f:
-            tmp_yml = yaml.safe_load(f)
-            tmp_yml['dev_dependencies'] = {'flutter_oss_licenses': '^2.0.1'}
-        with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'w', encoding='utf8') as f:
-            f.write(yaml.dump(tmp_yml))
-
-        cmd = "flutter pub get"
-        ret = subprocess.call(cmd, shell=True)
-        if ret != 0:
-            logger.error(f"Failed to run: {cmd}")
-            os.chdir(self.cur_path)
-            return False
-
-        cmd = f"flutter pub run flutter_oss_licenses:generate.dart -o {self.input_file_name} --json"
-        ret = subprocess.call(cmd, shell=True)
-        if ret != 0:
-            logger.error(f"Failed to run: {cmd}")
-            os.chdir(self.cur_path)
             return False
 
         return True
 
     def parse_pub_deps_file(self, rel_json):
-        name_version_dict = {}
         try:
             for p in rel_json['packages']:
                 if p['kind'] == 'root':
                     self.package_name = p['name']
-                name_version_dict[p['name']] = p['version']
+                self.name_version_dict[p['name']] = p['version']
+
+                dep_key = f"{p['name']}({p['version']})"
+                self.pkg_source_list[dep_key] = p['source']
+                if p['source'] == 'git':
+                    desc = p.get('description', {})
+                    url = desc.get('url', '') if isinstance(desc, dict) else ''
+                    self.pkg_details[dep_key] = {
+                        'source': 'git',
+                        'url': url
+                    }
+                elif p['source'] == 'path':
+                    desc = p.get('description', {})
+                    if isinstance(desc, dict):
+                        path = desc.get('path', '')
+                    else:
+                        path = desc if desc else ''
+                    self.pkg_details[dep_key] = {
+                        'source': 'path',
+                        'path': path
+                    }
+
                 if p['dependencies'] == []:
                     continue
-                dep_key = f"{p['name']}({p['version']})"
                 if dep_key not in self.relation_tree:
                     self.relation_tree[dep_key] = []
                 self.relation_tree[dep_key].extend(p['dependencies'])
-                self.pkg_source_list[dep_key] = p['source']
 
             for i in self.relation_tree:
                 tmp_dep = []
                 for d in self.relation_tree[i]:
-                    d_ver = name_version_dict[d]
+                    d_ver = self.name_version_dict[d]
                     tmp_dep.append(f'{d}({d_ver})')
                 self.relation_tree[i] = []
                 self.relation_tree[i].extend(tmp_dep)
         except Exception as e:
             logger.error(f'Failed to parse dependency tree: {e}')
 
-    def parse_oss_information(self, f_name):
-        tmp_license_txt_file_name = 'tmp_license.txt'
-        json_data = ''
+    def get_package_info_from_cache(self, package_name, version, pkg_source='hosted', pkg_with_version=None):
+        try:
+            package_dir = None
+            pub_cache_dir = os.environ.get('PUB_CACHE')
+            if not pub_cache_dir:
+                pub_cache_dir = os.path.join(Path.home(), '.pub-cache')
 
-        with open(f_name, 'r', encoding='utf8') as pub_file:
-            json_f = json.load(pub_file)
+            if pkg_source == 'hosted':
+                package_dir = os.path.join(
+                    pub_cache_dir,
+                    'hosted',
+                    'pub.dev',
+                    f'{package_name}-{version}'
+                )
+                if not os.path.exists(package_dir):
+                    package_dir = os.path.join(
+                        pub_cache_dir,
+                        'hosted',
+                        'pub.dartlang.org',
+                        f'{package_name}-{version}'
+                    )
+            elif pkg_source == 'git':
+                git_cache_dir = os.path.join(pub_cache_dir, 'git')
+                expected_url = ''
+                if pkg_with_version and pkg_with_version in self.pkg_details:
+                    expected_url = self.pkg_details[pkg_with_version].get('url', '')
+                if os.path.exists(git_cache_dir):
+                    name_only_match = None
+                    for dir_name in os.listdir(git_cache_dir):
+                        potential_dir = os.path.join(git_cache_dir, dir_name)
+                        if not os.path.isdir(potential_dir):
+                            continue
+                        pubspec_path = os.path.join(potential_dir, 'pubspec.yaml')
+                        if not os.path.exists(pubspec_path):
+                            continue
+                        try:
+                            with open(pubspec_path, 'r', encoding='utf8') as f:
+                                pubspec = yaml.safe_load(f)
+                                if not pubspec or pubspec.get('name') != package_name:
+                                    continue
+                            if expected_url:
+                                git_config_path = os.path.join(potential_dir, '.git', 'config')
+                                remote_url = ''
+                                if os.path.exists(git_config_path):
+                                    try:
+                                        with open(git_config_path, 'r', encoding='utf8') as gc:
+                                            for line in gc:
+                                                line = line.strip()
+                                                if line.startswith('url ='):
+                                                    remote_url = line.split('=', 1)[1].strip()
+                                                    break
+                                    except Exception as e:
+                                        logger.debug(f"Failed to read .git/config for {package_name}: {e}")
 
+                                if remote_url and remote_url == expected_url:
+                                    package_dir = potential_dir
+                                    break
+                                else:
+                                    if name_only_match is None:
+                                        name_only_match = potential_dir
+                            else:
+                                package_dir = potential_dir
+                                break
+                        except Exception as e:
+                            logger.debug(f"Failed to read pubspec.yaml for {package_name}: {e}")
+                            continue
+
+                    # URL 완전 매칭 실패 시 이름만 일치한 디렉터리로 fallback
+                    if not package_dir and name_only_match:
+                        logger.debug(f"Falling back to name-only match for git package: {package_name}")
+                        package_dir = name_only_match
+            elif pkg_source == 'path':
+                if pkg_with_version and pkg_with_version in self.pkg_details:
+                    local_path = self.pkg_details[pkg_with_version].get('path', '')
+                    if local_path:
+                        if not os.path.isabs(local_path):
+                            package_dir = os.path.join(self.input_dir, local_path)
+                        else:
+                            package_dir = local_path
+            if not package_dir or not os.path.exists(package_dir):
+                logger.debug(f"Package directory not found in cache: {package_name}-{version} (source: {pkg_source})")
+                return None
+
+            result = {}
+            pubspec_path = os.path.join(package_dir, 'pubspec.yaml')
+            if os.path.exists(pubspec_path):
+                with open(pubspec_path, 'r', encoding='utf8') as f:
+                    pubspec = yaml.safe_load(f)
+                    result['homepage'] = pubspec.get('homepage', '')
+                    result['repository'] = pubspec.get('repository', '')
+
+            license_file = os.path.join(package_dir, 'LICENSE')
+            if os.path.exists(license_file):
+                try:
+                    with open(license_file, 'r', encoding='utf8') as lf:
+                        result['license_text'] = lf.read()
+                except Exception as e:
+                    logger.debug(f"Failed to read LICENSE file for {package_name}: {e}")
+
+            return result
+
+        except Exception as e:
+            logger.debug(f"Failed to get package info from cache for {package_name}-{version}: {e}")
+            return None
+
+    def parse_oss_information(self, f_name=None):  # noqa: ARG002 - kept for API compatibility
         purl_dict = {}
-        for json_data in json_f:
+
+        direct_deps = []
+        if self.direct_dep and self.package_name:
+            root_version = self.name_version_dict.get(self.package_name)
+            if root_version:
+                root_key = f"{self.package_name}({root_version})"
+                if root_key in self.relation_tree:
+                    direct_deps = [dep.split('(')[0] for dep in self.relation_tree[root_key]]
+
+        for pkg_name in self.total_dep_list:
             try:
+                version = self.name_version_dict.get(pkg_name)
+                if not version:
+                    logger.warning(f"Version not found for package: {pkg_name}")
+                    continue
+
+                pkg_with_version = f"{pkg_name}({version})"
+                pkg_source = self.pkg_source_list.get(pkg_with_version, 'hosted')
+                if pkg_source == 'sdk':
+                    continue
+
                 dep_item = DependencyItem()
                 oss_item = OssItem()
-                oss_origin_name = json_data['name']
-                if oss_origin_name not in self.total_dep_list:
-                    continue
-                oss_item.name = f"{self.package_manager_name}:{oss_origin_name}"
-                oss_item.version = json_data['version']
-                if oss_item.version is None:
-                    oss_item.version = ''
-                oss_item.homepage = json_data['homepage']
-                if oss_item.homepage is None:
-                    oss_item.homepage = json_data['repository']
-                if oss_item.homepage is None:
+
+                oss_item.name = f"{self.package_manager_name}:{pkg_name}"
+                oss_item.version = version
+
+                cache_info = self.get_package_info_from_cache(pkg_name, version, pkg_source, pkg_with_version)
+                if cache_info:
+                    oss_item.homepage = cache_info.get('homepage') or cache_info.get('repository') or ''
+                    if cache_info.get('license_text'):
+                        oss_item.license = check_license_name(cache_info['license_text'])
+                else:
                     oss_item.homepage = ''
-                oss_item.download_location = f"{self.dn_url}{oss_origin_name}/versions/{oss_item.version}"
-                dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name)
-                if json_data['isSdk']:
-                    oss_item.download_location = json_data['repository'] or json_data['homepage'] or ''
-                    oss_item.comment = 'SDK'
-                purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
-                license_txt = json_data['license']
-                if license_txt is not None:
-                    oss_item.license = check_license_name(license_txt)
+                if pkg_source == 'hosted':
+                    oss_item.download_location = f"{self.dn_url}{pkg_name}/versions/{version}"
+                elif pkg_source == 'git':
+                    if pkg_with_version in self.pkg_details:
+                        oss_item.download_location = self.pkg_details[pkg_with_version].get('url', '')
+                    if not oss_item.download_location:
+                        oss_item.download_location = oss_item.homepage
+                    oss_item.comment = 'git package'
+                elif pkg_source == 'path':
+                    oss_item.download_location = oss_item.homepage
+                    oss_item.comment = 'local path package'
+                else:
+                    oss_item.download_location = f"{self.dn_url}{pkg_name}/versions/{version}"
+                dep_item.purl = get_url_to_purl(f"{self.dn_url}{pkg_name}/versions/{version}", self.package_manager_name)
+                purl_dict[pkg_with_version] = dep_item.purl
 
                 if self.direct_dep:
-                    if oss_origin_name not in self.total_dep_list:
-                        continue
-                    if self.package_name == f'{oss_origin_name}({oss_item.version})':
+                    if self.package_name and pkg_name == self.package_name:
                         oss_item.comment = 'root package'
+                    elif pkg_name in direct_deps:
+                        oss_item.comment = 'direct'
                     else:
-                        if json_data['isDirectDependency']:
-                            oss_item.comment = 'direct'
-                        else:
-                            oss_item.comment = 'transitive'
+                        oss_item.comment = 'transitive'
 
-                    if f'{oss_origin_name}({oss_item.version})' in self.relation_tree:
-                        dep_item.depends_on_raw = self.relation_tree[f'{oss_origin_name}({oss_item.version})']
-                if f'{oss_origin_name}({oss_item.version})' in self.pkg_source_list:
-                    pkg_source = self.pkg_source_list[f'{oss_origin_name}({oss_item.version})']
-                    if pkg_source in ['git', 'path']:
-                        oss_item.download_location = json_data['repository']
-                        if oss_item.download_location is None:
-                            oss_item.download_location = json_data['homepage']
-                        if oss_item.download_location is None:
-                            oss_item.download_location = ''
-                        oss_item.comment = pkg_source
+                    if pkg_with_version in self.relation_tree:
+                        dep_item.depends_on_raw = self.relation_tree[pkg_with_version]
 
                 dep_item.oss_items.append(oss_item)
                 self.dep_items.append(dep_item)
+
             except Exception as e:
-                logger.error(f"Fail to parse pub oss information: {e}")
+                logger.error(f"Failed to parse package information for {pkg_name}: {e}")
+
         if self.direct_dep:
             self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
-
-        if os.path.isfile(tmp_license_txt_file_name):
-            os.remove(tmp_license_txt_file_name)
 
         return
 
@@ -207,7 +299,6 @@ class Pub(PackageManager):
                     logger.info('Parse tmp pub deps file.')
                 except UnicodeDecodeError as e1:
                     logger.info(f'Fail to encode with {encode}: {e1}')
-                    pass
                 except Exception as e:
                     logger.error(f'Fail to parse tmp pub deps result file: {e}')
                     return False
@@ -233,7 +324,7 @@ class Pub(PackageManager):
 
                 cmd = "flutter pub deps --no-dev -s compact"
                 ret_no_dev = subprocess.check_output(cmd, text=True, shell=True, encoding='utf8')
-                if ret_no_dev != 0:
+                if ret_no_dev:
                     self.parse_no_dev_command_file(ret_no_dev)
 
             except Exception as e:

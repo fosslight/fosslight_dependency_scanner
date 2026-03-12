@@ -1,3 +1,4 @@
+tests/test_gradle2/.gradle
 node_modules/
 package.json
 package-lock.json

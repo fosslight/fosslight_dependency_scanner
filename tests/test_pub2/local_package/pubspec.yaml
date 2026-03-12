@@ -1,0 +1,13 @@
+name: local_test_package
+description: A local test package for testing path dependencies
+version: 1.0.0
+homepage: https://example.com/local-test-package
+repository: https://github.com/example/local-test-package
+
+environment:
+  sdk: '>=2.12.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.0.0
