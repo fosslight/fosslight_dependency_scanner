@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.34 (13/03/2026)
+## Changes
+## 🚀 Features
+
+- Replace flutter_oss_licenses with local cache parsing @dd-jy (#294)
+
+---
+
 ## v4.1.33 (06/03/2026)
 ## Changes
 ## 🚀 Features
@@ -293,11 +301,3 @@
 ## 🐛 Hotfixes
 
 - Fix the pub result parsing bug @dd-jy (#237)
-
----
-
-## v4.1.4 (09/12/2024)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the bug @dd-jy (#236)
