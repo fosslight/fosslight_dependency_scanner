@@ -134,3 +134,7 @@ Comment: Third-party license information file
 Files: .coderabbit.yaml
 Copyright: 2026 LG Electronics
 License: Apache-2.0
+
+Files: tests/test_pub2/*
+Copyright: 2026 LG Electronics
+License: MIT

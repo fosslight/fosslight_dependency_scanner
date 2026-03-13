@@ -1,0 +1,32 @@
+name: test_pub2_app
+description: A test Flutter project for testing git and path dependencies
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: '>=2.12.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Hosted package (pub.dev)
+  http: ^1.0.0
+  path_provider: ^2.0.0
+  intl: ^0.18.0
+  
+  # Local path dependency
+  local_test_package:
+    path: ./local_package
+  
+  uuid:
+    git:
+      url: https://github.com/Daegalus/dart-uuid.git
+      ref: main
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
