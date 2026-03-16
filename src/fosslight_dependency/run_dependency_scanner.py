@@ -136,6 +136,33 @@ def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], r
         if not found_package_manager['npm']:
             del found_package_manager['npm']
 
+    # both gradle and android are detected, check which one to use based on lock file
+    if False:
+        found_package_manager_bk = found_package_manager
+        if 'gradle' in found_package_manager and 'android' in found_package_manager:
+            for d in found_package_manager['gradle'].keys() & found_package_manager['android'].keys():
+                gradle_ret = False
+                android_ret = False
+                if 'build.gradle' in found_package_manager['gradle'][d] and 'build.gradle' in found_package_manager['android'][d]:
+                    check_gradle = os.path.join(d, 'build.gradle')
+                    try:
+                        with open(check_gradle, 'r', encoding='utf-8') as gradle_temp:
+                            data = gradle_temp.read()
+                            gradle_keywords = ['apply plugin: \'java\'', 'apply plugin: \'java-library\'']
+                            android_keywords = ['android', 'SdkVersion']
+                            gradle_ret = any(k.replace(" ", "").lower() in data.replace(" ", "").lower() for k in gradle_keywords)
+                            android_ret = any(k.lower() in data.replace(" ", "").lower() for k in android_keywords)
+                    except Exception as e:
+                        logging.warning(f"Cannot open build.gradle: {e}")
+
+                if gradle_ret and not android_ret: 
+                    found_package_manager_bk["android"].pop(d, None)
+                elif not gradle_ret and android_ret: 
+                    found_package_manager_bk["gradle"].pop(d, None)
+        
+        found_package_manager_bk = {k: v for k, v in found_package_manager.items() if not ((isinstance(v, dict) and not v) or (isinstance(v, list) and not v))}
+        found_package_manager = found_package_manager_bk
+
     if len(found_package_manager) >= 1:
         log_lines = ["\nDetected Manifest Files automatically"]
         log_lines = print_package_info(found_package_manager, log_lines)
