@@ -123,7 +123,7 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         if package_manager.cover_comment:
             cover_comment = package_manager.cover_comment
     else:
-        logger.error(f"### Fail to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
+        logger.warning(f"### Fail to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
 
     del package_manager
 
