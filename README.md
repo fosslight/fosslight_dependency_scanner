@@ -13,7 +13,7 @@ This is the tool that supports the analysis of dependencies for multiple package
 
 ## 📖 User Guide
 
-We describe the user guide in the [**FOSSLight Guide page**](https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html).
+We describe the user guide in the [**FOSSLight Guide page**](https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html).
 In this user guide, you can see how to install the FOSSLight Dependency Scanner and how to set up the prerequisite step and run it according to the package manager of your project. Also, you can check the results of the FOSSLight Dependency Scanner.
 
 ## 👀 Package Support Level
