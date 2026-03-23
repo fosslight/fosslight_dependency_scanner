@@ -16,7 +16,7 @@ _HELP_MESSAGE_DEPENDENCY = f"""
     managers. It detects manifest files automatically and generates reports
     containing OSS information of dependencies.
 
-    📚 Guide: https://fosslight.org/fosslight-guide/scanner/3_dependency.html
+    📚 Guide: https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html
 
     📦 Supported Package Managers
     ────────────────────────────────────────────────────────────────────

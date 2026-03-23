@@ -314,7 +314,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                         pm = const.SUGGESTED_PACKAGE[f.split(os.path.sep)[-1]]
                         suggested_files_str.append(f"\t\t\t{f} ({pm}) detected, but {const.SUPPORT_PACKAE[pm]} missing.")
 
-                    suggested_files_str.append("\t\t\tRefer: https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html.")
+                    suggested_files_str.append("\t\t\tRefer: https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html.")
                     scan_item.set_cover_comment('\n'.join(suggested_files_str))
                 else:
                     scan_item.set_cover_comment("No Package manager detected.")
@@ -374,7 +374,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         if len(fail_pm) > 0:
             log_lines = print_package_info(fail_pm, log_lines, 'Fail')
             log_lines.append('If analysis fails, see fosslight_log*.txt and the prerequisite guide: '
-                             'https://fosslight.org/fosslight-guide-en/scanner/3_dependency.html#-prerequisite.')
+                             'https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html#how-to-run-and-output.')
         scan_item.set_cover_comment('\n'.join(log_lines))
 
     if ret and graph_path:
