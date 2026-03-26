@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.1.35 (26/03/2026)
+## Changes
+## 🔧 Maintenance
+
+- Remove trailing period from guide URLs in log messages @dd-jy (#300)
+- Update fosslight.org guide url @dd-jy (#299)
+- fix(gradle_scan): prevent java/android overlap during build.gradle detection @woocheol-lge (#298)
+
+---
+
 ## v4.1.34 (13/03/2026)
 ## Changes
 ## 🚀 Features
@@ -293,11 +303,3 @@
 ## 🚀 Features
 
 - Distinguish the origin of the pub package @dd-jy (#238)
-
----
-
-## v4.1.5 (06/01/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the pub result parsing bug @dd-jy (#237)
