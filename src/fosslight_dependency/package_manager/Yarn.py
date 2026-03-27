@@ -7,6 +7,7 @@ import os
 import logging
 import subprocess
 import json
+import shutil
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency.package_manager.Npm import Npm
@@ -35,6 +36,7 @@ class Yarn(Npm):
             if result.returncode == 0:
                 version_str = result.stdout.strip()
                 major_version = int(version_str.split('.')[0])
+
                 self.yarn_version = major_version
                 logger.info(f"Detected Yarn version: {version_str} (major: {major_version})")
                 return major_version
@@ -47,6 +49,9 @@ class Yarn(Npm):
         license_checker_cmd = f'license-checker --production --json --out {self.input_file_name}'
         custom_path_option = ' --customPath '
         node_modules = 'node_modules'
+
+        if not shutil.which("yarn"):
+            return False
 
         self.detect_yarn_version()
 
@@ -71,8 +76,8 @@ class Yarn(Npm):
                 yarn_install_cmd = 'yarn install --production --ignore-scripts'
                 logger.info(f"Executing: {yarn_install_cmd}")
 
-            cmd_ret = subprocess.call(yarn_install_cmd, shell=True)
-            if cmd_ret != 0:
+            result = subprocess.run(yarn_install_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
                 logger.error(f"{yarn_install_cmd} failed")
                 if is_pnp_mode:
                     logger.error("Yarn Berry PnP mode detected. Consider setting 'nodeLinker: node-modules' in .yarnrc.yml")
@@ -83,10 +88,9 @@ class Yarn(Npm):
         self.make_custom_json(self.tmp_custom_json)
 
         cmd = license_checker_cmd + custom_path_option + self.tmp_custom_json
-        cmd_ret = subprocess.call(cmd, shell=True)
-        if cmd_ret != 0:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
             logger.error(f"It returns the error: {cmd}")
-            logger.error("Please check if the license-checker is installed.(sudo npm install -g license-checker)")
             ret = False
         else:
             self.append_input_package_list_file(self.input_file_name)

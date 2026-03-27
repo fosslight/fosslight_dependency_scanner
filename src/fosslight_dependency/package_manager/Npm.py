@@ -32,6 +32,8 @@ class Npm(PackageManager):
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
         self._check_network_available()
+        self.IS_WINDOWS = self.platform == const.WINDOWS
+        self._owns_local_node_dir = False
 
     def __del__(self):
         if os.path.isfile(os.path.join(self.input_dir, self.input_file_name)):
@@ -40,10 +42,42 @@ class Npm(PackageManager):
             shutil.rmtree(os.path.join(self.input_dir, node_modules), ignore_errors=True)
         if os.path.exists(os.path.join(self.input_dir, self.tmp_custom_json)):
             os.remove(os.path.join(self.input_dir, self.tmp_custom_json))
+        local_node_dir = os.path.join(self.input_dir, ".fosslight_node")
+        if self._owns_local_node_dir and os.path.exists(local_node_dir):
+            shutil.rmtree(local_node_dir, ignore_errors=True)
 
     def run_plugin(self):
-        ret = self.start_license_checker()
-        return ret
+        node_cmd = shutil.which("node") or shutil.which("nodejs")
+        npm_cmd = shutil.which("npm")
+        if not node_cmd:
+            logger.warning("Node.js is not available on this system")
+            return False
+        if not npm_cmd:
+            logger.warning("npm is not available on this system")
+            return False
+        license_checker_cmd = shutil.which("license-checker")
+        if not license_checker_cmd:
+            if not self.install_license_checker():
+                return False
+        return self.start_license_checker()
+
+    def install_license_checker(self):
+        logger.info("Install license-checker")
+        NODE_DIR = os.path.join(self.input_dir, ".fosslight_node")
+        NODE_BIN = NODE_DIR if self.IS_WINDOWS else os.path.join(NODE_DIR, "bin")
+        PATH_SEP = ";" if self.IS_WINDOWS else ":"
+        os.makedirs(NODE_DIR, exist_ok=True)
+        self._owns_local_node_dir = True
+        os.environ["PATH"] = NODE_BIN + PATH_SEP + os.environ.get("PATH", "")
+        result = subprocess.run(
+            ["npm", "install", "-g", "license-checker", "--prefix", NODE_DIR],
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            logger.warning(f"license-checker install fail:\n{result.stderr}")
+            return False
+        return True
 
     def start_license_checker(self):
         ret = True
@@ -51,11 +85,12 @@ class Npm(PackageManager):
         custom_path_option = ' --customPath '
         npm_install_cmd = 'npm install --production --ignore-scripts'
 
-        if os.path.isdir(node_modules) != 1:
+        if not os.path.isdir(node_modules):
             logger.info(f"node_modules directory is not existed. So it executes '{npm_install_cmd}'.")
             self.flag_tmp_node_modules = True
-            cmd_ret = subprocess.call(npm_install_cmd, shell=True)
-            if cmd_ret != 0:
+
+            result = subprocess.run(npm_install_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
                 logger.error(f"{npm_install_cmd} failed")
                 return False
 
@@ -63,10 +98,9 @@ class Npm(PackageManager):
         self.make_custom_json(self.tmp_custom_json)
 
         cmd = license_checker_cmd + custom_path_option + self.tmp_custom_json
-        cmd_ret = subprocess.call(cmd, shell=True)
-        if cmd_ret != 0:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
             logger.error(f"It returns the error: {cmd}")
-            logger.error("Please check if the license-checker is installed.(sudo npm install -g license-checker)")
             ret = False
         else:
             self.append_input_package_list_file(self.input_file_name)
