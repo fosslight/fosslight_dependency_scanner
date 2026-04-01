@@ -25,7 +25,6 @@ jobs:
       env:
         NEW_TAG: ${{ steps.get_release.outputs.tag_name }}
       run: |
-        pip install --upgrade bumpversion
         LAST_TWO_TAGS=$(git for-each-ref refs/tags/ --count=2 --sort=-v:refname --format="%(refname:short)")
         LAST_ONE=$(echo $LAST_TWO_TAGS | cut -d' ' -f 2)
         last_version=$(echo ${LAST_ONE//v/""})
@@ -34,7 +33,7 @@ jobs:
         echo New version: ${new_version}
         git config --global user.name "github-actions[bot]"
         git config --global user.email "fosslight-dev@lge.com"
-        bumpversion --current-version $last_version --new-version $new_version setup.py
+        sed -i "s/^version = \".*\"/version = \"$new_version\"/" pyproject.toml
     - name: update changelog with gren
       env:
         GREN_GITHUB_TOKEN: ${{ secrets.TOKEN }}
@@ -45,14 +44,14 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "fosslight-dev@lge.com"
-        git add CHANGELOG.md
+        git add CHANGELOG.md pyproject.toml
         git commit -m "Update ChangeLog"
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.TOKEN }}
         branch: main
-  
+
   build:
     needs: update-changelog
     runs-on: windows-latest
@@ -63,19 +62,19 @@ jobs:
     - name: Set up Python3
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install .
         pip install pyinstaller
-        
+
     - name: Build exe with PyInstaller for windows
       run: |
         pyinstaller --onefile cli.py -n cli --additional-hooks-dir=hooks --add-binary "LICENSE;LICENSES" --add-binary "LICENSES\LicenseRef-3rd_party_licenses.txt;LICENSES" --collect-datas fosslight_util --hidden-import=_cffi_backend
         mkdir out
         move dist/cli.exe fosslight_dependency_windows.exe
-                
+
     - name: Upload release file
       uses: actions/upload-release-asset@v1.0.1
       env:
@@ -96,15 +95,15 @@ jobs:
     - name: Set up Python3
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        pip install build twine
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
         twine upload dist/*

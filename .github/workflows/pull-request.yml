@@ -16,13 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.12', '3.14']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxml2-dev libxslt-dev
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -36,11 +40,11 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.12', '3.14']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -54,14 +58,17 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.12', '3.14']
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies 
+    - name: Install system dependencies
+      run: |
+        brew install libxml2 libxslt
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install .
@@ -92,7 +99,7 @@ jobs:
         fosslight_dependency -p tests/test_carthage -o tests/result/carthage -t ${{ env.TOKEN }}
   reuse:
     runs-on: ubuntu-latest
-    steps: 
-    - uses: actions/checkout@v3
+    steps:
+    - uses: actions/checkout@v6
     - name: REUSE Compliance Check
       uses: fsfe/reuse-action@v1

@@ -1,0 +1,56 @@
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2020 LG Electronics
+
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fosslight_dependency"
+version = "4.1.35"
+description = "FOSSLight Dependency Scanner"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "LG Electronics" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "openpyxl",
+    "beautifulsoup4",
+    "lxml",
+    "virtualenv",
+    "pyyaml",
+    "lastversion",
+    "fosslight_util>=2.1.37",
+    "PyGithub",
+    "requirements-parser",
+    "defusedxml",
+    "packageurl-python",
+    "igraph",
+    "matplotlib",
+    "pyaskalono",
+]
+
+[project.urls]
+Homepage = "https://github.com/fosslight/fosslight_dependency_scanner"
+Download = "https://github.com/fosslight/fosslight_dependency_scanner"
+
+[project.scripts]
+fosslight_dependency = "fosslight_dependency.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+fosslight_dependency = ["LICENSES/*"]

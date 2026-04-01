@@ -59,15 +59,11 @@ Copyright: 2021 LG Electronics
 License: Apache-2.0
 
 Files: tests/test_cocoapods/cocoapods-tips/*
-Copyright: 2017 ClintJang 
+Copyright: 2017 ClintJang
 License: MIT
 
 Files: tests/test_android/*
 Copyright: 2018 Google, Inc
-License: Apache-2.0
-
-Files: .bumpversion.cfg
-Copyright: 2021 LG Electronics
 License: Apache-2.0
 
 Files: tests/test_swift/*
@@ -78,7 +74,7 @@ Files: tests/test_carthage/*
 Copyright: 2021 LG Electronics
 License: Apache-2.0
 
-Files: .gitattributes 
+Files: .gitattributes
 Copyright: 2021 LG Electronics
 License: Apache-2.0
 
