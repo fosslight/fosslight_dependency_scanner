@@ -33,7 +33,10 @@ def decode_subprocess_output(data, errors='replace'):
     try:
         return data.decode('utf-8')
     except (UnicodeDecodeError, AttributeError):
-        system_encoding = locale.getpreferredencoding(False)
+        if hasattr(locale, 'getencoding'):
+            system_encoding = locale.getencoding()
+        else:
+            system_encoding = locale.getpreferredencoding(False)
         try:
             return data.decode(system_encoding)
         except (UnicodeDecodeError, LookupError):
@@ -46,7 +49,7 @@ def run_command(cmd, shell=True, cwd=None, env=None, timeout=None, capture_outpu
         kwargs['cwd'] = cwd
     if env:
         kwargs['env'] = env
-    if timeout:
+    if timeout is not None:
         kwargs['timeout'] = timeout
     result = subprocess.run(cmd, **kwargs)
     result._stdout_text = decode_subprocess_output(result.stdout) if result.stdout else ''
@@ -169,9 +172,6 @@ class PackageManager:
                     cmd = f"{cmd_gradle} generateLicenseTxt"
                     try:
                         ret = check_output_safe(cmd, shell=True)
-                        if ret == 0:
-                            ret_task = False
-                            logger.error(f'Fail to run {cmd}')
                         if os.path.isfile(self.input_file_name):
                             logger.info('Automatically run android-dependency-scanning plugin and generate output.')
                             self.plugin_auto_run = True
