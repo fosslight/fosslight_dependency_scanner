@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.36 (03/04/2026)
+## Changes
+## 🐛 Hotfixes
+
+- fix(encoding): handle non-UTF-8 system encoding in subprocess output @dd-jy (#303)
+
+## 🔧 Maintenance
+
+- feat(node): add automatic detection for local Node environment @woocheol-lge (#301)
+- feat(python): support Python 3.13/3.14 and migrate from setup.py to pyproject.toml @woocheol-lge (#302)
+
+---
+
 ## v4.1.35 (26/03/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -295,11 +308,3 @@
 ## 🔧 Maintenance
 
 - Add temporary execute mode for wrapper @dd-jy (#241)
-
----
-
-## v4.1.6 (16/01/2025)
-## Changes
-## 🚀 Features
-
-- Distinguish the origin of the pub package @dd-jy (#238)
