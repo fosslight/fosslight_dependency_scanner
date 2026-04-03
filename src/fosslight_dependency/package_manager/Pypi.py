@@ -202,17 +202,20 @@ class Pypi(PackageManager):
         self.set_pip_activate_cmd(activate_cmd)
         self.set_pip_deactivate_cmd(deactivate_cmd)
 
+        env = os.environ.copy()
+        env['PYTHONUTF8'] = '1'
+
         cmd_list = [create_venv_cmd, activate_cmd, install_cmd, pip_upgrade_cmd, deactivate_cmd]
         cmd = cmd_separator.join(cmd_list)
 
         try:
-            cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+            cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, env=env)
             if cmd_ret.returncode != 0:
                 ret = False
-                err_msg = f"return code({cmd_ret.returncode})"
-            elif cmd_ret.stderr.decode('utf-8').strip().lower().startswith('error:'):
+                err_msg = cmd_ret.stderr.decode('utf-8', errors='replace').strip() or f"return code({cmd_ret.returncode})"
+            elif cmd_ret.stderr.decode('utf-8', errors='replace').strip().lower().startswith('error:'):
                 ret = False
-                err_msg = f"stderr msg({cmd_ret.stderr})"
+                err_msg = cmd_ret.stderr.decode('utf-8', errors='replace').strip()
         except Exception as e:
             ret = False
             err_msg = e
@@ -224,13 +227,13 @@ class Pypi(PackageManager):
 
                     cmd_list = [create_venv_cmd, activate_cmd, install_cmd, pip_upgrade_cmd, deactivate_cmd]
                     cmd = cmd_separator.join(cmd_list)
-                    cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+                    cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, env=env)
                     if cmd_ret.returncode != 0:
                         ret = False
-                        err_msg = f"return code({cmd_ret.returncode})"
-                    elif cmd_ret.stderr.decode('utf-8').strip().lower().startswith('error:'):
+                        err_msg = cmd_ret.stderr.decode('utf-8', errors='replace').strip() or f"return code({cmd_ret.returncode})"
+                    elif cmd_ret.stderr.decode('utf-8', errors='replace').strip().lower().startswith('error:'):
                         ret = False
-                        err_msg = f"stderr msg({cmd_ret.stderr})"
+                        err_msg = cmd_ret.stderr.decode('utf-8', errors='replace').strip()
             except Exception as e:
                 ret = False
                 err_msg = e
@@ -266,15 +269,18 @@ class Pypi(PackageManager):
         pip_list_command = f"{python_cmd} pip freeze > {tmp_pip_list}"
         deactivate_command = self.pip_deactivate_cmd
 
+        env = os.environ.copy()
+        env['PYTHONUTF8'] = '1'
+
         command_list = [activate_command, pip_list_command, deactivate_command]
         command = command_separator.join(command_list)
 
         exists_pipdeptree = False
         try:
-            cmd_ret = subprocess.call(command, shell=True)
-            if cmd_ret != 0:
+            cmd_ret = subprocess.run(command, shell=True, env=env, stderr=subprocess.PIPE)
+            if cmd_ret.returncode != 0:
                 ret = False
-                err_msg = f"cmd ret code({cmd_ret})"
+                err_msg = cmd_ret.stderr.decode('utf-8', errors='replace').strip() or f"cmd ret code({cmd_ret.returncode})"
             else:
                 if os.path.isfile(tmp_pip_list):
                     with open(tmp_pip_list, 'r', encoding='utf-8') as pip_list_file:
@@ -295,7 +301,7 @@ class Pypi(PackageManager):
         command_list = []
         command_list.append(activate_command)
 
-        pip_inspect_command = f"{python_cmd} pip inspect > {self.tmp_file_name}"
+        pip_inspect_command = f"{python_cmd} pip inspect --no-color > {self.tmp_file_name}"
         command_list.append(pip_inspect_command)
 
         if not exists_pipdeptree:
@@ -312,8 +318,8 @@ class Pypi(PackageManager):
         command = command_separator.join(command_list)
 
         try:
-            cmd_ret = subprocess.call(command, shell=True)
-            if cmd_ret == 0:
+            cmd_ret = subprocess.run(command, shell=True, env=env, stderr=subprocess.PIPE)
+            if cmd_ret.returncode == 0:
                 if os.path.exists(self.tmp_file_name):
                     self.append_input_package_list_file(self.tmp_file_name)
 
@@ -330,7 +336,8 @@ class Pypi(PackageManager):
                     logger.error(f"pip inspect output file not found: {self.tmp_file_name}")
                     ret = False
             else:
-                logger.error(f"Failed to run command: {command}")
+                err_msg = cmd_ret.stderr.decode('utf-8', errors='replace').strip() or f"returncode({cmd_ret.returncode})"
+                logger.error(f"Failed to run command: {command}, {err_msg}")
                 ret = False
         except Exception as e:
             ret = False

@@ -12,7 +12,7 @@ import re
 import requests
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency._package_manager import PackageManager, get_url_to_purl, decode_subprocess_output
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -144,17 +144,18 @@ class Npm(PackageManager):
         err_msg = ''
 
         cmd = 'npm ls -a --omit=dev --json -s'
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8')
-        rel_tree = result.stdout
+        result = subprocess.run(cmd, shell=True, capture_output=True)
+        rel_tree = decode_subprocess_output(result.stdout)
+        stderr_str = decode_subprocess_output(result.stderr)
         if not rel_tree or rel_tree.strip() == '':
-            logger.error(f"No output for {cmd}, stderr: {result.stderr}")
+            logger.error(f"No output for {cmd}, stderr: {stderr_str}")
             ret = False
         elif result.returncode > 1:
-            logger.error(f"'{cmd}' failed with exit code({result.returncode}), stderr: {result.stderr}")
+            logger.error(f"'{cmd}' failed with exit code({result.returncode}), stderr: {stderr_str}")
             ret = False
         if ret:
             if result.returncode == 1:
-                logger.debug(f"'{cmd}' has warnings: {result.stderr}")
+                logger.debug(f"'{cmd}' has warnings: {stderr_str}")
 
             try:
                 rel_json = json.loads(rel_tree)
