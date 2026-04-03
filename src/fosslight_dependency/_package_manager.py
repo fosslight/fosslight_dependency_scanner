@@ -5,6 +5,7 @@
 
 import os
 import logging
+import locale
 import platform
 import re
 import base64
@@ -24,6 +25,46 @@ except Exception:
 logger = logging.getLogger(constant.LOGGER_NAME)
 
 gradle_config = ['runtimeClasspath', 'runtime']
+
+
+def decode_subprocess_output(data, errors='replace'):
+    if isinstance(data, str):
+        return data
+    try:
+        return data.decode('utf-8')
+    except (UnicodeDecodeError, AttributeError):
+        if hasattr(locale, 'getencoding'):
+            system_encoding = locale.getencoding()
+        else:
+            system_encoding = locale.getpreferredencoding(False)
+        try:
+            return data.decode(system_encoding)
+        except (UnicodeDecodeError, LookupError):
+            return data.decode(system_encoding, errors=errors)
+
+
+def run_command(cmd, shell=True, cwd=None, env=None, timeout=None, capture_output=True):
+    kwargs = dict(shell=shell, capture_output=capture_output)
+    if cwd:
+        kwargs['cwd'] = cwd
+    if env:
+        kwargs['env'] = env
+    if timeout is not None:
+        kwargs['timeout'] = timeout
+    result = subprocess.run(cmd, **kwargs)
+    result._stdout_text = decode_subprocess_output(result.stdout) if result.stdout else ''
+    result._stderr_text = decode_subprocess_output(result.stderr) if result.stderr else ''
+    return result
+
+
+def check_output_safe(cmd, shell=True, cwd=None):
+    result = subprocess.run(cmd, shell=shell, capture_output=True, cwd=cwd)
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(result.returncode, cmd,
+                                            output=result.stdout, stderr=result.stderr)
+    return decode_subprocess_output(result.stdout)
+
+
 android_config = ['releaseRuntimeClasspath']
 ASKALONO_THRESHOLD = 0.7
 
@@ -117,7 +158,7 @@ class PackageManager:
                 if ret_alldeps:
                     cmd = f"{cmd_gradle} allDeps"
                     try:
-                        ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
+                        ret = check_output_safe(cmd, shell=True)
                         if ret != 0:
                             self.parse_dependency_tree(ret)
                         else:
@@ -130,10 +171,7 @@ class PackageManager:
                 if ret_plugin:
                     cmd = f"{cmd_gradle} generateLicenseTxt"
                     try:
-                        ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
-                        if ret == 0:
-                            ret_task = False
-                            logger.error(f'Fail to run {cmd}')
+                        ret = check_output_safe(cmd, shell=True)
                         if os.path.isfile(self.input_file_name):
                             logger.info('Automatically run android-dependency-scanning plugin and generate output.')
                             self.plugin_auto_run = True
