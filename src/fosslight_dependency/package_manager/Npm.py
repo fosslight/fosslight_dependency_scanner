@@ -69,8 +69,10 @@ class Npm(PackageManager):
         os.makedirs(NODE_DIR, exist_ok=True)
         self._owns_local_node_dir = True
         os.environ["PATH"] = NODE_BIN + PATH_SEP + os.environ.get("PATH", "")
+
+        npm_cmd = shutil.which("npm")
         result = subprocess.run(
-            ["npm", "install", "-g", "license-checker", "--prefix", NODE_DIR],
+            [npm_cmd, "install", "-g", "license-checker", "--prefix", NODE_DIR],
             text=True,
             capture_output=True,
         )

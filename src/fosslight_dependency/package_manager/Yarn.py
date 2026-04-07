@@ -51,6 +51,7 @@ class Yarn(Npm):
         node_modules = 'node_modules'
 
         if not shutil.which("yarn"):
+            logger.warning("Yarn is not available on this system")
             return False
 
         self.detect_yarn_version()
