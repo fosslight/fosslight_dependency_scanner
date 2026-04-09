@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.37 (09/04/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Enhanced npm executable detection to improve reliability of package manager initialization @woocheol-lge (#304)
+
+---
+
 ## v4.1.36 (03/04/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -295,16 +303,3 @@
 
 - Modify NuGet's API url to lower case @dd-jy (#245)
 - Fix to analyze gradle with only plugin input file @dd-jy (#244)
-
----
-
-## v4.1.7 (14/02/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the docs.unity3d url with minor version @dd-jy (#240)
-- Fix to check if unity url is alive @dd-jy (#239)
-
-## 🔧 Maintenance
-
-- Add temporary execute mode for wrapper @dd-jy (#241)
