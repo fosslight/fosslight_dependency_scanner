@@ -13,7 +13,7 @@ import fosslight_dependency.constant as const
 from fosslight_dependency.package_manager.Npm import Npm
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
-from fosslight_dependency._package_manager import get_url_to_purl, decode_subprocess_output
+from fosslight_dependency._package_manager import get_url_to_purl
 from fosslight_dependency.package_manager.Npm import check_multi_license, check_unknown_license
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -32,9 +32,9 @@ class Yarn(Npm):
             return self.yarn_version
 
         try:
-            result = subprocess.run('yarn -v', shell=True, capture_output=True)
+            result = subprocess.run('yarn -v', shell=True, capture_output=True, text=True, encoding='utf-8')
             if result.returncode == 0:
-                version_str = decode_subprocess_output(result.stdout).strip()
+                version_str = result.stdout.strip()
                 major_version = int(version_str.split('.')[0])
 
                 self.yarn_version = major_version
