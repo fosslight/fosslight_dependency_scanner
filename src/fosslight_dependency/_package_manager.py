@@ -67,7 +67,7 @@ class PackageManager:
 
     def run_plugin(self):
         ret = True
-        if self.package_manager_name == const.GRADLE or self.package_manager_name == const.ANDROID:
+        if self.package_manager_name in (const.GRADLE, const.ANDROID):
             ret = self.run_gradle_task()
         else:
             logger.info(f"This package manager({self.package_manager_name}) skips the step to run plugin.")
@@ -87,128 +87,186 @@ class PackageManager:
 
     def run_gradle_task(self):
         ret_task = True
-        if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
-            gradle_backup = f'{const.SUPPORT_PACKAE.get(self.package_manager_name)}_bk'
-
-            shutil.copy(const.SUPPORT_PACKAE.get(self.package_manager_name), gradle_backup)
-            ret_alldeps = self.add_allDeps_in_gradle()
-
-            ret_plugin = False
-            if (self.package_manager_name == const.ANDROID):
-                module_build_gradle = os.path.join(self.app_name, const.SUPPORT_PACKAE.get(self.package_manager_name))
-                module_gradle_backup = f'{module_build_gradle}_bk'
-                if os.path.isfile(module_build_gradle) and (not os.path.isfile(self.input_file_name)):
-                    shutil.copy(module_build_gradle, module_gradle_backup)
-                    ret_plugin = self.add_android_plugin_in_gradle(module_build_gradle)
-
-            if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-                if self.platform == const.WINDOWS:
-                    cmd_gradle = "gradlew.bat"
-                else:
-                    cmd_gradle = "./gradlew"
+        prev_dir = os.getcwd()
+        gradle_file = ''
+        gradle_backup = ''
+        module_build_gradle = ''
+        module_gradle_backup = ''
+        os.chdir(self.input_dir)
+        try:
+            candidates = const.SUPPORT_PACKAGE.get(self.package_manager_name, '')
+            if isinstance(candidates, list):
+                gradle_file = next((f for f in candidates if os.path.isfile(f)), '')
             else:
-                ret_task = False
-                self.set_direct_dependencies(False)
-                logger.warning('No gradlew file exists (Skip to find dependencies relationship.).')
-                if ret_plugin:
-                    logger.warning('Also it cannot run android-dependency-scanning plugin.')
-            if ret_task:
-                current_mode = change_file_mode(cmd_gradle)
-                if ret_alldeps:
-                    cmd = f"{cmd_gradle} allDeps"
-                    try:
-                        ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
-                        if ret != 0:
-                            self.parse_dependency_tree(ret)
-                        else:
+                gradle_file = candidates
+            if os.path.isfile(gradle_file):
+                gradle_backup = f'{gradle_file}_bk'
+
+                shutil.copy(gradle_file, gradle_backup)
+                ret_alldeps = self.add_allDeps_in_gradle(gradle_file)
+
+                ret_plugin = False
+                if self.package_manager_name == const.ANDROID:
+                    module_build_gradle = os.path.join(self.app_name, gradle_file)
+                    module_gradle_backup = f'{module_build_gradle}_bk'
+                    if os.path.isfile(module_build_gradle) and (not os.path.isfile(self.input_file_name)):
+                        shutil.copy(module_build_gradle, module_gradle_backup)
+                        ret_plugin = self.add_android_plugin_in_gradle(module_build_gradle, gradle_file)
+
+                cmd_gradle = ''
+                if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
+                    if self.platform == const.WINDOWS:
+                        cmd_gradle = "gradlew.bat"
+                    else:
+                        cmd_gradle = "./gradlew"
+                else:
+                    ret_task = False
+                    self.set_direct_dependencies(False)
+                    logger.warning('No gradlew file exists (Skip to find dependencies relationship.).')
+                    if ret_plugin:
+                        logger.warning('Also it cannot run android-dependency-scanning plugin.')
+
+                if ret_task:
+                    current_mode = change_file_mode(cmd_gradle)
+                    if ret_alldeps:
+                        cmd = [cmd_gradle, 'allDeps']
+                        try:
+                            ret = subprocess.check_output(cmd, encoding='utf-8')
+                            if ret:
+                                self.parse_dependency_tree(ret)
+                            else:
+                                self.set_direct_dependencies(False)
+                                logger.warning(f"Fail to run {cmd}")
+                        except Exception as e:
                             self.set_direct_dependencies(False)
-                            logger.warning(f"Fail to run {cmd}")
-                    except Exception as e:
-                        self.set_direct_dependencies(False)
-                        logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
+                            logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
 
-                if ret_plugin:
-                    cmd = f"{cmd_gradle} generateLicenseTxt"
-                    try:
-                        ret = subprocess.check_output(cmd, shell=True, encoding='utf-8')
-                        if ret == 0:
+                    if ret_plugin:
+                        cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
+                        try:
+                            result = subprocess.run(cmd, capture_output=True, encoding='utf-8')
+                            if result.returncode != 0:
+                                ret_task = False
+                                logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
+                            if os.path.isfile(self.input_file_name):
+                                logger.info('Automatically run android-dependency-scanning plugin and generate output.')
+                                self.plugin_auto_run = True
+                            else:
+                                logger.warning(
+                                    'Automatically run android-dependency-scanning plugin, but fail to generate output.'
+                                )
+                        except Exception as e:
+                            logger.error(f'Fail to run {cmd}: {e}')
                             ret_task = False
-                            logger.error(f'Fail to run {cmd}')
-                        if os.path.isfile(self.input_file_name):
-                            logger.info('Automatically run android-dependency-scanning plugin and generate output.')
-                            self.plugin_auto_run = True
-                        else:
-                            logger.warning('Automatically run android-dependency-scanning plugin, but fail to generate output.')
-                    except Exception as e:
-                        logger.error(f'Fail to run {cmd}: {e}')
-                        ret_task = False
-                change_file_mode(cmd_gradle, current_mode)
+                    change_file_mode(cmd_gradle, current_mode)
 
-            if os.path.isfile(gradle_backup):
-                os.remove(const.SUPPORT_PACKAE.get(self.package_manager_name))
-                shutil.move(gradle_backup, const.SUPPORT_PACKAE.get(self.package_manager_name))
-
-            if (self.package_manager_name == const.ANDROID):
-                if os.path.isfile(module_gradle_backup):
+            if os.path.isfile(self.input_file_name):
+                logger.info(f'Found {self.input_file_name}, skip to run plugin.')
+                self.set_direct_dependencies(False)
+                ret_task = True
+        except Exception as e:
+            logger.error(f'Unexpected error in run_gradle_task: {e}')
+            ret_task = False
+        finally:
+            if gradle_backup and os.path.isfile(gradle_backup):
+                if gradle_file and os.path.isfile(gradle_file):
+                    os.remove(gradle_file)
+                shutil.move(gradle_backup, gradle_file)
+            if module_gradle_backup and os.path.isfile(module_gradle_backup):
+                if module_build_gradle and os.path.isfile(module_build_gradle):
                     os.remove(module_build_gradle)
-                    shutil.move(module_gradle_backup, module_build_gradle)
-        if os.path.isfile(self.input_file_name):
-            logger.info(f'Found {self.input_file_name}, skip to run plugin.')
-            self.set_direct_dependencies(False)
-            ret_task = True
+                shutil.move(module_gradle_backup, module_build_gradle)
+            os.chdir(prev_dir)
+
         return ret_task
 
-    def add_android_plugin_in_gradle(self, module_build_gradle):
-        ret = False
-        build_script = '''buildscript {
-                            repositories {
-                                mavenCentral()
-                            }
-                            dependencies {
-                                //Android dependency scanning Plugin
-                                classpath 'org.fosslight:android-dependency-scanning:+'
-                            }
-                        }'''
-        apply = "apply plugin: 'org.fosslight'\n"
+    def add_android_plugin_in_gradle(self, module_build_gradle, gradle_file):
+        is_kts = gradle_file == 'build.gradle.kts'
+        if is_kts:
+            apply = 'apply(plugin = "org.fosslight")\n'
+            plugin_classpath = '        classpath("org.fosslight:android-dependency-scanning:+")'
+        else:
+            apply = "apply plugin: 'org.fosslight'\n"
+            plugin_classpath = "        classpath 'org.fosslight:android-dependency-scanning:+'"
+
+        complete_buildscript = (
+            "buildscript {\n"
+            "    repositories {\n"
+            "        mavenCentral()\n"
+            "    }\n"
+            "    dependencies {\n"
+            f"{plugin_classpath}\n"
+            "    }\n"
+            "}\n"
+        )
         try:
-            with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'r', encoding='utf-8') as original:
-                data = original.read()
-            with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'w', encoding='utf-8') as modified:
-                modified.write(f"{build_script}\n{data}")
-            ret = True
+            with open(gradle_file, 'r', encoding='utf-8') as f:
+                data = f.read()
+            if 'buildscript {' in data:
+                bs_start = data.index('buildscript {')
+                bs_block = data[bs_start:]
+                if 'dependencies {' in bs_block:
+                    dep_pos = bs_start + bs_block.index('dependencies {') + len('dependencies {')
+                    data = data[:dep_pos] + f'\n{plugin_classpath}' + data[dep_pos:]
+                else:
+                    data = data.replace(
+                        'buildscript {',
+                        f'buildscript {{\n    dependencies {{\n{plugin_classpath}\n    }}',
+                        1
+                    )
+            else:
+                data = complete_buildscript + data
+            with open(gradle_file, 'w', encoding='utf-8') as f:
+                f.write(data)
         except Exception as e:
             logging.warning(f"Cannot add the buildscript task in build.gradle: {e}")
+            return False
 
         try:
-            with open(module_build_gradle, 'a', encoding='utf-8') as modified:
-                modified.write(f'\n{apply}\n')
-                ret = True
+            with open(module_build_gradle, 'a', encoding='utf-8') as f:
+                f.write(f'\n{apply}\n')
+            return True
         except Exception as e:
             logging.warning(f"Cannot add the apply plugin in {module_build_gradle}: {e}")
-        return ret
+            return False
 
-    def add_allDeps_in_gradle(self):
-        ret = False
-        config = android_config if self.package_manager_name == 'android' else gradle_config
-        configuration = ','.join([f'project.configurations.{c}' for c in config])
-
-        allDeps = f'''allprojects {{
-                   task allDeps(type: DependencyReportTask) {{
-                        doFirst{{
-                            try {{
-                                configurations = [{configuration}] as Set }}
-                            catch(UnknownConfigurationException) {{}}
+    def add_allDeps_in_gradle(self, gradle_file):
+        config = android_config if self.package_manager_name == const.ANDROID else gradle_config
+        is_kts = gradle_file == 'build.gradle.kts'
+        if is_kts:
+            configuration = '\n'.join([
+                f'                try {{ cfgs.add(project.configurations.getByName("{c}")) }} catch (e: Exception) {{}}'
+                for c in config
+            ])
+            allDeps = f'''
+                    allprojects {{
+                        tasks.register("allDeps", org.gradle.api.tasks.diagnostics.DependencyReportTask::class) {{
+                            doFirst {{
+                                val cfgs = mutableSetOf<org.gradle.api.artifacts.Configuration>()
+                    {configuration}
+                                setConfigurations(cfgs)
+                            }}
                         }}
-                    }}
+                    }}'''
+        else:
+            configuration = ','.join([f'project.configurations.{c}' for c in config])
+            allDeps = f'''
+                    allprojects {{
+                        task allDeps(type: DependencyReportTask) {{
+                            doFirst{{
+                                try {{
+                                    configurations = [{configuration}] as Set }}
+                                catch(UnknownConfigurationException) {{}}
+                            }}
+                        }}
                     }}'''
         try:
-            with open(const.SUPPORT_PACKAE.get(self.package_manager_name), 'a', encoding='utf8') as f:
+            with open(gradle_file, 'a', encoding='utf8') as f:
                 f.write(f'\n{allDeps}\n')
-                ret = True
+            return True
         except Exception as e:
             logging.warning(f"Cannot add the allDeps task in build.gradle: {e}")
-
-        return ret
+            return False
 
     def create_dep_stack(self, dep_line, config):
         packages_in_config = False
@@ -247,7 +305,8 @@ class PackageManager:
                 logger.warning(f"Failed to parse dependency tree: {e}")
 
     def parse_dependency_tree(self, f_name):
-        config = android_config if self.package_manager_name == 'android' else gradle_config
+        config = android_config if self.package_manager_name == const.ANDROID else gradle_config
+
         try:
             for stack, name in self.create_dep_stack(f_name, config):
                 self.total_dep_list.append(name)
@@ -416,10 +475,10 @@ def collect_gradle_download_urls(input_dir, package_manager_name, app_name=None)
         return download_url_map
     try:
         if app_name:
-            cmd = f"{cmd_gradle} :{app_name}:dependencies --refresh-dependencies --debug"
+            cmd = [cmd_gradle, f':{app_name}:dependencies', '--refresh-dependencies', '--debug']
         else:
-            cmd = f"{cmd_gradle} dependencies --debug"
-        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=input_dir, timeout=600)
+            cmd = [cmd_gradle, 'dependencies', '--debug']
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=input_dir, timeout=600)
         if proc.returncode == 0:
             download_url_map = parse_gradle_download_lines(proc.stdout, package_manager_name)
         else:
@@ -468,7 +527,10 @@ def parse_gradle_download_lines(stdout_text, package_manager_name=''):
                     break
 
             if group_start_idx is None:
-                repo_keywords = ['maven2', 'maven', 'repository', 'nexus', 'content', 'groups', 'public', 'releases', 'snapshots']
+                repo_keywords = [
+                    'maven2', 'maven', 'repository', 'nexus', 'content',
+                    'groups', 'public', 'releases', 'snapshots'
+                ]
                 group_parts = []
                 for i in range(art_idx - 1, 2, -1):
                     part = parts[i]

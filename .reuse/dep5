@@ -66,6 +66,18 @@ Files: tests/test_android/*
 Copyright: 2018 Google, Inc
 License: Apache-2.0
 
+Files: tests/test_android2/*
+Copyright: 2018 Google, Inc
+License: Apache-2.0
+
+Files: tests/test_kotlin/*
+Copyright: 2018 Google, Inc
+License: Apache-2.0
+
+Files: tests/test_kotlin2/*
+Copyright: 2018 Google, Inc
+License: Apache-2.0
+
 Files: tests/test_swift/*
 Copyright: 2021 LG Electronics
 License: Apache-2.0

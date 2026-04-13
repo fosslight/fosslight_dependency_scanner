@@ -31,15 +31,15 @@ class Pub(PackageManager):
         self.pkg_source_list = {}
         self.name_version_dict = {}
         self.pkg_details = {}
-        self.append_input_package_list_file(const.SUPPORT_PACKAE.get(self.package_manager_name))
+        self.append_input_package_list_file(const.SUPPORT_PACKAGE.get(self.package_manager_name))
 
     def __del__(self):
         if self.cur_path != '':
             os.chdir(self.cur_path)
 
     def run_plugin(self):
-        if not os.path.exists(const.SUPPORT_PACKAE.get(self.package_manager_name)):
-            logger.error(f"Cannot find the file({const.SUPPORT_PACKAE.get(self.package_manager_name)})")
+        if not os.path.exists(const.SUPPORT_PACKAGE.get(self.package_manager_name)):
+            logger.error(f"Cannot find the file({const.SUPPORT_PACKAGE.get(self.package_manager_name)})")
             return False
 
         return True

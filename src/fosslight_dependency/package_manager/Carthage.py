@@ -26,7 +26,7 @@ license_file_regs = ['licen[cs]e[s]?', 'notice[s]?', 'copying*', 'copyright[s]?'
 class Carthage(PackageManager):
     package_manager_name = const.CARTHAGE
 
-    input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
+    input_file_name = const.SUPPORT_PACKAGE.get(package_manager_name)
     dn_url = "https://github.com/"
 
     def __init__(self, input_dir, output_dir, github_token):

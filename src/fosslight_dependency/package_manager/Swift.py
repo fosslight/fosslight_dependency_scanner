@@ -21,7 +21,7 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 class Swift(PackageManager):
     package_manager_name = const.SWIFT
 
-    input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
+    input_file_name = const.SUPPORT_PACKAGE.get(package_manager_name)
     tmp_dep_tree_fname = 'show-dep.json'
 
     def __init__(self, input_dir, output_dir, github_token):

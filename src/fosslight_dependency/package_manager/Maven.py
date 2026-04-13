@@ -58,7 +58,7 @@ class Maven(PackageManager):
                     self.is_run_plugin = True
 
             if os.path.isfile(pom_backup):
-                shutil.move(pom_backup, const.SUPPORT_PACKAE.get(self.package_manager_name))
+                shutil.move(pom_backup, const.SUPPORT_PACKAGE.get(self.package_manager_name))
         else:
             self.set_direct_dependencies(False)
 
@@ -69,7 +69,7 @@ class Maven(PackageManager):
         xml = 'xml'
         f_content = None
 
-        manifest_file = const.SUPPORT_PACKAE.get(self.package_manager_name)
+        manifest_file = const.SUPPORT_PACKAGE.get(self.package_manager_name)
         if os.path.isfile(manifest_file) != 1:
             logger.error(f"{manifest_file} is not existed in this directory.")
             return ret

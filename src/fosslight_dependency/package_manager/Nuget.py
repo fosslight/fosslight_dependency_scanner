@@ -33,7 +33,7 @@ class Nuget(PackageManager):
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
 
-        for manifest_i in const.SUPPORT_PACKAE.get(self.package_manager_name):
+        for manifest_i in const.SUPPORT_PACKAGE.get(self.package_manager_name):
             if os.path.exists(os.path.basename(manifest_i)):
                 self.append_input_package_list_file(os.path.basename(manifest_i))
                 if manifest_i != 'packages.config':
