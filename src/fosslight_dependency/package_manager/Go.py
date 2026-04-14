@@ -55,29 +55,37 @@ class Go(PackageManager):
                 self.relation_tree[f'{oss_name}({oss_ver})'].append(f'{pkg_name}({pkg_ver})')
 
     def run_plugin(self):
-        ret = True
+        go_cmd = shutil.which("go")
+        if not go_cmd:
+            logger.warning("go is not available on this system")
+            return False
 
-        if os.path.isfile(self.go_work):
-            shutil.move(self.go_work, self.tmp_go_work)
+        moved_go_work = False
+        try:
+            if os.path.isfile(self.go_work):
+                shutil.move(self.go_work, self.tmp_go_work)
+                moved_go_work = True
 
-        logger.info("Execute 'go list -m -mod=mod -json all' to obtain package info.")
-        cmd = f"go list -m -mod=mod -json all > {self.tmp_file_name}"
+            logger.info("Execute 'go list -m -mod=mod -json all' to obtain package info.")
+            cmd = f"go list -m -mod=mod -json all > {self.tmp_file_name}"
 
-        ret_cmd = subprocess.call(cmd, shell=True)
-        if ret_cmd != 0:
-            logger.error(f"Failed to make the result: {cmd}")
-            ret = False
+            ret_cmd = subprocess.call(cmd, shell=True)
+            if ret_cmd != 0:
+                logger.error(f"Failed to make the result: {cmd}")
+                return False
 
-        self.append_input_package_list_file(self.tmp_file_name)
+            self.append_input_package_list_file(self.tmp_file_name)
 
-        cmd_tree = "go mod graph"
-        ret_cmd_tree = subprocess.check_output(cmd_tree, shell=True, text=True, encoding='utf-8')
-        if ret_cmd_tree != 0:
-            self.parse_dependency_tree(ret_cmd_tree)
+            cmd_tree = "go mod graph"
+            ret_cmd_tree = subprocess.check_output(cmd_tree, shell=True, text=True, encoding='utf-8')
+            if ret_cmd_tree:
+                self.parse_dependency_tree(ret_cmd_tree)
 
-        if os.path.isfile(self.tmp_go_work):
-            shutil.move(self.tmp_go_work, self.go_work)
-        return ret
+            return True
+
+        finally:
+            if moved_go_work and os.path.isfile(self.tmp_go_work):
+                shutil.move(self.tmp_go_work, self.go_work)
 
     def parse_oss_information(self, f_name):
         indirect = 'Indirect'
