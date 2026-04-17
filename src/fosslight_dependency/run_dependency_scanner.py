@@ -33,7 +33,7 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
 def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], recursive=False, excluded_files=[]):
     ret = True
     if not manifest_file_name:
-        for value in const.SUPPORT_PACKAE.values():
+        for value in const.SUPPORT_PACKAGE.values():
             if isinstance(value, list):
                 manifest_file_name.extend(value)
             else:
@@ -98,7 +98,7 @@ def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], r
     for f_with_path in found_manifest_file:
         f_name = os.path.basename(f_with_path)
         dir_path = os.path.dirname(f_with_path)
-        for key, value in const.SUPPORT_PACKAE.items():
+        for key, value in const.SUPPORT_PACKAGE.items():
             manifest_patterns = value if isinstance(value, list) else [value]
 
             for pattern in manifest_patterns:
@@ -266,7 +266,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if package_manager:
         scan_item.set_cover_comment(f"Manual detect mode (-m {package_manager})")
         autodetect = False
-        support_packagemanager = list(const.SUPPORT_PACKAE.keys())
+        support_packagemanager = list(const.SUPPORT_PACKAGE.keys())
 
         if package_manager not in support_packagemanager:
             logger.error(f"(-m option) You entered the unsupported package manager({package_manager}).")
@@ -274,7 +274,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                          .format(", ".join(support_packagemanager)))
             return False, scan_item
         manifest_file_name = []
-        value = const.SUPPORT_PACKAE[package_manager]
+        value = const.SUPPORT_PACKAGE[package_manager]
         if isinstance(value, list):
             manifest_file_name.extend(value)
         else:
@@ -312,7 +312,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                     suggested_files_str.append("Please check the following files and try again:")
                     for f in suggested_files:
                         pm = const.SUGGESTED_PACKAGE[f.split(os.path.sep)[-1]]
-                        suggested_files_str.append(f"\t\t\t{f} ({pm}) detected, but {const.SUPPORT_PACKAE[pm]} missing.")
+                        suggested_files_str.append(f"\t\t\t{f} ({pm}) detected, but {const.SUPPORT_PACKAGE[pm]} missing.")
 
                     suggested_files_str.append("\t\t\tRefer: https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html")
                     scan_item.set_cover_comment('\n'.join(suggested_files_str))

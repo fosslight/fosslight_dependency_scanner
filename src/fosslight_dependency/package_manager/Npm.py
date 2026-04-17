@@ -177,7 +177,7 @@ class Npm(PackageManager):
         if not self.direct_dep:
             return
         try:
-            if os.path.isfile(const.SUPPORT_PACKAE.get(self.package_manager_name)):
+            if os.path.isfile(const.SUPPORT_PACKAGE.get(self.package_manager_name)):
                 ret, err_msg = self.parse_transitive_relationship()
                 if not ret:
                     self.direct_dep = False
@@ -252,7 +252,7 @@ class Npm(PackageManager):
                 if f'{oss_init_name}({oss_item.version})' in self.relation_tree:
                     dep_item.depends_on_raw = self.relation_tree[f'{oss_init_name}({oss_item.version})']
 
-            manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAE.get(self.package_manager_name))
+            manifest_file_path = os.path.join(package_path, const.SUPPORT_PACKAGE.get(self.package_manager_name))
             multi_license, license_comment, multi_flag = check_multi_license(license_name, manifest_file_path)
 
             if multi_flag:

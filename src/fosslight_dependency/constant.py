@@ -28,7 +28,7 @@ PNPM = 'pnpm'
 YARN = 'yarn'
 
 # Supported package name and manifest file
-SUPPORT_PACKAE = {
+SUPPORT_PACKAGE = {
     PYPI: ['requirements.txt', 'setup.py', 'pyproject.toml'],
     PNPM: 'pnpm-lock.yaml',
     NPM: 'package.json',
@@ -37,7 +37,7 @@ SUPPORT_PACKAE = {
     GRADLE: 'build.gradle',
     PUB: 'pubspec.yaml',
     COCOAPODS: 'Podfile.lock',
-    ANDROID: 'build.gradle',
+    ANDROID: ['build.gradle', 'build.gradle.kts'],
     SWIFT: 'Package.resolved',
     CARTHAGE: 'Cartfile.resolved',
     GO: 'go.mod',

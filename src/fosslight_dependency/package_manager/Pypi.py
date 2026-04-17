@@ -162,7 +162,7 @@ class Pypi(PackageManager):
 
         manifest_files = self.manifest_file_name
         if not manifest_files:
-            manifest_files = copy.deepcopy(const.SUPPORT_PACKAE[self.package_manager_name])
+            manifest_files = copy.deepcopy(const.SUPPORT_PACKAGE[self.package_manager_name])
             self.set_manifest_file(manifest_files)
 
         install_cmd_list = []
@@ -190,9 +190,9 @@ class Pypi(PackageManager):
         if install_cmd_list:
             install_cmd = cmd_separator.join(install_cmd_list)
         else:
-            logger.error(const.SUPPORT_PACKAE[self.package_manager_name])
+            logger.error(const.SUPPORT_PACKAGE[self.package_manager_name])
             logger.error('Cannot create virtualenv because it cannot find: '
-                         + ', '.join(const.SUPPORT_PACKAE[self.package_manager_name]))
+                         + ', '.join(const.SUPPORT_PACKAGE[self.package_manager_name]))
             logger.error("Please run with '-a' and '-d' option.")
             return False
 

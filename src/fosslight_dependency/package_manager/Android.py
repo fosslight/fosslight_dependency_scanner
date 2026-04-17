@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import shutil
 import logging
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
@@ -23,6 +24,8 @@ class Android(PackageManager):
     app_name = const.default_app_name
     input_file_name = ''
     plugin_auto_run = False
+    input_file_preexisted = False
+    gradle_cache_preexisted = False
 
     def __init__(self, input_dir, output_dir, app_name):
         super().__init__(self.package_manager_name, '', input_dir, output_dir)
@@ -30,12 +33,21 @@ class Android(PackageManager):
         if app_name:
             self.app_name = app_name
         self.input_file_name = self.check_input_path()
+        self.input_file_preexisted = os.path.isfile(self.input_file_name)
+        self.gradle_cache_dir = os.path.join(os.path.abspath(input_dir), '.gradle')
+        self.gradle_cache_preexisted = os.path.isdir(self.gradle_cache_dir)
         self.append_input_package_list_file(self.input_file_name)
 
     def __del__(self):
-        if self.plugin_auto_run:
+        if self.plugin_auto_run and not self.input_file_preexisted:
             if os.path.isfile(self.input_file_name):
                 os.remove(self.input_file_name)
+        if not self.gradle_cache_preexisted and os.path.isdir(self.gradle_cache_dir):
+            try:
+                shutil.rmtree(self.gradle_cache_dir)
+                logger.debug(f'Removed gradle cache directory: {self.gradle_cache_dir}')
+            except Exception as e:
+                logger.warning(f'Failed to remove gradle cache directory: {e}')
 
     def check_input_path(self):
         if os.path.isfile(self.plugin_output_file):

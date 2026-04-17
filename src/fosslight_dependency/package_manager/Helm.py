@@ -22,7 +22,7 @@ class Helm(PackageManager):
     package_manager_name = const.HELM
     tmp_charts_dir = 'tmp_charts'
 
-    input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
+    input_file_name = const.SUPPORT_PACKAGE.get(package_manager_name)
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, '', input_dir, output_dir)

@@ -24,7 +24,7 @@ third_party_md = 'Third Party Notices.md'
 class Unity(PackageManager):
     package_manager_name = const.UNITY
 
-    input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
+    input_file_name = const.SUPPORT_PACKAGE.get(package_manager_name)
     packageCache_dir = os.path.join('Library', 'PackageCache')
     mirror_url = 'https://github.com/needle-mirror/'
     unity_internal_url = 'https://github.cds.internal.unity3d.com'

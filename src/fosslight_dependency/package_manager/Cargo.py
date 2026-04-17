@@ -39,8 +39,8 @@ class Cargo(PackageManager):
             logger.info(f"Found {self.input_file_name}, skip the flutter cmd to analyze dependency.")
             return True
 
-        if not os.path.exists(const.SUPPORT_PACKAE.get(self.package_manager_name)):
-            logger.error(f"Cannot find the file({const.SUPPORT_PACKAE.get(self.package_manager_name)})")
+        if not os.path.exists(const.SUPPORT_PACKAGE.get(self.package_manager_name)):
+            logger.error(f"Cannot find the file({const.SUPPORT_PACKAGE.get(self.package_manager_name)})")
             return False
 
         if os.path.exists(self.cargo_lock_f):

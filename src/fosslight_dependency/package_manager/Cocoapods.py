@@ -26,7 +26,7 @@ class Cocoapods(PackageManager):
     package_manager_name = const.COCOAPODS
 
     dn_url = 'https://cocoapods.org/'
-    input_file_name = const.SUPPORT_PACKAE.get(package_manager_name)
+    input_file_name = const.SUPPORT_PACKAGE.get(package_manager_name)
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
