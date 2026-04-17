@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.1.38 (17/04/2026)
+## Changes
+## 🔧 Maintenance
+
+- Show fail message when manifest is found but go is not installed @woocheol-lge (#308)
+- Normalize UTF-8 encoding across environments @woocheol-lge (#305)
+
+---
+
 ## v4.1.37 (09/04/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -285,21 +294,3 @@
 ## 🚀 Features
 
 - Support pnpm for nodejs project @dd-jy (#247)
-
----
-
-## v4.1.8 (27/02/2025)
-## Changes
-## 🚀 Features
-
-- Change license scanner to askalono package @dd-jy (#242)
-
-## 🐛 Hotfixes
-
-- Fix the manual option issue @dd-jy (#246)
-- Fix the feature to automatically find manifest file @dd-jy (#243)
-
-## 🔧 Maintenance
-
-- Modify NuGet's API url to lower case @dd-jy (#245)
-- Fix to analyze gradle with only plugin input file @dd-jy (#244)
