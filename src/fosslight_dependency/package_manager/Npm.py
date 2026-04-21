@@ -70,7 +70,7 @@ class Npm(PackageManager):
         self._owns_local_node_dir = True
         os.environ["PATH"] = NODE_BIN + PATH_SEP + os.environ.get("PATH", "")
 
-        npm_cmd = shutil.which("npm")
+        npm_cmd = shutil.which("npm.cmd" if self.IS_WINDOWS else "npm")
         result = subprocess.run(
             [npm_cmd, "install", "-g", "license-checker", "--prefix", NODE_DIR],
             text=True,
