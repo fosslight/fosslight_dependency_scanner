@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.39 (23/04/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Prevent potential encoding issue @woocheol-lge (#309)
+
+---
+
 ## v4.1.38 (17/04/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -286,11 +294,3 @@
 
 - Add venv into .gitignore @dd-jy (#249)
 - Change flake8 github action @dd-jy (#248)
-
----
-
-## v4.1.9 (17/03/2025)
-## Changes
-## 🚀 Features
-
-- Support pnpm for nodejs project @dd-jy (#247)

@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fosslight_dependency"
-version = "4.1.38"
+version = "4.1.39"
 description = "FOSSLight Dependency Scanner"
 readme = "README.md"
 license = "Apache-2.0"
