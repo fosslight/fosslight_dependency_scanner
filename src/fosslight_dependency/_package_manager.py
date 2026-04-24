@@ -11,6 +11,7 @@ import base64
 import subprocess
 import shutil
 import stat
+import requests
 from packageurl.contrib import url2purl
 from askalono import identify
 import fosslight_util.constant as constant
@@ -566,26 +567,24 @@ def parse_gradle_download_lines(stdout_text, package_manager_name=''):
 
 def get_download_location(download_url_map, group_id, artifact_id, version, mvnrepo_url):
     actual_key = f"{group_id}:{artifact_id}:{version}"
-    if download_url_map:
-        try:
-            actual_url = download_url_map.get(actual_key)
+    actual_url = download_url_map.get(actual_key) if download_url_map else None
+    if actual_url:
+        if any(host in actual_url for host in ("repo1.maven.org", "repo.maven.apache.org")):
+            return f"{mvnrepo_url}{group_id}/{artifact_id}/{version}"
+        if not any(host in actual_url for host in (
+                "maven.google.com", "dl.google.com/android/maven2", "dl.google.com/dl/android/maven2")):
+            return actual_url
+    return get_google_maven_url(mvnrepo_url, group_id, artifact_id, version)
 
-            use_mvnrepo = True
-            if actual_url:
-                central_like = ("repo1.maven.org" in actual_url) or ("repo.maven.apache.org" in actual_url)
-                google_like = (("maven.google.com" in actual_url) or
-                               ("dl.google.com/android/maven2" in actual_url) or
-                               ("dl.google.com/dl/android/maven2" in actual_url))
-                if central_like or google_like:
-                    use_mvnrepo = True
-                else:
-                    use_mvnrepo = False
-        except Exception as e:
-            logger.debug(f"Failed to get download location from download_url_map: {e}")
-            use_mvnrepo = True
-    else:
-        use_mvnrepo = True
-    if use_mvnrepo:
-        return f"{mvnrepo_url}{group_id}/{artifact_id}/{version}"
-    else:
-        return actual_url
+
+def get_google_maven_url(mvnrepo_url, group_id, artifact_id, version, ):
+    group_path = group_id.replace('.', '/')
+    pom_url = (f"https://dl.google.com/dl/android/maven2"
+               f"/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom")
+    try:
+        resp = requests.head(pom_url, timeout=5, allow_redirects=True)
+        if resp.status_code == 200:
+            return f"https://maven.google.com/web/index.html#{group_id}:{artifact_id}:{version}"
+    except Exception:
+        logger.debug(f"Failed to check Google Maven URL: {pom_url}")
+    return f"{mvnrepo_url}{group_id}/{artifact_id}/{version}"
