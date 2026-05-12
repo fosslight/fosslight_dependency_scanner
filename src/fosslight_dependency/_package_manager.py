@@ -135,6 +135,7 @@ class PackageManager:
                             ret = subprocess.check_output(cmd, encoding='utf-8')
                             if ret:
                                 self.parse_dependency_tree(ret)
+                                self.set_direct_dependencies(bool(self.direct_dep_list))
                             else:
                                 self.set_direct_dependencies(False)
                                 logger.warning(f"Fail to run {cmd}")
@@ -163,7 +164,7 @@ class PackageManager:
 
             if os.path.isfile(self.input_file_name):
                 logger.info(f'Found {self.input_file_name}, skip to run plugin.')
-                self.set_direct_dependencies(False)
+                self.set_direct_dependencies(bool(self.direct_dep_list))
                 ret_task = True
         except Exception as e:
             logger.error(f'Unexpected error in run_gradle_task: {e}')
