@@ -44,6 +44,39 @@ class Pub(PackageManager):
 
         return True
 
+    def supplement_pkg_details_from_lock(self):
+        lock_file = os.path.join(self.input_dir, 'pubspec.lock')
+        if not os.path.exists(lock_file):
+            return
+        try:
+            with open(lock_file, 'r', encoding='utf-8') as f:
+                lock_data = yaml.safe_load(f)
+            if not lock_data:
+                return
+            packages = lock_data.get('packages', {})
+            for pkg_name, pkg_info in packages.items():
+                source = pkg_info.get('source', '')
+                version = pkg_info.get('version', '')
+                dep_key = f"{pkg_name}({version})"
+                if source == 'path':
+                    if dep_key not in self.pkg_details or not self.pkg_details[dep_key].get('path', ''):
+                        desc = pkg_info.get('description', {})
+                        path = desc.get('path', '') if isinstance(desc, dict) else ''
+                        if dep_key not in self.pkg_details:
+                            self.pkg_details[dep_key] = {}
+                        self.pkg_details[dep_key]['source'] = 'path'
+                        self.pkg_details[dep_key]['path'] = path
+                elif source == 'git':
+                    if dep_key not in self.pkg_details or not self.pkg_details[dep_key].get('url', ''):
+                        desc = pkg_info.get('description', {})
+                        url = desc.get('url', '') if isinstance(desc, dict) else ''
+                        if dep_key not in self.pkg_details:
+                            self.pkg_details[dep_key] = {}
+                        self.pkg_details[dep_key]['source'] = 'git'
+                        self.pkg_details[dep_key]['url'] = url
+        except Exception as e:
+            logger.debug(f'Failed to supplement pkg_details from pubspec.lock: {e}')
+
     def parse_pub_deps_file(self, rel_json):
         try:
             for p in rel_json['packages']:
@@ -154,7 +187,6 @@ class Pub(PackageManager):
                             logger.debug(f"Failed to read pubspec.yaml for {package_name}: {e}")
                             continue
 
-                    # URL 완전 매칭 실패 시 이름만 일치한 디렉터리로 fallback
                     if not package_dir and name_only_match:
                         logger.debug(f"Falling back to name-only match for git package: {package_name}")
                         package_dir = name_only_match
@@ -228,6 +260,7 @@ class Pub(PackageManager):
                         oss_item.license = check_license_name(cache_info['license_text'])
                 else:
                     oss_item.homepage = ''
+                local_path_comment = ''
                 if pkg_source == 'hosted':
                     oss_item.download_location = f"{self.dn_url}{pkg_name}/versions/{version}"
                 elif pkg_source == 'git':
@@ -237,8 +270,20 @@ class Pub(PackageManager):
                         oss_item.download_location = oss_item.homepage
                     oss_item.comment = 'git package'
                 elif pkg_source == 'path':
-                    oss_item.download_location = oss_item.homepage
-                    oss_item.comment = 'local path package'
+                    oss_item.download_location = ''
+                    oss_item.homepage = ''
+                    local_path = ''
+                    if pkg_with_version in self.pkg_details:
+                        raw_path = self.pkg_details[pkg_with_version].get('path', '')
+                        if raw_path:
+                            if not os.path.isabs(raw_path):
+                                local_path = os.path.normpath(os.path.join(self.input_dir, raw_path))
+                            else:
+                                local_path = os.path.normpath(raw_path)
+                    if local_path:
+                        local_path_comment = f'local: {local_path}'
+                    else:
+                        local_path_comment = 'local path package'
                 else:
                     oss_item.download_location = f"{self.dn_url}{pkg_name}/versions/{version}"
                 dep_item.purl = get_url_to_purl(f"{self.dn_url}{pkg_name}/versions/{version}", self.package_manager_name)
@@ -254,6 +299,9 @@ class Pub(PackageManager):
 
                     if pkg_with_version in self.relation_tree:
                         dep_item.depends_on_raw = self.relation_tree[pkg_with_version]
+
+                if local_path_comment:
+                    oss_item.comment = local_path_comment
 
                 dep_item.oss_items.append(oss_item)
                 self.dep_items.append(dep_item)
@@ -329,4 +377,5 @@ class Pub(PackageManager):
 
             except Exception as e:
                 logger.error(f'Fail to run flutter command:{e}')
+        self.supplement_pkg_details_from_lock()
         return True

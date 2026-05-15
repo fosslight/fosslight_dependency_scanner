@@ -414,10 +414,22 @@ class Pypi(PackageManager):
                 purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
 
                 direct_url = package.get('direct_url', {})
+                is_local = False
+                local_path_comment = ''
                 if direct_url:
-                    oss_item.download_location = direct_url.get('url', '')
-                    oss_item.homepage = oss_item.download_location
-                if not package.get('installer', ''):
+                    direct_url_str = direct_url.get('url', '')
+                    if direct_url_str.startswith('file://'):
+                        is_local = True
+                        local_path = direct_url_str[len('file://'):]
+                        local_path = re.sub(r'^/([A-Za-z]:)', r'\1', local_path)
+                        local_path = os.path.normpath(local_path)
+                        oss_item.download_location = ''
+                        oss_item.homepage = ''
+                        local_path_comment = f'local: {local_path}'
+                    else:
+                        oss_item.download_location = direct_url_str
+                        oss_item.homepage = oss_item.download_location
+                if not is_local and not package.get('installer', ''):
                     oss_item.download_location = oss_item.homepage
 
                 if oss_init_name == self.package_name:
@@ -429,6 +441,9 @@ class Pypi(PackageManager):
                         oss_item.comment = 'transitive'
                     if f'{oss_init_name}({oss_item.version})' in self.relation_tree:
                         dep_item.depends_on_raw = self.relation_tree[f'{oss_init_name}({oss_item.version})']
+
+                if local_path_comment:
+                    oss_item.comment = local_path_comment
 
                 dep_item.oss_items.append(oss_item)
                 self.dep_items.append(dep_item)
