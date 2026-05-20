@@ -164,8 +164,8 @@ def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], r
     found_package_manager = found_package_manager_bk
 
     if len(found_package_manager) >= 1:
-        log_lines = ["\nDetected Manifest Files automatically"]
-        log_lines = print_package_info(found_package_manager, log_lines)
+        log_lines = [f"\nDetected Manifest Files automatically\nAnalyzed path: {input_dir}"]
+        log_lines = print_package_info(found_package_manager, log_lines, base_dir=input_dir)
         logger.info('\n'.join(log_lines))
     else:
         ret = False
@@ -174,7 +174,7 @@ def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], r
     return ret, found_package_manager, input_dir, suggested_files
 
 
-def print_package_info(pm, log_lines, status=''):
+def print_package_info(pm, log_lines, status='', base_dir=''):
     if pm:
         if status:
             status = f"[{status}] "
@@ -182,7 +182,14 @@ def print_package_info(pm, log_lines, status=''):
             log_lines.append(f"- {status} {pm}:")
             for path, files in dir_dict.items():
                 file_list = ', '.join(files)
-                log_lines.append(f"  {path}: {file_list}")
+                if base_dir:
+                    rel_path = os.path.relpath(path, base_dir)
+                    if rel_path == '.':
+                        log_lines.append(f"  {file_list}")
+                    else:
+                        log_lines.append(f"  {rel_path}{os.sep}{file_list}")
+                else:
+                    log_lines.append(f"  {path}: {file_list}")
     return log_lines
 
 
@@ -261,6 +268,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         input_dir = os.getcwd()
         os.chdir(input_dir)
 
+    base_path = input_dir
+
     autodetect = True
     found_package_manager = {}
     if package_manager:
@@ -282,6 +291,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     else:
         manifest_file_name = []
 
+    suggested_files = []
     try:
         if all_exclude_mode and len(all_exclude_mode) == 4:
             excluded_path_with_default_exclusion, excluded_path_without_dot, excluded_files, _ = all_exclude_mode
@@ -370,9 +380,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if len(found_package_manager.keys()) > 0:
         log_lines = ["Dependency Analysis Summary"]
         if len(success_pm) > 0:
-            log_lines = print_package_info(success_pm, log_lines, 'Success')
+            log_lines = print_package_info(success_pm, log_lines, 'Success', base_path)
         if len(fail_pm) > 0:
-            log_lines = print_package_info(fail_pm, log_lines, 'Fail')
+            log_lines = print_package_info(fail_pm, log_lines, 'Fail', base_path)
             log_lines.append('If analysis fails, see fosslight_log*.txt and the prerequisite guide: '
                              'https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html#how-to-run-and-output')
         scan_item.set_cover_comment('\n'.join(log_lines))
