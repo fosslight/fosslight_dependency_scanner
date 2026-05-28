@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.40 (28/05/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Avoid failing when gradlew exists and allDeps input is already present @woocheol-lge (#311)
+
+## 🔧 Maintenance
+
+- Strip root path from local package output and add local paths to comments for result file @woocheol-lge (#312)
+- Change package URL output to Google Maven format @woocheol-lge (#310)
+
+---
+
 ## v4.1.39 (23/04/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -281,16 +294,3 @@
 ## 🐛 Hotfixes
 
 - Fix to detect pypi install error @dd-jy (#252)
-
----
-
-## v4.1.10 (16/04/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix to retry virtualenv for pypi @dd-jy (#250)
-
-## 🔧 Maintenance
-
-- Add venv into .gitignore @dd-jy (#249)
-- Change flake8 github action @dd-jy (#248)
