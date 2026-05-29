@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import re
 import logging
 import subprocess
 import json
@@ -56,26 +57,38 @@ class Yarn(Npm):
 
         self.detect_yarn_version()
 
-        # For Yarn Berry (2+), check if using PnP mode
+        # For Yarn Berry (2+), PnP is the default mode.
+        # Only treat as non-PnP if .yarnrc.yml explicitly sets nodeLinker to node-modules or pnpm.
         is_pnp_mode = False
         if self.yarn_version and self.yarn_version >= 2:
-            # Check if .pnp.cjs exists (PnP mode indicator)
-            if os.path.exists('.pnp.cjs') or os.path.exists('.pnp.js'):
-                is_pnp_mode = True
+            is_pnp_mode = True
+            yarnrc_path = '.yarnrc.yml'
+            if os.path.exists(yarnrc_path):
+                with open(yarnrc_path, 'r', encoding='utf-8') as f:
+                    yarnrc_content = f.read()
+                match = re.search(r'^\s*nodeLinker\s*:\s*(\S+)', yarnrc_content, re.MULTILINE)
+                if match:
+                    node_linker = match.group(1).strip('"\'')
+                    if node_linker in ('node-modules', 'pnpm'):
+                        is_pnp_mode = False
+                        logger.info(f"Detected Yarn Berry with nodeLinker: {node_linker} (non-PnP mode)")
+            if is_pnp_mode:
                 logger.info("Detected Yarn Berry with PnP mode")
 
         if not os.path.isdir(node_modules):
             logger.info("node_modules directory does not exist.")
             self.flag_tmp_node_modules = True
 
-            # For PnP mode, try to force node_modules creation
-            if is_pnp_mode:
-                logger.info("Attempting to create node_modules for PnP project...")
-                yarn_install_cmd = 'YARN_NODE_LINKER=node-modules yarn install --production --ignore-scripts'
-                logger.info(f"Executing: {yarn_install_cmd}")
+            if self.yarn_version and self.yarn_version >= 2:
+                if is_pnp_mode:
+                    # Force node-modules linker via env var (Yarn Berry supports YARN_<SETTING> env vars)
+                    logger.info("Attempting to create node_modules for PnP project using YARN_NODE_LINKER=node-modules...")
+                    yarn_install_cmd = 'YARN_NODE_LINKER=node-modules yarn install --mode=skip-build'
+                else:
+                    yarn_install_cmd = 'yarn install --mode=skip-build'
             else:
                 yarn_install_cmd = 'yarn install --production --ignore-scripts'
-                logger.info(f"Executing: {yarn_install_cmd}")
+            logger.info(f"Executing: {yarn_install_cmd}")
 
             result = subprocess.run(yarn_install_cmd, shell=True, capture_output=True, text=True)
             if result.returncode != 0:
