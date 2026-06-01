@@ -79,18 +79,19 @@ class Yarn(Npm):
             logger.info("node_modules directory does not exist.")
             self.flag_tmp_node_modules = True
 
+            yarn_install_env = None
             if self.yarn_version and self.yarn_version >= 2:
                 if is_pnp_mode:
-                    # Force node-modules linker via env var (Yarn Berry supports YARN_<SETTING> env vars)
+                    # Force node-modules linker via env (cross-platform; avoids POSIX shell VAR=val syntax)
                     logger.info("Attempting to create node_modules for PnP project using YARN_NODE_LINKER=node-modules...")
-                    yarn_install_cmd = 'YARN_NODE_LINKER=node-modules yarn install --mode=skip-build'
-                else:
-                    yarn_install_cmd = 'yarn install --mode=skip-build'
+                    yarn_install_env = os.environ.copy()
+                    yarn_install_env['YARN_NODE_LINKER'] = 'node-modules'
+                yarn_install_cmd = 'yarn install --mode=skip-build'
             else:
                 yarn_install_cmd = 'yarn install --production --ignore-scripts'
             logger.info(f"Executing: {yarn_install_cmd}")
 
-            result = subprocess.run(yarn_install_cmd, shell=True, capture_output=True, text=True)
+            result = subprocess.run(yarn_install_cmd, shell=True, capture_output=True, text=True, env=yarn_install_env)
             if result.returncode != 0:
                 logger.error(f"{yarn_install_cmd} failed")
                 if is_pnp_mode:
