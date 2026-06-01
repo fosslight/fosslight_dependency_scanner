@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.41 (01/06/2026)
+## Changes
+## 🚀 Features
+
+- Improve PnP mode detection and Berry-compatible install options @dd-jy (#313)
+
+---
+
 ## v4.1.40 (28/05/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -286,11 +294,3 @@
 ## 🐛 Hotfixes
 
 - Fix bug about mvnw cmd @dd-jy (#253)
-
----
-
-## v4.1.11 (23/04/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix to detect pypi install error @dd-jy (#252)
