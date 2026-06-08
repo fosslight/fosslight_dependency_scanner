@@ -102,10 +102,9 @@ class PackageManager:
                 gradle_file = candidates
             if os.path.isfile(gradle_file):
                 gradle_backup = f'{gradle_file}_bk'
-
                 shutil.copy(gradle_file, gradle_backup)
-                ret_alldeps = self.add_allDeps_in_gradle(gradle_file)
 
+                # Inject plugin first (overwrites file with write mode)
                 ret_plugin = False
                 if self.package_manager_name == const.ANDROID:
                     module_build_gradle = os.path.join(self.app_name, gradle_file)
@@ -113,6 +112,11 @@ class PackageManager:
                     if os.path.isfile(module_build_gradle) and (not os.path.isfile(self.input_file_name)):
                         shutil.copy(module_build_gradle, module_gradle_backup)
                         ret_plugin = self.add_android_plugin_in_gradle(module_build_gradle, gradle_file)
+                elif self.package_manager_name == const.GRADLE:
+                    if not os.path.isfile(self.input_file_name):
+                        ret_plugin = self.add_gradle_plugin_in_gradle(gradle_file)
+
+                ret_alldeps = self.add_allDeps_in_gradle(gradle_file)
 
                 cmd_gradle = ''
                 if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
@@ -125,7 +129,10 @@ class PackageManager:
                     self.set_direct_dependencies(False)
                     logger.warning('No gradlew file exists (Skip to find dependencies relationship.).')
                     if ret_plugin:
-                        logger.warning('Also it cannot run android-dependency-scanning plugin.')
+                        if self.package_manager_name == const.ANDROID:
+                            logger.warning('Also it cannot run android-dependency-scanning plugin.')
+                        else:
+                            logger.warning('Also it cannot run gradle-license-report plugin.')
 
                 if ret_task:
                     current_mode = change_file_mode(cmd_gradle)
@@ -144,28 +151,49 @@ class PackageManager:
                             logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
 
                     if ret_plugin:
-                        cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
-                        try:
-                            result = subprocess.run(cmd, capture_output=True, encoding='utf-8')
-                            if result.returncode != 0:
+                        if self.package_manager_name == const.ANDROID:
+                            cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
+                            try:
+                                result = subprocess.run(cmd, capture_output=True, encoding='utf-8')
+                                if result.returncode != 0:
+                                    ret_task = False
+                                    logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
+                                if os.path.isfile(self.input_file_name):
+                                    logger.info('Automatically run android-dependency-scanning plugin and generate output.')
+                                    self.plugin_auto_run = True
+                                else:
+                                    ret_task = False
+                                    logger.warning(
+                                        'Automatically run android-dependency-scanning plugin, but fail to generate output.'
+                                    )
+                            except Exception as e:
+                                logger.error(f'Fail to run {cmd}: {e}')
                                 ret_task = False
-                                logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
-                            if os.path.isfile(self.input_file_name):
-                                logger.info('Automatically run android-dependency-scanning plugin and generate output.')
-                                self.plugin_auto_run = True
-                            else:
-                                logger.warning(
-                                    'Automatically run android-dependency-scanning plugin, but fail to generate output.'
-                                )
-                        except Exception as e:
-                            logger.error(f'Fail to run {cmd}: {e}')
-                            ret_task = False
+                        elif self.package_manager_name == const.GRADLE:
+                            cmd = [cmd_gradle, 'generateLicenseReport']
+                            try:
+                                result = subprocess.run(cmd, capture_output=True, encoding='utf-8')
+                                if result.returncode != 0:
+                                    ret_task = False
+                                    logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
+                                if os.path.isfile(self.input_file_name):
+                                    logger.info('Automatically run gradle-license-report plugin and generate output.')
+                                    self.plugin_auto_run = True
+                                else:
+                                    logger.warning(
+                                        'Automatically run gradle-license-report plugin, but fail to generate output.'
+                                    )
+                            except Exception as e:
+                                logger.error(f'Fail to run {cmd}: {e}')
+                                ret_task = False
                     change_file_mode(cmd_gradle, current_mode)
 
             if os.path.isfile(self.input_file_name):
-                logger.info(f'Found {self.input_file_name}, skip to run plugin.')
+                logger.info(f'Found {self.input_file_name}.')
                 self.set_direct_dependencies(bool(self.direct_dep_list))
                 ret_task = True
+            elif self.package_manager_name == const.GRADLE:
+                ret_task = False
         except Exception as e:
             logger.error(f'Unexpected error in run_gradle_task: {e}')
             ret_task = False
@@ -174,10 +202,12 @@ class PackageManager:
                 if gradle_file and os.path.isfile(gradle_file):
                     os.remove(gradle_file)
                 shutil.move(gradle_backup, gradle_file)
+
             if module_gradle_backup and os.path.isfile(module_gradle_backup):
                 if module_build_gradle and os.path.isfile(module_build_gradle):
                     os.remove(module_build_gradle)
                 shutil.move(module_gradle_backup, module_build_gradle)
+
             os.chdir(prev_dir)
 
         return ret_task
@@ -232,6 +262,168 @@ class PackageManager:
             logging.warning(f"Cannot add the apply plugin in {module_build_gradle}: {e}")
             return False
 
+    def add_gradle_plugin_in_gradle(self, gradle_file):
+        is_kts = gradle_file == 'build.gradle.kts'
+
+        try:
+            with open(gradle_file, 'r', encoding='utf-8') as f:
+                data = f.read()
+
+            if 'dependency-license-report' in data:
+                logger.info('gradle-license-report plugin is already configured in build.gradle. Skip injection.')
+                return True
+        except Exception as e:
+            logger.warning(f"Cannot read {gradle_file}: {e}")
+            return False
+
+        gradle_ver = get_gradle_version_from_wrapper(self.input_dir)
+        if gradle_ver and gradle_ver >= (9, 0):
+            plugin_version = '3.1.2'  # Gradle 9+
+        elif gradle_ver and gradle_ver >= (7, 0):
+            plugin_version = '2.9'    # Gradle 7+
+        else:
+            plugin_version = '1.9'    # Gradle 6-
+
+        imports_block_groovy = (
+            'import com.github.jk1.license.ModuleData\n'
+            'import com.github.jk1.license.ProjectData\n'
+            'import com.github.jk1.license.render.ReportRenderer\n'
+            'import static com.github.jk1.license.render.LicenseDataCollector.multiModuleLicenseInfo\n'
+            '\n'
+        )
+
+        imports_block_kotlin = (
+            'import com.github.jk1.license.ModuleData\n'
+            'import com.github.jk1.license.ProjectData\n'
+            'import com.github.jk1.license.render.ReportRenderer\n'
+            'import com.github.jk1.license.render.LicenseDataCollector.multiModuleLicenseInfo\n'
+            'import java.io.File\n'
+            '\n'
+        )
+
+        if is_kts:
+            plugin_id_line = f'    id("com.github.jk1.dependency-license-report") version "{plugin_version}"\n'
+            output_config = '    outputDir = "$buildDir/reports/license"'
+            output_property_access = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
+
+            custom_renderer_body_kts = f'''                val outputFile = File(
+                    data.project.licenseReport.{output_property_access},
+                    "dependency-license.json"
+                )
+                outputFile.parentFile.mkdirs()
+
+                val result = mutableListOf<Map<String, Any>>()
+
+                data.allDependencies.forEach {{ module ->
+                    val info = multiModuleLicenseInfo(module)
+                    val moduleLicenses = info.licenses.map {{ lic ->
+                        mapOf("name" to lic.name, "url" to lic.url)
+                    }}
+
+                    result.add(mapOf(
+                        "moduleName" to "${{module.group}}:${{module.name}}",
+                        "moduleVersion" to module.version,
+                        "moduleUrls" to info.moduleUrls,
+                        "moduleLicenses" to moduleLicenses
+                    ))
+                }}
+
+                val json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
+                outputFile.writeText(json)'''
+
+            license_report_block = (
+                '\nlicenseReport {\n'
+                '    configurations = arrayOf("runtimeClasspath")\n'
+                f'{output_config}\n'
+                '    renderers = arrayOf(\n'
+                '        object : ReportRenderer {\n'
+                '            override fun render(data: ProjectData) {\n'
+                f'{custom_renderer_body_kts}\n'
+                '            }\n'
+                '        }\n'
+                '    )\n'
+                '}\n'
+            )
+        else:
+            plugin_id_line = f'  id "com.github.jk1.dependency-license-report" version "{plugin_version}"\n'
+            output_property = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
+
+            renderer_body = f'''                def outputFile = new File(
+                    data.project.licenseReport.{output_property},
+                    "dependency-license.json"
+                )
+                outputFile.parentFile.mkdirs()
+                def result = []
+                data.allDependencies.each {{ ModuleData module ->
+                    def info = multiModuleLicenseInfo(module)
+                    def licenses = info.licenses.collect {{ lic ->
+                        [name: lic.name, url: lic.url]
+                    }}
+                    result << [
+                        moduleName    : "${{module.group}}:${{module.name}}",
+                        moduleVersion : module.version,
+                        moduleUrls    : info.moduleUrls,
+                        moduleLicenses: licenses
+                    ]
+                }}
+
+                def json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
+                outputFile.text = json'''
+
+            license_report_block = (
+                '\nlicenseReport {\n'
+                "    configurations = ['runtimeClasspath']\n"
+                '    outputDir = "$buildDir/reports/license"\n'
+                '    renderers = [\n'
+                '        new ReportRenderer() {\n'
+                '            @Override\n'
+                '            void render(ProjectData data) {\n'
+                f'{renderer_body}\n'
+                '            }\n'
+                '        }\n'
+                '    ]\n'
+                '}\n'
+            )
+
+        try:
+            imports = imports_block_kotlin if is_kts else imports_block_groovy
+            if 'plugins {' in data:
+                data = imports + data
+                plugins_start = data.index('plugins {')
+                brace_count = 0
+                search_pos = plugins_start + len('plugins {')
+                plugins_end = -1
+
+                for i in range(search_pos, len(data)):
+                    if data[i] == '{':
+                        brace_count += 1
+                    elif data[i] == '}':
+                        if brace_count == 0:
+                            plugins_end = i
+                            break
+                        brace_count -= 1
+
+                if plugins_end > 0:
+                    data = data[:plugins_end] + plugin_id_line + data[plugins_end:]
+                else:
+                    logger.warning("Could not find closing brace for plugins block")
+                    return False
+            else:
+                new_plugins_block = f'plugins {{\n{plugin_id_line}}}\n'
+                data = imports + new_plugins_block + data
+
+            data = data + license_report_block
+
+            with open(gradle_file, 'w', encoding='utf-8') as f:
+                f.write(data)
+
+            logger.info(f'Injected gradle-license-report plugin (v{plugin_version}) into {gradle_file}.')
+            return True
+
+        except Exception as e:
+            logger.warning(f"Cannot inject gradle-license-report plugin into {gradle_file}: {e}")
+            return False
+
     def add_allDeps_in_gradle(self, gradle_file):
         config = android_config if self.package_manager_name == const.ANDROID else gradle_config
         is_kts = gradle_file == 'build.gradle.kts'
@@ -262,12 +454,13 @@ class PackageManager:
                             }}
                         }}
                     }}'''
+
         try:
             with open(gradle_file, 'a', encoding='utf8') as f:
                 f.write(f'\n{allDeps}\n')
             return True
         except Exception as e:
-            logging.warning(f"Cannot add the allDeps task in build.gradle: {e}")
+            logger.warning(f"Cannot add the allDeps task in build.gradle: {e}")
             return False
 
     def create_dep_stack(self, dep_line, config):
@@ -276,6 +469,7 @@ class PackageManager:
         cur_flag = ''
         dep_level = -1
         dep_level_plus = False
+
         for line in dep_line.split('\n'):
             try:
                 if not packages_in_config:
@@ -320,6 +514,21 @@ class PackageManager:
                     self.relation_tree[stack[-1]].append(name)
         except Exception as e:
             logger.warning(f'Fail to parse gradle dependency tree:{e}')
+
+
+def get_gradle_version_from_wrapper(input_dir):
+    props_path = os.path.join(input_dir, 'gradle', 'wrapper', 'gradle-wrapper.properties')
+    if not os.path.isfile(props_path):
+        return None
+    try:
+        with open(props_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        m = re.search(r'gradle-(\d+\.\d+(?:\.\d+)?)-', content)
+        if m:
+            return tuple(int(x) for x in m.group(1).split('.'))
+    except Exception:
+        pass
+    return None
 
 
 def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
