@@ -197,6 +197,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
                            github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
                            graph_size=(600, 600), recursive=False, all_exclude_mode=()):
+    os.environ['PYTHONUTF8'] = '1'
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+
     global logger
 
     ret = True
