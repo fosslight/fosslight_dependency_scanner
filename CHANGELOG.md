@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.42 (11/06/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Handle encoding difference between scanner all and dependency runs @woocheol-lge (#315)
+
+---
+
 ## v4.1.41 (01/06/2026)
 ## Changes
 ## 🚀 Features
@@ -286,11 +294,3 @@
 ## 🔧 Maintenance
 
 - Change dn loc and homepage for Npm @dd-jy (#251)
-
----
-
-## v4.1.12 (09/05/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix bug about mvnw cmd @dd-jy (#253)
