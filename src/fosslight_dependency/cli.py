@@ -30,9 +30,6 @@ def paginate_file(file_path):
 
 
 def main():
-    os.environ['PYTHONUTF8'] = '1'
-    os.environ['PYTHONIOENCODING'] = 'utf-8'
-
     package_manager = ''
     input_dir = ''
     output_dir = ''
