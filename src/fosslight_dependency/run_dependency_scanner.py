@@ -141,17 +141,34 @@ def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], r
         for d in found_package_manager['gradle'].keys() & found_package_manager['android'].keys():
             gradle_ret = False
             android_ret = False
-            if 'build.gradle' in found_package_manager['gradle'][d] and 'build.gradle' in found_package_manager['android'][d]:
-                check_gradle = os.path.join(d, 'build.gradle')
+            build_files_to_check = []
+            gradle_files = found_package_manager['gradle'][d]
+            android_files = found_package_manager['android'][d]
+            for build_file in ['build.gradle', 'build.gradle.kts']:
+                if build_file in gradle_files and build_file in android_files:
+                    build_files_to_check.append(build_file)
+            for build_file in build_files_to_check:
+                check_gradle = os.path.join(d, build_file)
                 try:
                     with open(check_gradle, 'r', encoding='utf-8') as gradle_temp:
                         data = gradle_temp.read()
-                        gradle_keywords = ['apply plugin: \'java\'', 'apply plugin: \'java-library\'']
+                        gradle_keywords = [
+                            'apply plugin: \'java\'',
+                            'apply plugin: \'java-library\'',
+                            'apply(plugin = "java")',
+                            'apply(plugin = "java-library")'
+                        ]
                         android_keywords = ['android', 'SdkVersion']
-                        gradle_ret = any(k.replace(" ", "").lower() in data.replace(" ", "").lower() for k in gradle_keywords)
-                        android_ret = any(k.lower() in data.replace(" ", "").lower() for k in android_keywords)
+                        gradle_ret = gradle_ret or any(
+                            k.replace(" ", "").lower() in data.replace(" ", "").lower()
+                            for k in gradle_keywords
+                        )
+                        android_ret = android_ret or any(
+                            k.lower() in data.replace(" ", "").lower()
+                            for k in android_keywords
+                        )
                 except Exception as e:
-                    logger.warning(f"Cannot open build.gradle: {e}")
+                    logger.warning(f"Cannot open {build_file}: {e}")
 
             if gradle_ret and not android_ret:
                 found_package_manager_bk["android"].pop(d, None)

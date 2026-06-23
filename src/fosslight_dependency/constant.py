@@ -34,7 +34,7 @@ SUPPORT_PACKAGE = {
     NPM: 'package.json',
     YARN: 'yarn.lock',
     MAVEN: 'pom.xml',
-    GRADLE: 'build.gradle',
+    GRADLE: ['build.gradle', 'build.gradle.kts'],
     PUB: 'pubspec.yaml',
     COCOAPODS: 'Podfile.lock',
     ANDROID: ['build.gradle', 'build.gradle.kts'],

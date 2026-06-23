@@ -6,6 +6,7 @@
 import os
 import logging
 import json
+import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -39,77 +40,125 @@ class Gradle(PackageManager):
             json_data = json.load(json_file)
 
         purl_dict = {}
+        if isinstance(json_data, list):
+            dependencies = json_data
+            json_format = "list"
+        else:
+            dependencies = json_data.get("dependencies", [])
+            json_format = "dict"
 
-        for d in json_data['dependencies']:
+        for d in dependencies:
             dep_item = DependencyItem()
             oss_item = OssItem()
-            used_filename = False
+
+            module_name = d.get("moduleName", "")
+            module_version = d.get("moduleVersion", "")
+            module_urls = d.get("moduleUrls", [])
+            if isinstance(module_urls, str):
+                module_urls = [module_urls]
+            module_url = next((u for u in module_urls if u), d.get("moduleUrl", ""))
+
+            if json_format == "list":
+                module_licenses_raw = d.get("moduleLicenses", [])
+                license_names = []
+                for lic in module_licenses_raw:
+                    lic_name = lic.get("name") or ""
+                    final_license_name = normalize_license_name_from_name(lic_name) if lic_name else None
+                    if final_license_name:
+                        license_names.append(final_license_name)
+                license_names = list(dict.fromkeys(license_names))
+                module_license = ", ".join(license_names)
+            else:
+                module_license = d.get("moduleLicense", "")
+
             group_id = ""
             artifact_id = ""
 
-            name = d['name']
-            filename = d['file']
-
-            if name != filename:
-                group_id, artifact_id, oss_ini_version = parse_oss_name_version_in_artifactid(name)
+            if ":" in module_name:
+                parts = module_name.split(":")
+                group_id = parts[0]
+                artifact_id = parts[1]
                 oss_name = f"{group_id}:{artifact_id}"
             else:
-                oss_name, oss_ini_version = parse_oss_name_version_in_filename(filename)
-                used_filename = True
+                oss_name = module_name
+
             oss_item.name = oss_name
+            oss_ini_version = module_version
             dep_key = f"{oss_item.name}({oss_ini_version})"
+
             if self.total_dep_list:
                 if dep_key not in self.total_dep_list:
                     continue
 
             oss_item.version = version_refine(oss_ini_version)
 
-            try:
-                license_names = []
-                for licenses in d['licenses']:
-                    if licenses['name'] != '':
-                        license_names.append(licenses['name'].replace(",", ""))
-                oss_item.license = ', '.join(license_names)
-            except Exception:
-                logger.info("Cannot find the license name")
-            if not oss_item.license:
-                license_names = get_license_from_pom(group_id, artifact_id, oss_ini_version)
+            if module_license and module_license.strip():
+                oss_item.license = module_license.strip()
+            else:
+                oss_item.license = ""
+
+            is_gradle_plugin = (
+                group_id.startswith('gradle.plugin.')
+                or artifact_id.endswith('.gradle.plugin')
+                or group_id == 'com.github.jk1'
+            )
+            if not oss_item.license and group_id and artifact_id and oss_ini_version and not is_gradle_plugin:
+                license_names = get_license_from_pom(
+                    group_id,
+                    artifact_id,
+                    oss_ini_version
+                )
+
                 if license_names:
                     oss_item.license = license_names
 
             if not self.download_url_map:
                 self.download_url_map = collect_gradle_download_urls(
-                    self.input_dir, self.package_manager_name
+                    self.input_dir,
+                    self.package_manager_name
                 )
 
-            if used_filename or group_id == "":
-                oss_item.download_location = 'Unknown'
-            else:
+            # download location / homepage / purl
+            if group_id:
                 oss_item.download_location = get_download_location(
-                    self.download_url_map, group_id, artifact_id, oss_ini_version, self.dn_url
+                    self.download_url_map,
+                    group_id,
+                    artifact_id,
+                    oss_ini_version,
+                    self.dn_url
                 )
-                oss_item.homepage = f"{self.dn_url}{group_id}/{artifact_id}"
-                mvn_dn_url = f"{oss_item.homepage}/{oss_ini_version}"
-                dep_item.purl = get_url_to_purl(mvn_dn_url, 'maven')
-                purl_dict[f'{oss_item.name}({oss_ini_version})'] = dep_item.purl
+
+                if module_url:
+                    oss_item.homepage = module_url
+                else:
+                    oss_item.homepage = f"{self.dn_url}{group_id}/{artifact_id}"
+
+                mvn_dn_url = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
+                dep_item.purl = get_url_to_purl(mvn_dn_url, "maven")
+
+                purl_dict[dep_key] = dep_item.purl
+            else:
+                oss_item.download_location = "Unknown"
 
             if self.direct_dep:
-                if len(self.direct_dep_list) > 0:
+                if self.direct_dep_list:
                     if dep_key in self.direct_dep_list:
-                        oss_item.comment = 'direct'
+                        oss_item.comment = "direct"
                     else:
-                        oss_item.comment = 'transitive'
+                        oss_item.comment = "transitive"
+
                 try:
                     if dep_key in self.relation_tree:
                         dep_item.depends_on_raw = self.relation_tree[dep_key]
                 except Exception as e:
-                    logger.error(f"Fail to find oss scope in dependency tree: {e}")
+                    logger.error(f"Fail to find dependency tree: {e}")
 
             dep_item.oss_items.append(oss_item)
             self.dep_items.append(dep_item)
 
         if self.direct_dep:
             self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
+
         return
 
 
@@ -131,3 +180,75 @@ def parse_oss_name_version_in_artifactid(name):
     oss_version = artifact_comp[2]
 
     return group_id, artifact_id, oss_version
+
+
+def normalize_license_name_from_name(license_name):
+    if license_name is None:
+        return None
+
+    license_name = license_name.strip()
+
+    if ";link=" in license_name:
+        license_name = license_name.split(";link=", 1)[0]
+
+    license_name = license_name.strip().strip('"').strip("'").strip()
+    license_name = re.sub(r'^[#\s\-\*]+|[#\s\-\*]+$', '', license_name)
+
+    if not license_name:
+        return None
+
+    lowered = license_name.lower()
+
+    dual_keywords = [
+        "dual", "multi", " or ", " and ", " with ", " + ", " ; "
+    ]
+
+    if any(keyword in lowered for keyword in dual_keywords):
+        if "common development and distribution license (cddl) version 1.0" in lowered:
+            return sanitize_license_name("CDDL-1.0")
+        return sanitize_license_name(license_name)
+
+    formal_rules = [
+        ("Apache-1.0", r"\bapache\b.*1\.0"),
+        ("Apache-1.1", r"\bapache\b.*1\.1"),
+        ("Apache-2.0", r"asl\s?2(\.0)?"),
+        ("Apache-2.0", r"\bapache\b.*2(\.0)?"),
+        ("MIT-0", r"mit no attribution"),
+        ("MIT-0", r"mit[- ]?0"),
+        ("MIT", r"(the\s)?mit(\slicen[cs]e)?(\s\(mit\))?"),
+        ("BSD-2-Clause", r"bsd[- ]?2[- ]clause"),
+        ("BSD-3-Clause", r"bsd[- ]?3[- ]clause"),
+        ("BSD-3-Clause", r"(the\s)?new bsd license"),
+        ("BSD-3-Clause", r"modified bsd license"),
+        ("EPL-1.0", r"eclipse publi(c|sh) license.*1"),
+        ("EPL-2.0", r"eclipse public license.*2"),
+        ("GPL-1.0-only", r"\bgpl\b.*1(\.0)?"),
+        ("GPL-2.0-only", r"\bgpl\b.*2(\.0)?"),
+        ("GPL-3.0-only", r"\bgpl\b.*3(\.0)?"),
+        ("AGPL-3.0-only", r"\bagpl\b.*3(\.0)?"),
+        ("LGPL-2.1-only", r"\blgpl\b.*2\.1"),
+        ("LGPL-3.0-only", r"\blgpl\b.*3(\.0)?"),
+        ("MPL-1.1", r"mozilla public license.*1\.1"),
+        ("MPL-2.0", r"mozilla public license.*2(\.0)?"),
+        ("CDDL-1.0", r"cddl.*1\.0"),
+        ("CDDL-1.1", r"cddl.*1\.1"),
+        ("CPL-1.0", r"common public license.*1"),
+        ("CC0-1.0", r"cc0([- ]1(\.0)?)?"),
+        ("Public-Domain", r"public\sdomain"),
+    ]
+
+    for normalized_name, re_pattern in formal_rules:
+        if re.search(re_pattern, lowered, re.IGNORECASE):
+            return sanitize_license_name(normalized_name)
+
+    return sanitize_license_name(license_name)
+
+
+def sanitize_license_name(license_name):
+    if not license_name:
+        return None
+
+    license_name = re.sub(r'\s*,\s*', ' ', license_name)
+    license_name = re.sub(r'\s+', ' ', license_name).strip()
+
+    return license_name or None
