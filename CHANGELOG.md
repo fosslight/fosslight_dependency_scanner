@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.1.43 (25/06/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Run flake8 directly instead of pytest-flake8 @woocheol-lge (#316)
+
+## 🔧 Maintenance
+
+- Replace Gradle license analysis with jk1 for Groovy and Kotlin DSL @woocheol-lge (#314)
+- Update GitHub Actions to latest major release @gruenich (#318)
+
+---
+
 ## v4.1.42 (11/06/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -282,15 +295,3 @@
 
 - Add oss version in npm download location @dd-jy (#256)
 - Switch download location and homepage for go @dd-jy (#255)
-
----
-
-## v4.1.13 (09/06/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Retry to get go pkg info when http error @dd-jy (#254)
-
-## 🔧 Maintenance
-
-- Change dn loc and homepage for Npm @dd-jy (#251)
