@@ -159,8 +159,8 @@ In this user guide, you can see how to install the FOSSLight Dependency Scanner 
 
 ## 👏 Contributing Guide
 
-We always welcome your contributions.
-Please see the [CONTRIBUTING guide](https://github.com/fosslight/fosslight_dependency_scanner/blob/main/CONTRIBUTING.md) for how to contribute.
+We always welcome your contributions.  
+Please see the [CONTRIBUTING guide](https://fosslight.org/hub-guide-en/contribution/1_contribution.html) for how to contribute.
 
 ## 📄 License
 
