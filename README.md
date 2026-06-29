@@ -157,6 +157,13 @@ In this user guide, you can see how to install the FOSSLight Dependency Scanner 
 </tbody>
 </table>
 
+## 💡 How to report issue
+
+Please report any ideas or bugs to improve by creating an issue in [Git Repository][repo].  
+Then there will be quick bug fixes and upgrades. Ideas to improve are always welcome.
+
+[repo]: https://github.com/fosslight/fosslight_dependency_scanner/issues
+
 ## 👏 Contributing Guide
 
 We always welcome your contributions.  
