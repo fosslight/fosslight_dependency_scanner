@@ -2,10 +2,15 @@
 Copyright (c) 2021 LG Electronics
 SPDX-License-Identifier: Apache-2.0
  -->
+ <p align='right'>
+  <a href="https://fosslight.org/fosslight-guide/scanner/1_dependency.html">
+    [Korean]
+ </a>
+</p>
 
 # FOSSLight Dependency Scanner
 
-<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <a href="https://pypi.org/project/fosslight-dependency/"><img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /></a> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner)
+<img src="https://img.shields.io/pypi/l/fosslight_dependency" alt="License" /> <a href="https://pypi.org/project/fosslight-dependency/"><img src="https://img.shields.io/pypi/v/fosslight_dependency" alt="Current python package version." /></a> <img src="https://img.shields.io/pypi/pyversions/fosslight_dependency" /> [![REUSE status](https://api.reuse.software/badge/github.com/fosslight/fosslight_dependency_scanner)](https://api.reuse.software/info/github.com/fosslight/fosslight_dependency_scanner) [![Guide](http://img.shields.io/badge/-doc-blue?style=flat-square&logo=github&link=https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html)](https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html)
 
 ## 💡 Introduction
 
