@@ -7,6 +7,7 @@ import os
 import logging
 import json
 import subprocess
+from urllib.parse import urlparse
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -137,8 +138,23 @@ class Swift(PackageManager):
 
             oss_item.download_location = oss_item.homepage
 
-            github_repo = "/".join(oss_item.homepage.split('/')[-2:])
-            dep_item.purl = get_url_to_purl(oss_item.download_location, self.package_manager_name, github_repo, oss_item.version)
+            parsed = urlparse(oss_item.homepage)
+            path_parts = parsed.path.strip("/").split("/")
+
+            if parsed.netloc and len(path_parts) >= 2:
+                org, repo = path_parts[0], path_parts[1]
+                repo = repo[:-4] if repo.endswith(".git") else repo
+                github_repo = f"{parsed.netloc}/{org}/{repo}"
+            else:
+                github_repo = "/".join(oss_item.homepage.split('/')[-2:])
+
+            dep_item.purl = get_url_to_purl(
+                oss_item.download_location,
+                self.package_manager_name,
+                github_repo,
+                oss_item.version
+            )
+
             purl_dict[f'{oss_origin_name}({oss_item.version})'] = dep_item.purl
             oss_item.license = get_github_license(g, github_repo)
 
