@@ -1,0 +1,184 @@
+version = 1
+SPDX-PackageName = "FOSSLight Dependency Scanner"
+SPDX-PackageDownloadLocation = "https://github.com/fosslight/fosslight_dependency_scanner"
+
+[[annotations]]
+path = "**.md"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ".github/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "MANIFEST.in"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "requirements**.txt"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "LicenseRef-3rd-party-licenses"
+
+[[annotations]]
+path = "setup.cfg"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "requirements.txt"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ".gitignore"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_gradle/**"
+SPDX-FileCopyrightText = "2017-2021 Google LLC."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_maven1/lombok.maven/**"
+SPDX-FileCopyrightText = "2010 Anthony Whitford"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "tests/test_pub/**"
+SPDX-FileCopyrightText = "2019 Siot Inc."
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "tests/test_npm1/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_npm2/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_maven2/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_pypi/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_cocoapods/cocoapods-tips/**"
+SPDX-FileCopyrightText = "2017 ClintJang"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "tests/test_android/**"
+SPDX-FileCopyrightText = "2018 Google, Inc"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_android2/**"
+SPDX-FileCopyrightText = "2018 Google, Inc"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_kotlin/**"
+SPDX-FileCopyrightText = "2018 Google, Inc"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_kotlin2/**"
+SPDX-FileCopyrightText = "2018 Google, Inc"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_swift/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_carthage/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ".gitattributes"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_multi_pypi_npm/**"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_swift2/**"
+SPDX-FileCopyrightText = "2022 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_gradle2/**"
+SPDX-FileCopyrightText = "2014 Netflix"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_nuget/**"
+SPDX-FileCopyrightText = "2022 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_nuget2/**"
+SPDX-FileCopyrightText = "2022 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_helm/**"
+SPDX-FileCopyrightText = "2023 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_swift3/**"
+SPDX-FileCopyrightText = "2023 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_exclude/**"
+SPDX-FileCopyrightText = "2024 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_cargo/**"
+SPDX-FileCopyrightText = "2024 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_mod/**"
+SPDX-FileCopyrightText = "2024 junegunn(Junegunn Choi)"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "tests/test_maven_custom_repo/**"
+SPDX-FileCopyrightText = "2026 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "LICENSES/LicenseRef-3rd-party-licenses.txt"
+SPDX-FileCopyrightText = "2021 LG Electronics"
+SPDX-License-Identifier = "LicenseRef-3rd-party-licenses"
+SPDX-FileComment = "Third-party license information file"
+
+[[annotations]]
+path = ".coderabbit.yaml"
+SPDX-FileCopyrightText = "2026 LG Electronics"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "tests/test_pub2/**"
+SPDX-FileCopyrightText = "2026 LG Electronics"
+SPDX-License-Identifier = "MIT"
