@@ -7,7 +7,6 @@ import os
 import platform
 import sys
 import warnings
-from datetime import datetime
 import logging
 import fosslight_dependency.constant as const
 from collections import defaultdict
@@ -15,6 +14,8 @@ from fosslight_util.set_log import init_log
 import fosslight_util.constant as constant
 from fosslight_dependency._analyze_dependency import analyze_dependency
 from fosslight_util.output_format import check_output_formats_v2, write_output_file
+from fosslight_util.cover import dump_result_log
+from fosslight_util.time import current_timestamp_utc, format_running_time, timestamp_for_filename
 from fosslight_util.oss_item import ScannerItem
 from fosslight_dependency._graph_convertor import GraphConvertor
 from fosslight_util.exclude import get_excluded_paths
@@ -221,7 +222,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     ret = True
     _json_ext = ".json"
-    _start_time = datetime.now().strftime('%y%m%d_%H%M')
+    _start_time = current_timestamp_utc()
+    _file_time = timestamp_for_filename(_start_time)
     scan_item = ScannerItem(_PKG_NAME, _start_time)
 
     success, msg, output_path, output_files, output_extensions, formats = check_output_formats_v2(output_dir_file, formats)
@@ -243,19 +245,19 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                             to_remove.append(i)
                         else:
                             if formats[i].startswith('spdx'):
-                                output_files[i] = f"fosslight_spdx_dep_{_start_time}"
+                                output_files[i] = f"fosslight_spdx_dep_{_file_time}"
                             elif formats[i].startswith('cyclonedx'):
-                                output_files[i] = f'fosslight_cyclonedx_dep_{_start_time}'
+                                output_files[i] = f'fosslight_cyclonedx_dep_{_file_time}'
                     else:
                         if output_extension == _json_ext:
-                            output_files[i] = f"fosslight_opossum_dep_{_start_time}"
+                            output_files[i] = f"fosslight_opossum_dep_{_file_time}"
                         else:
-                            output_files[i] = f"fosslight_report_dep_{_start_time}"
+                            output_files[i] = f"fosslight_report_dep_{_file_time}"
                 else:
                     if output_extension == _json_ext:
-                        output_files[i] = f"fosslight_opossum_dep_{_start_time}"
+                        output_files[i] = f"fosslight_opossum_dep_{_file_time}"
                     else:
-                        output_files[i] = f"fosslight_report_dep_{_start_time}"
+                        output_files[i] = f"fosslight_report_dep_{_file_time}"
             for index in sorted(to_remove, reverse=True):
                 # remove elements of spdx format on windows
                 del output_files[index]
@@ -267,7 +269,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         logger.error(msg)
         sys.exit(1)
 
-    logger, _result_log = init_log(os.path.join(output_path, "fosslight_log_dep_" + _start_time + ".txt"),
+    logger, _result_log = init_log(os.path.join(output_path, "fosslight_log_dep_" + _file_time + ".txt"),
                                    True, logging.INFO, logging.DEBUG, _PKG_NAME, "", path_to_exclude)
 
     logger.info(f"Tool Info : {_result_log['Tool Info']}")
@@ -427,6 +429,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     if cover_comment:
         scan_item.set_cover_comment(cover_comment)
 
+    finish_time = current_timestamp_utc()
+    scan_item.set_cover_finish_time(finish_time)
+
     combined_paths_and_files = [os.path.join(output_path, file) for file in output_files]
     results = []
     for i, output_extension in enumerate(output_extensions):
@@ -446,5 +451,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         else:
             ret = False
             logger.error(f"Fail to generate result file. msg:({err_msg})")
+
+    _result_log["Running time"] = format_running_time(_start_time, finish_time)
+    logger.info(dump_result_log(_result_log))
 
     return ret, scan_item
