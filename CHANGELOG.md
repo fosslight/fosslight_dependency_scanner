@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.45 (09/07/2026)
+## Changes
+## 🔧 Maintenance
+
+- Add running time output to cover sheet and result log @bjk7119 (#322)
+
+---
+
 ## v4.1.44 (09/07/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -289,11 +297,3 @@
 ## 🐛 Hotfixes
 
 - Fix nuget api call error @dd-jy (#258)
-
----
-
-## v4.1.15 (26/06/2025)
-## Changes
-## 🔧 Maintenance
-
-- Add comment if no manifest but package manager found @dd-jy (#257)
