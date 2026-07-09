@@ -7,7 +7,6 @@ import os
 import platform
 import sys
 import warnings
-from datetime import datetime
 import logging
 import fosslight_dependency.constant as const
 from collections import defaultdict
