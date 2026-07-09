@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.1.44 (09/07/2026)
+## Changes
+## 🔧 Maintenance
+
+- Normalize purl generation to include git host @woocheol-lge (#324)
+- Update GitHub Actions @woocheol-lge (#323)
+- Update REUSE settings in publish-release workflow @woocheol-lge (#321)
+- Migrate to REUSE v6 and update license rules @woocheol-lge (#320)
+
+---
+
 ## v4.1.43 (25/06/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -286,12 +297,3 @@
 ## 🔧 Maintenance
 
 - Add comment if no manifest but package manager found @dd-jy (#257)
-
----
-
-## v4.1.14 (12/06/2025)
-## Changes
-## 🔧 Maintenance
-
-- Add oss version in npm download location @dd-jy (#256)
-- Switch download location and homepage for go @dd-jy (#255)
