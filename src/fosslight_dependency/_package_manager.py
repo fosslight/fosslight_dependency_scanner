@@ -12,6 +12,7 @@ import subprocess
 import shutil
 import stat
 import requests
+from packageurl import PackageURL
 from packageurl.contrib import url2purl
 from askalono import identify
 import fosslight_util.constant as constant
@@ -53,6 +54,9 @@ class PackageManager:
         self.platform = platform.system()
 
     def __del__(self):
+        self._reset_state()
+
+    def _reset_state(self):
         self.input_package_list_file = []
         self.direct_dep = False
         self.total_dep_list = []
@@ -65,6 +69,19 @@ class PackageManager:
         self.relation_tree = {}
         self.package_name = ''
         self.dep_items = []
+
+    def _resolve_gradle_command(self):
+        if self.platform == const.WINDOWS:
+            return 'gradlew.bat' if os.path.isfile('gradlew.bat') else ''
+        if os.path.isfile('gradlew'):
+            return './gradlew'
+        return ''
+
+    def _run_gradle_output(self, cmd):
+        return subprocess.check_output(cmd, encoding='utf-8')
+
+    def _run_gradle_process(self, cmd):
+        return subprocess.run(cmd, capture_output=True, encoding='utf-8')
 
     def run_plugin(self):
         ret = True
@@ -118,13 +135,8 @@ class PackageManager:
 
                 ret_alldeps = self.add_allDeps_in_gradle(gradle_file)
 
-                cmd_gradle = ''
-                if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-                    if self.platform == const.WINDOWS:
-                        cmd_gradle = "gradlew.bat"
-                    else:
-                        cmd_gradle = "./gradlew"
-                else:
+                cmd_gradle = self._resolve_gradle_command()
+                if not cmd_gradle:
                     ret_task = False
                     self.set_direct_dependencies(False)
                     logger.warning('No gradlew file exists (Skip to find dependencies relationship.).')
@@ -139,9 +151,9 @@ class PackageManager:
                     if ret_alldeps:
                         cmd = [cmd_gradle, 'allDeps']
                         try:
-                            ret = subprocess.check_output(cmd, encoding='utf-8')
-                            if ret:
-                                self.parse_dependency_tree(ret)
+                            dep_output = self._run_gradle_output(cmd)
+                            if dep_output:
+                                self.parse_dependency_tree(dep_output)
                                 self.set_direct_dependencies(bool(self.direct_dep_list))
                             else:
                                 self.set_direct_dependencies(False)
@@ -154,7 +166,7 @@ class PackageManager:
                         if self.package_manager_name == const.ANDROID:
                             cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
                             try:
-                                result = subprocess.run(cmd, capture_output=True, encoding='utf-8')
+                                result = self._run_gradle_process(cmd)
                                 if result.returncode != 0:
                                     ret_task = False
                                     logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
@@ -172,7 +184,7 @@ class PackageManager:
                         elif self.package_manager_name == const.GRADLE:
                             cmd = [cmd_gradle, 'generateLicenseReport']
                             try:
-                                result = subprocess.run(cmd, capture_output=True, encoding='utf-8')
+                                result = self._run_gradle_process(cmd)
                                 if result.returncode != 0:
                                     ret_task = False
                                     logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
@@ -533,6 +545,23 @@ def get_gradle_version_from_wrapper(input_dir):
 
 def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
     purl_prefix = f'pkg:{pkg_manager}'
+
+    if pkg_manager == 'swift':
+        if not oss_name:
+            return ''
+
+        cleaned_name = oss_name.strip('/')
+        if not cleaned_name:
+            return ''
+
+        namespace = ''
+        name = cleaned_name
+        if '/' in cleaned_name:
+            namespace, name = cleaned_name.rsplit('/', 1)
+
+        purl_obj = PackageURL(type='swift', namespace=namespace, name=name, version=oss_version or None)
+        return str(purl_obj)
+
     purl = str(url2purl.get_purl(url))
     if not re.match(purl_prefix, purl):
         match = re.match(constant.PKG_PATTERN.get(pkg_manager, 'not_support'), url)
@@ -551,15 +580,9 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
                     purl = f'{purl_prefix}lang/{match.group(1)}@{match.group(2)}'
                 elif pkg_manager == 'cargo':
                     purl = f'{purl_prefix}/{oss_name}@{oss_version}'
-            else:
-                if pkg_manager == 'swift':
-                    if oss_version:
-                        purl = f'{purl_prefix}/{oss_name}@{oss_version}'
-                    else:
-                        purl = f'{purl_prefix}/{oss_name}'
-                elif pkg_manager == 'carthage':
-                    if oss_version:
-                        purl = f'{purl}@{oss_version}'
+            elif pkg_manager == 'carthage':
+                if oss_version:
+                    purl = f'{purl}@{oss_version}'
         except Exception:
             logger.debug('Fail to get purl. So use the link purl({purl}).')
     return purl
