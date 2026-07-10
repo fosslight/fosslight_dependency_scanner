@@ -5,6 +5,7 @@
 
 import os
 import platform
+import re
 import sys
 import warnings
 import logging
@@ -29,6 +30,74 @@ EXTENDED_HEADER = {_sheet_name: ['ID', 'Package URL', 'OSS Name',
                                        'OSS Version', 'License', 'Download Location',
                                        'Homepage', 'Copyright Text', 'Exclude',
                                        'Comment', 'Depends On']}
+
+# Definitive Android signals — any single match is enough to classify the
+# file as Android. Combines explicit AGP plugin IDs and version-catalog
+# aliases; all `libs.plugins.android.*` aliases are covered by the prefix.
+_ANDROID_DEFINITIVE_PATTERNS = (
+    "com.android.application",
+    "com.android.library",
+    "com.android.test",
+    "com.android.dynamic-feature",
+    "com.android.tools.build:gradle",
+    "alias(libs.plugins.android.",   # covers all AGP aliases in libs.versions.toml
+)
+
+# DSL keys that are Android-specific *only* inside an `android { … }` block.
+# Matching them against the full file would produce false positives because
+# they are ordinary words that appear in non-Android build logic too.
+_ANDROID_BLOCK_MARKERS = (
+    "compilesdk",
+    "minsdk",
+    "targetsdk",
+    "namespace",
+    "applicationid",
+    "buildfeatures",
+    "signingconfigs",
+    "productflavors",
+    "defaultconfig",
+)
+
+# Locates every `android { … }` block in the normalized source.
+# The negative lookbehind (?<![a-z]) prevents matching identifiers that
+# merely end with 'android' (e.g. 'testandroid{').
+_ANDROID_BLOCK_RE = re.compile(r'(?<![a-z])android\{')
+
+
+def _iter_android_block_contents(normalized):
+    for m in _ANDROID_BLOCK_RE.finditer(normalized):
+        pos = m.end()
+        depth = 1
+        start = pos
+        while pos < len(normalized) and depth > 0:
+            if normalized[pos] == '{':
+                depth += 1
+            elif normalized[pos] == '}':
+                depth -= 1
+            pos += 1
+        if depth == 0:
+            yield normalized[start:pos - 1]
+
+
+def classify_gradle_build_file(build_content):
+    if not build_content:
+        return False, False
+
+    normalized = ''.join(build_content.lower().split())
+
+    # 1) Definitive: explicit AGP plugin ID or version-catalog alias
+    if any(p in normalized for p in _ANDROID_DEFINITIVE_PATTERNS):
+        return False, True
+
+    # 2) Contextual: android { } block containing Android-specific DSL
+    if any(
+        any(marker in block for marker in _ANDROID_BLOCK_MARKERS)
+        for block in _iter_android_block_contents(normalized)
+    ):
+        return False, True
+
+    # 3) Default: treat as Gradle so the scanner can still attempt analysis
+    return True, False
 
 
 def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], recursive=False, excluded_files=[]):
@@ -153,21 +222,9 @@ def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], r
                 try:
                     with open(check_gradle, 'r', encoding='utf-8') as gradle_temp:
                         data = gradle_temp.read()
-                        gradle_keywords = [
-                            'apply plugin: \'java\'',
-                            'apply plugin: \'java-library\'',
-                            'apply(plugin = "java")',
-                            'apply(plugin = "java-library")'
-                        ]
-                        android_keywords = ['android', 'SdkVersion']
-                        gradle_ret = gradle_ret or any(
-                            k.replace(" ", "").lower() in data.replace(" ", "").lower()
-                            for k in gradle_keywords
-                        )
-                        android_ret = android_ret or any(
-                            k.lower() in data.replace(" ", "").lower()
-                            for k in android_keywords
-                        )
+                        is_gradle, is_android = classify_gradle_build_file(data)
+                        gradle_ret = gradle_ret or is_gradle
+                        android_ret = android_ret or is_android
                 except Exception as e:
                     logger.warning(f"Cannot open {build_file}: {e}")
 
