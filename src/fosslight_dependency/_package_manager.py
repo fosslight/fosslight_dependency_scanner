@@ -28,6 +28,7 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 gradle_config = ['runtimeClasspath', 'runtime']
 android_config = ['releaseRuntimeClasspath']
 ASKALONO_THRESHOLD = 0.7
+FOSSLIGHT_ALL_DEPS_TASK = 'fosslightAllDeps'
 
 
 class PackageManager:
@@ -147,24 +148,11 @@ class PackageManager:
                             logger.warning('Also it cannot run gradle-license-report plugin.')
 
                 if ret_task:
-                    current_mode = change_file_mode(cmd_gradle)
-                    if ret_alldeps:
-                        cmd = [cmd_gradle, 'allDeps']
-                        try:
-                            dep_output = self._run_gradle_output(cmd)
-                            if dep_output:
-                                self.parse_dependency_tree(dep_output)
-                                self.set_direct_dependencies(bool(self.direct_dep_list))
-                            else:
-                                self.set_direct_dependencies(False)
-                                logger.warning(f"Fail to run {cmd}")
-                        except Exception as e:
-                            self.set_direct_dependencies(False)
-                            logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
-
+                    current_mode, changed_mode = ensure_executable(cmd_gradle)
                     if ret_plugin:
                         if self.package_manager_name == const.ANDROID:
                             cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
+                            logger.info(f"Execute Gradle task: {' '.join(cmd)}")
                             try:
                                 result = self._run_gradle_process(cmd)
                                 if result.returncode != 0:
@@ -182,7 +170,8 @@ class PackageManager:
                                 logger.error(f'Fail to run {cmd}: {e}')
                                 ret_task = False
                         elif self.package_manager_name == const.GRADLE:
-                            cmd = [cmd_gradle, 'generateLicenseReport']
+                            cmd = [cmd_gradle, 'generateLicenseReport', '--no-parallel']
+                            logger.info(f"Execute Gradle task: {' '.join(cmd)}")
                             try:
                                 result = self._run_gradle_process(cmd)
                                 if result.returncode != 0:
@@ -192,13 +181,32 @@ class PackageManager:
                                     logger.info('Automatically run gradle-license-report plugin and generate output.')
                                     self.plugin_auto_run = True
                                 else:
+                                    ret_task = False
                                     logger.warning(
                                         'Automatically run gradle-license-report plugin, but fail to generate output.'
                                     )
                             except Exception as e:
                                 logger.error(f'Fail to run {cmd}: {e}')
                                 ret_task = False
-                    change_file_mode(cmd_gradle, current_mode)
+                    else:
+                        logger.warning('Skip to run gradle plugin (gradle-license-report or android-dependency-scanning).')
+
+                    if ret_alldeps:
+                        cmd = [cmd_gradle, FOSSLIGHT_ALL_DEPS_TASK]
+                        logger.info(f"Execute Gradle task: {' '.join(cmd)}")
+                        try:
+                            dep_output = self._run_gradle_output(cmd)
+                            if dep_output:
+                                self.parse_dependency_tree(dep_output)
+                                self.set_direct_dependencies(bool(self.direct_dep_list))
+                            else:
+                                self.set_direct_dependencies(False)
+                                logger.warning(f"Fail to run {cmd}")
+                        except Exception as e:
+                            self.set_direct_dependencies(False)
+                            logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
+                    if changed_mode:
+                        change_file_mode(cmd_gradle, current_mode)
 
             if os.path.isfile(self.input_file_name):
                 logger.info(f'Found {self.input_file_name}.')
@@ -281,9 +289,11 @@ class PackageManager:
             with open(gradle_file, 'r', encoding='utf-8') as f:
                 data = f.read()
 
-            if 'dependency-license-report' in data:
-                logger.info('gradle-license-report plugin is already configured in build.gradle. Skip injection.')
+            plugin_declared = 'com.github.jk1.dependency-license-report' in data
+            if plugin_declared:
+                logger.info('gradle-license-report plugin is already configured. Skip injection.')
                 return True
+
         except Exception as e:
             logger.warning(f"Cannot read {gradle_file}: {e}")
             return False
@@ -315,7 +325,7 @@ class PackageManager:
 
         if is_kts:
             plugin_id_line = f'    id("com.github.jk1.dependency-license-report") version "{plugin_version}"\n'
-            output_config = '    outputDir = "$buildDir/reports/license"'
+            output_config = '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"'
             output_property_access = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
 
             custom_renderer_body_kts = f'''                val outputFile = File(
@@ -385,7 +395,7 @@ class PackageManager:
             license_report_block = (
                 '\nlicenseReport {\n'
                 "    configurations = ['runtimeClasspath']\n"
-                '    outputDir = "$buildDir/reports/license"\n'
+                '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"\n'
                 '    renderers = [\n'
                 '        new ReportRenderer() {\n'
                 '            @Override\n'
@@ -399,30 +409,32 @@ class PackageManager:
 
         try:
             imports = imports_block_kotlin if is_kts else imports_block_groovy
-            if 'plugins {' in data:
-                data = imports + data
-                plugins_start = data.index('plugins {')
-                brace_count = 0
-                search_pos = plugins_start + len('plugins {')
-                plugins_end = -1
+            data = imports + data
 
-                for i in range(search_pos, len(data)):
-                    if data[i] == '{':
-                        brace_count += 1
-                    elif data[i] == '}':
-                        if brace_count == 0:
-                            plugins_end = i
-                            break
-                        brace_count -= 1
+            if not plugin_declared:
+                if 'plugins {' in data:
+                    plugins_start = data.index('plugins {')
+                    brace_count = 0
+                    search_pos = plugins_start + len('plugins {')
+                    plugins_end = -1
 
-                if plugins_end > 0:
-                    data = data[:plugins_end] + plugin_id_line + data[plugins_end:]
+                    for i in range(search_pos, len(data)):
+                        if data[i] == '{':
+                            brace_count += 1
+                        elif data[i] == '}':
+                            if brace_count == 0:
+                                plugins_end = i
+                                break
+                            brace_count -= 1
+
+                    if plugins_end > 0:
+                        data = data[:plugins_end] + plugin_id_line + data[plugins_end:]
+                    else:
+                        logger.warning("Could not find closing brace for plugins block")
+                        return False
                 else:
-                    logger.warning("Could not find closing brace for plugins block")
-                    return False
-            else:
-                new_plugins_block = f'plugins {{\n{plugin_id_line}}}\n'
-                data = imports + new_plugins_block + data
+                    new_plugins_block = f'plugins {{\n{plugin_id_line}}}\n'
+                    data = _insert_plugins_block_after_buildscript(data, new_plugins_block)
 
             data = data + license_report_block
 
@@ -439,6 +451,21 @@ class PackageManager:
     def add_allDeps_in_gradle(self, gradle_file):
         config = android_config if self.package_manager_name == const.ANDROID else gradle_config
         is_kts = gradle_file == 'build.gradle.kts'
+
+        try:
+            with open(gradle_file, 'r', encoding='utf-8') as f:
+                data = f.read()
+            if (
+                f'task {FOSSLIGHT_ALL_DEPS_TASK}' in data
+                or f'tasks.register("{FOSSLIGHT_ALL_DEPS_TASK}"' in data
+                or f"tasks.register('{FOSSLIGHT_ALL_DEPS_TASK}'" in data
+            ):
+                logger.info(f'{FOSSLIGHT_ALL_DEPS_TASK} task already exists in build.gradle. Skip injection and execution.')
+                return False
+        except Exception as e:
+            logger.warning(f"Cannot read {gradle_file}: {e}")
+            return False
+
         if is_kts:
             configuration = '\n'.join([
                 f'                try {{ cfgs.add(project.configurations.getByName("{c}")) }} catch (e: Exception) {{}}'
@@ -446,11 +473,14 @@ class PackageManager:
             ])
             allDeps = f'''
                     allprojects {{
-                        tasks.register("allDeps", org.gradle.api.tasks.diagnostics.DependencyReportTask::class) {{
-                            doFirst {{
-                                val cfgs = mutableSetOf<org.gradle.api.artifacts.Configuration>()
+                        if (!tasks.names.contains("{FOSSLIGHT_ALL_DEPS_TASK}")) {{
+                            tasks.register("{FOSSLIGHT_ALL_DEPS_TASK}",
+                            org.gradle.api.tasks.diagnostics.DependencyReportTask::class) {{
+                                doFirst {{
+                                    val cfgs = mutableSetOf<org.gradle.api.artifacts.Configuration>()
                     {configuration}
-                                setConfigurations(cfgs)
+                                    setConfigurations(cfgs)
+                                }}
                             }}
                         }}
                     }}'''
@@ -458,11 +488,13 @@ class PackageManager:
             configuration = ','.join([f'project.configurations.{c}' for c in config])
             allDeps = f'''
                     allprojects {{
-                        task allDeps(type: DependencyReportTask) {{
-                            doFirst{{
-                                try {{
-                                    configurations = [{configuration}] as Set }}
-                                catch(UnknownConfigurationException) {{}}
+                        if (!tasks.names.contains("{FOSSLIGHT_ALL_DEPS_TASK}")) {{
+                            task {FOSSLIGHT_ALL_DEPS_TASK}(type: DependencyReportTask) {{
+                                doFirst{{
+                                    try {{
+                                        configurations = [{configuration}] as Set }}
+                                    catch(UnknownConfigurationException) {{}}
+                                }}
                             }}
                         }}
                     }}'''
@@ -472,7 +504,7 @@ class PackageManager:
                 f.write(f'\n{allDeps}\n')
             return True
         except Exception as e:
-            logger.warning(f"Cannot add the allDeps task in build.gradle: {e}")
+            logger.warning(f"Cannot add the {FOSSLIGHT_ALL_DEPS_TASK} task in build.gradle: {e}")
             return False
 
     def create_dep_stack(self, dep_line, config):
@@ -526,6 +558,74 @@ class PackageManager:
                     self.relation_tree[stack[-1]].append(name)
         except Exception as e:
             logger.warning(f'Fail to parse gradle dependency tree:{e}')
+
+
+def _find_block_end(content, keyword):
+    start = content.find(keyword)
+    if start == -1:
+        return -1
+
+    open_brace_pos = content.find('{', start)
+    if open_brace_pos == -1:
+        return -1
+
+    brace_depth = 0
+    quote_char = None
+    escaped = False
+
+    for idx in range(open_brace_pos, len(content)):
+        char = content[idx]
+        next_char = content[idx + 1] if idx + 1 < len(content) else ''
+
+        if quote_char is not None:
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == quote_char:
+                quote_char = None
+            continue
+
+        if char == '/' and next_char == '/':
+            while idx < len(content) and content[idx] != '\n':
+                idx += 1
+            continue
+
+        if char == '/' and next_char == '*':
+            idx += 2
+            while idx + 1 < len(content) and not (content[idx] == '*' and content[idx + 1] == '/'):
+                idx += 1
+            continue
+
+        if char in {"'", '"'}:
+            quote_char = char
+            continue
+
+        if char == '{':
+            brace_depth += 1
+        elif char == '}':
+            brace_depth -= 1
+            if brace_depth == 0:
+                return idx
+
+    return -1
+
+
+def _insert_plugins_block_after_buildscript(content, plugin_block):
+    if not plugin_block:
+        return content
+
+    buildscript_keywords = ['buildscript {', 'buildscript{']
+    buildscript_end = -1
+    for keyword in buildscript_keywords:
+        buildscript_end = _find_block_end(content, keyword)
+        if buildscript_end != -1:
+            break
+
+    if buildscript_end != -1:
+        return content[:buildscript_end + 1] + f'\n{plugin_block}\n' + content[buildscript_end + 1:]
+
+    return plugin_block + '\n' + content
 
 
 def get_gradle_version_from_wrapper(input_dir):
@@ -648,19 +748,31 @@ def check_license_name(license_txt, is_filepath=False):
     return license_name
 
 
-def change_file_mode(filepath, mode=''):
-    current_mode = ''
-
+def ensure_executable(filepath):
     if not os.path.exists(filepath):
         logger.debug(f"The file{filepath} does not exist.")
-    else:
-        current_mode = os.stat(filepath).st_mode
-        if not mode:
-            new_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-        else:
-            new_mode = mode
+        return '', False
+
+    current_mode = os.stat(filepath).st_mode
+    executable_bits = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+
+    if os.access(filepath, os.X_OK):
+        return current_mode, False
+
+    new_mode = current_mode | executable_bits
+    os.chmod(filepath, new_mode)
+    return current_mode, True
+
+
+def change_file_mode(filepath, mode=''):
+    if not os.path.exists(filepath):
+        logger.debug(f"The file{filepath} does not exist.")
+        return ''
+
+    current_mode = os.stat(filepath).st_mode
+    new_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH if not mode else mode
+    if current_mode != new_mode:
         os.chmod(filepath, new_mode)
-        logger.debug(f"File mode of {filepath} has been changed to {oct(new_mode)}.")
     return current_mode
 
 
@@ -693,18 +805,19 @@ def deduplicate_dep_items(dep_items):
 def get_gradle_cmd():
     cmd_gradle = ''
     current_mode = ''
+    changed_mode = False
     if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
         if platform.system() == const.WINDOWS:
             cmd_gradle = "gradlew.bat"
         else:
             cmd_gradle = "./gradlew"
-            current_mode = change_file_mode(cmd_gradle)
-    return cmd_gradle, current_mode
+            current_mode, changed_mode = ensure_executable(cmd_gradle)
+    return cmd_gradle, current_mode, changed_mode
 
 
 def collect_gradle_download_urls(input_dir, package_manager_name, app_name=None):
     download_url_map = {}
-    cmd_gradle, current_mode = get_gradle_cmd()
+    cmd_gradle, current_mode, changed_mode = get_gradle_cmd()
     if not cmd_gradle:
         return download_url_map
     try:
@@ -720,7 +833,7 @@ def collect_gradle_download_urls(input_dir, package_manager_name, app_name=None)
     except subprocess.TimeoutExpired:
         logger.warning(f"[{package_manager_name}] Gradle dependencies command timed out")
     finally:
-        if current_mode:
+        if changed_mode and current_mode and os.path.exists(cmd_gradle):
             change_file_mode(cmd_gradle, current_mode)
 
     return download_url_map
