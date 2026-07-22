@@ -30,6 +30,23 @@ android_config = ['releaseRuntimeClasspath']
 ASKALONO_THRESHOLD = 0.7
 FOSSLIGHT_ALL_DEPS_TASK = 'fosslightAllDeps'
 
+_GROOVY_LICENSE_REPORT_IMPORTS = (
+    'import com.github.jk1.license.ModuleData\n'
+    'import com.github.jk1.license.ProjectData\n'
+    'import com.github.jk1.license.render.ReportRenderer\n'
+    'import static com.github.jk1.license.render.LicenseDataCollector.multiModuleLicenseInfo\n'
+    '\n'
+)
+
+_KTS_LICENSE_REPORT_IMPORTS = (
+    'import com.github.jk1.license.ModuleData\n'
+    'import com.github.jk1.license.ProjectData\n'
+    'import com.github.jk1.license.render.ReportRenderer\n'
+    'import com.github.jk1.license.render.LicenseDataCollector.multiModuleLicenseInfo\n'
+    'import java.io.File\n'
+    '\n'
+)
+
 
 class PackageManager:
     input_package_list_file = []
@@ -104,6 +121,51 @@ class PackageManager:
     def parse_direct_dependencies(self):
         pass
 
+    def _run_gradle_plugin_task(self, cmd_gradle):
+        if self.package_manager_name == const.ANDROID:
+            cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
+            plugin_label = 'android-dependency-scanning'
+        elif self.package_manager_name == const.GRADLE:
+            cmd = [cmd_gradle, 'generateLicenseReport', '--no-parallel']
+            plugin_label = 'gradle-license-report'
+        else:
+            return True
+
+        logger.info(f"Execute Gradle task: {' '.join(cmd)}")
+        try:
+            result = self._run_gradle_process(cmd)
+            if result.returncode != 0:
+                logger.error(f'Cannot run Gradle task {" ".join(cmd)}: {result.stderr.strip()}')
+                return False
+            if os.path.isfile(self.input_file_name):
+                logger.info(f'Generate output with {plugin_label} plugin.')
+                self.plugin_auto_run = True
+                return True
+
+            logger.warning(f'Generate output with {plugin_label} plugin fails.')
+            return False
+        except Exception as e:
+            logger.error(f'Cannot run Gradle task {" ".join(cmd)}: {e}')
+            return False
+
+    def _run_fosslight_all_deps_task(self, cmd_gradle):
+        cmd = [cmd_gradle, FOSSLIGHT_ALL_DEPS_TASK]
+        logger.info(f"Execute Gradle task: {' '.join(cmd)}")
+        try:
+            dep_output = self._run_gradle_output(cmd)
+            if dep_output:
+                self.parse_dependency_tree(dep_output)
+                self.set_direct_dependencies(bool(self.direct_dep_list))
+                return True
+
+            self.set_direct_dependencies(False)
+            logger.warning(f"Cannot run Gradle task {' '.join(cmd)}")
+            return False
+        except Exception as e:
+            self.set_direct_dependencies(False)
+            logger.warning(f"Cannot print 'depends on' information. (cannot run {cmd}: {e})")
+            return False
+
     def run_gradle_task(self):
         ret_task = True
         prev_dir = os.getcwd()
@@ -134,8 +196,6 @@ class PackageManager:
                     if not os.path.isfile(self.input_file_name):
                         ret_plugin = self.add_gradle_plugin_in_gradle(gradle_file)
 
-                ret_alldeps = self.add_allDeps_in_gradle(gradle_file)
-
                 cmd_gradle = self._resolve_gradle_command()
                 if not cmd_gradle:
                     ret_task = False
@@ -148,63 +208,16 @@ class PackageManager:
                             logger.warning('Also it cannot run gradle-license-report plugin.')
 
                 if ret_task:
+                    if not ret_plugin:
+                        logger.warning('Skip the Gradle plugin (gradle-license-report or android-dependency-scanning).')
+
+                    ret_alldeps = self.add_allDeps_in_gradle(gradle_file)
                     current_mode, changed_mode = ensure_executable(cmd_gradle)
                     if ret_plugin:
-                        if self.package_manager_name == const.ANDROID:
-                            cmd = [cmd_gradle, f':{self.app_name}:generateLicenseTxt']
-                            logger.info(f"Execute Gradle task: {' '.join(cmd)}")
-                            try:
-                                result = self._run_gradle_process(cmd)
-                                if result.returncode != 0:
-                                    ret_task = False
-                                    logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
-                                if os.path.isfile(self.input_file_name):
-                                    logger.info('Automatically run android-dependency-scanning plugin and generate output.')
-                                    self.plugin_auto_run = True
-                                else:
-                                    ret_task = False
-                                    logger.warning(
-                                        'Automatically run android-dependency-scanning plugin, but fail to generate output.'
-                                    )
-                            except Exception as e:
-                                logger.error(f'Fail to run {cmd}: {e}')
-                                ret_task = False
-                        elif self.package_manager_name == const.GRADLE:
-                            cmd = [cmd_gradle, 'generateLicenseReport', '--no-parallel']
-                            logger.info(f"Execute Gradle task: {' '.join(cmd)}")
-                            try:
-                                result = self._run_gradle_process(cmd)
-                                if result.returncode != 0:
-                                    ret_task = False
-                                    logger.error(f'Fail to run {cmd}: {result.stderr.strip()}')
-                                if os.path.isfile(self.input_file_name):
-                                    logger.info('Automatically run gradle-license-report plugin and generate output.')
-                                    self.plugin_auto_run = True
-                                else:
-                                    ret_task = False
-                                    logger.warning(
-                                        'Automatically run gradle-license-report plugin, but fail to generate output.'
-                                    )
-                            except Exception as e:
-                                logger.error(f'Fail to run {cmd}: {e}')
-                                ret_task = False
-                    else:
-                        logger.warning('Skip to run gradle plugin (gradle-license-report or android-dependency-scanning).')
+                        ret_task = self._run_gradle_plugin_task(cmd_gradle) and ret_task
 
                     if ret_alldeps:
-                        cmd = [cmd_gradle, FOSSLIGHT_ALL_DEPS_TASK]
-                        logger.info(f"Execute Gradle task: {' '.join(cmd)}")
-                        try:
-                            dep_output = self._run_gradle_output(cmd)
-                            if dep_output:
-                                self.parse_dependency_tree(dep_output)
-                                self.set_direct_dependencies(bool(self.direct_dep_list))
-                            else:
-                                self.set_direct_dependencies(False)
-                                logger.warning(f"Fail to run {cmd}")
-                        except Exception as e:
-                            self.set_direct_dependencies(False)
-                            logger.warning(f"Cannot print 'depends on' information. (fail {cmd}: {e})")
+                        self._run_fosslight_all_deps_task(cmd_gradle)
                     if changed_mode:
                         change_file_mode(cmd_gradle, current_mode)
 
@@ -291,7 +304,7 @@ class PackageManager:
 
             plugin_declared = 'com.github.jk1.dependency-license-report' in data
             if plugin_declared:
-                logger.info('gradle-license-report plugin is already configured. Skip injection.')
+                logger.info('Skip plugin injection because gradle-license-report is already configured.')
                 return True
 
         except Exception as e:
@@ -299,116 +312,21 @@ class PackageManager:
             return False
 
         gradle_ver = get_gradle_version_from_wrapper(self.input_dir)
-        if gradle_ver and gradle_ver >= (9, 0):
-            plugin_version = '3.1.2'  # Gradle 9+
-        elif gradle_ver and gradle_ver >= (7, 0):
-            plugin_version = '2.9'    # Gradle 7+
+        if gradle_ver and gradle_ver >= (9, 0):   # Gradle 9+
+            plugin_version = '3.1.4'
+        elif gradle_ver and gradle_ver >= (7, 0):    # Gradle 7+
+            plugin_version = '2.9'
         else:
-            plugin_version = '1.9'    # Gradle 6-
-
-        imports_block_groovy = (
-            'import com.github.jk1.license.ModuleData\n'
-            'import com.github.jk1.license.ProjectData\n'
-            'import com.github.jk1.license.render.ReportRenderer\n'
-            'import static com.github.jk1.license.render.LicenseDataCollector.multiModuleLicenseInfo\n'
-            '\n'
-        )
-
-        imports_block_kotlin = (
-            'import com.github.jk1.license.ModuleData\n'
-            'import com.github.jk1.license.ProjectData\n'
-            'import com.github.jk1.license.render.ReportRenderer\n'
-            'import com.github.jk1.license.render.LicenseDataCollector.multiModuleLicenseInfo\n'
-            'import java.io.File\n'
-            '\n'
-        )
+            plugin_version = '1.9'
 
         if is_kts:
-            plugin_id_line = f'    id("com.github.jk1.dependency-license-report") version "{plugin_version}"\n'
-            output_config = '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"'
-            output_property_access = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
-
-            custom_renderer_body_kts = f'''                val outputFile = File(
-                    data.project.licenseReport.{output_property_access},
-                    "dependency-license.json"
-                )
-                outputFile.parentFile.mkdirs()
-
-                val result = mutableListOf<Map<String, Any>>()
-
-                data.allDependencies.forEach {{ module ->
-                    val info = multiModuleLicenseInfo(module)
-                    val moduleLicenses = info.licenses.map {{ lic ->
-                        mapOf("name" to lic.name, "url" to lic.url)
-                    }}
-
-                    result.add(mapOf(
-                        "moduleName" to "${{module.group}}:${{module.name}}",
-                        "moduleVersion" to module.version,
-                        "moduleUrls" to info.moduleUrls,
-                        "moduleLicenses" to moduleLicenses
-                    ))
-                }}
-
-                val json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
-                outputFile.writeText(json)'''
-
-            license_report_block = (
-                '\nlicenseReport {\n'
-                '    configurations = arrayOf("runtimeClasspath")\n'
-                f'{output_config}\n'
-                '    renderers = arrayOf(\n'
-                '        object : ReportRenderer {\n'
-                '            override fun render(data: ProjectData) {\n'
-                f'{custom_renderer_body_kts}\n'
-                '            }\n'
-                '        }\n'
-                '    )\n'
-                '}\n'
-            )
+            imports = _KTS_LICENSE_REPORT_IMPORTS
+            plugin_id_line, license_report_block = _build_kts_license_report_config(plugin_version)
         else:
-            plugin_id_line = f'  id "com.github.jk1.dependency-license-report" version "{plugin_version}"\n'
-            output_property = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
-
-            renderer_body = f'''                def outputFile = new File(
-                    data.project.licenseReport.{output_property},
-                    "dependency-license.json"
-                )
-                outputFile.parentFile.mkdirs()
-                def result = []
-                data.allDependencies.each {{ ModuleData module ->
-                    def info = multiModuleLicenseInfo(module)
-                    def licenses = info.licenses.collect {{ lic ->
-                        [name: lic.name, url: lic.url]
-                    }}
-                    result << [
-                        moduleName    : "${{module.group}}:${{module.name}}",
-                        moduleVersion : module.version,
-                        moduleUrls    : info.moduleUrls,
-                        moduleLicenses: licenses
-                    ]
-                }}
-
-                def json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
-                outputFile.text = json'''
-
-            license_report_block = (
-                '\nlicenseReport {\n'
-                "    configurations = ['runtimeClasspath']\n"
-                '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"\n'
-                '    renderers = [\n'
-                '        new ReportRenderer() {\n'
-                '            @Override\n'
-                '            void render(ProjectData data) {\n'
-                f'{renderer_body}\n'
-                '            }\n'
-                '        }\n'
-                '    ]\n'
-                '}\n'
-            )
+            imports = _GROOVY_LICENSE_REPORT_IMPORTS
+            plugin_id_line, license_report_block = _build_groovy_license_report_config(plugin_version)
 
         try:
-            imports = imports_block_kotlin if is_kts else imports_block_groovy
             data = imports + data
 
             if not plugin_declared:
@@ -460,48 +378,21 @@ class PackageManager:
                 or f'tasks.register("{FOSSLIGHT_ALL_DEPS_TASK}"' in data
                 or f"tasks.register('{FOSSLIGHT_ALL_DEPS_TASK}'" in data
             ):
-                logger.info(f'{FOSSLIGHT_ALL_DEPS_TASK} task already exists in build.gradle. Skip injection and execution.')
-                return False
+                logger.info(
+                    f'Skip injection because {FOSSLIGHT_ALL_DEPS_TASK} task already exists in build.gradle; '
+                    'the existing task will be executed.'
+                )
+                return True
         except Exception as e:
             logger.warning(f"Cannot read {gradle_file}: {e}")
             return False
 
-        if is_kts:
-            configuration = '\n'.join([
-                f'                try {{ cfgs.add(project.configurations.getByName("{c}")) }} catch (e: Exception) {{}}'
-                for c in config
-            ])
-            allDeps = f'''
-                    allprojects {{
-                        if (!tasks.names.contains("{FOSSLIGHT_ALL_DEPS_TASK}")) {{
-                            tasks.register("{FOSSLIGHT_ALL_DEPS_TASK}",
-                            org.gradle.api.tasks.diagnostics.DependencyReportTask::class) {{
-                                doFirst {{
-                                    val cfgs = mutableSetOf<org.gradle.api.artifacts.Configuration>()
-                    {configuration}
-                                    setConfigurations(cfgs)
-                                }}
-                            }}
-                        }}
-                    }}'''
-        else:
-            configuration = ','.join([f'project.configurations.{c}' for c in config])
-            allDeps = f'''
-                    allprojects {{
-                        if (!tasks.names.contains("{FOSSLIGHT_ALL_DEPS_TASK}")) {{
-                            task {FOSSLIGHT_ALL_DEPS_TASK}(type: DependencyReportTask) {{
-                                doFirst{{
-                                    try {{
-                                        configurations = [{configuration}] as Set }}
-                                    catch(UnknownConfigurationException) {{}}
-                                }}
-                            }}
-                        }}
-                    }}'''
+        allDeps = _build_kts_all_deps_block(config) if is_kts else _build_groovy_all_deps_block(config)
 
         try:
             with open(gradle_file, 'a', encoding='utf8') as f:
                 f.write(f'\n{allDeps}\n')
+            logger.info(f'Inject {FOSSLIGHT_ALL_DEPS_TASK} configuration into {gradle_file}.')
             return True
         except Exception as e:
             logger.warning(f"Cannot add the {FOSSLIGHT_ALL_DEPS_TASK} task in build.gradle: {e}")
@@ -626,6 +517,131 @@ def _insert_plugins_block_after_buildscript(content, plugin_block):
         return content[:buildscript_end + 1] + f'\n{plugin_block}\n' + content[buildscript_end + 1:]
 
     return plugin_block + '\n' + content
+
+
+def _build_groovy_license_report_config(plugin_version):
+    plugin_id_line = f'  id "com.github.jk1.dependency-license-report" version "{plugin_version}"\n'
+    output_property = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
+
+    renderer_body = f'''                def outputFile = new File(
+                    data.project.licenseReport.{output_property},
+                    "dependency-license.json"
+                )
+                outputFile.parentFile.mkdirs()
+                def result = []
+                data.allDependencies.each {{ ModuleData module ->
+                    def info = multiModuleLicenseInfo(module)
+                    def licenses = info.licenses.collect {{ lic ->
+                        [name: lic.name, url: lic.url]
+                    }}
+                    result << [
+                        moduleName    : "${{module.group}}:${{module.name}}",
+                        moduleVersion : module.version,
+                        moduleUrls    : info.moduleUrls,
+                        moduleLicenses: licenses
+                    ]
+                }}
+
+                def json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
+                outputFile.text = json'''
+
+    license_report_block = (
+        '\nlicenseReport {\n'
+        "    configurations = ['runtimeClasspath']\n"
+        '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"\n'
+        '    renderers = [\n'
+        '        new ReportRenderer() {\n'
+        '            @Override\n'
+        '            void render(ProjectData data) {\n'
+        f'{renderer_body}\n'
+        '            }\n'
+        '        }\n'
+        '    ]\n'
+        '}\n'
+    )
+    return plugin_id_line, license_report_block
+
+
+def _build_kts_license_report_config(plugin_version):
+    plugin_id_line = f'    id("com.github.jk1.dependency-license-report") version "{plugin_version}"\n'
+    output_config = '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"'
+    output_property_access = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
+
+    custom_renderer_body_kts = f'''                val outputFile = File(
+                    data.project.licenseReport.{output_property_access},
+                    "dependency-license.json"
+                )
+                outputFile.parentFile.mkdirs()
+
+                val result = mutableListOf<Map<String, Any>>()
+
+                data.allDependencies.forEach {{ module ->
+                    val info = multiModuleLicenseInfo(module)
+                    val moduleLicenses = info.licenses.map {{ lic ->
+                        mapOf("name" to lic.name, "url" to lic.url)
+                    }}
+
+                    result.add(mapOf(
+                        "moduleName" to "${{module.group}}:${{module.name}}",
+                        "moduleVersion" to module.version,
+                        "moduleUrls" to info.moduleUrls,
+                        "moduleLicenses" to moduleLicenses
+                    ))
+                }}
+
+                val json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
+                outputFile.writeText(json)'''
+
+    license_report_block = (
+        '\nlicenseReport {\n'
+        '    configurations = arrayOf("runtimeClasspath")\n'
+        f'{output_config}\n'
+        '    renderers = arrayOf(\n'
+        '        object : ReportRenderer {\n'
+        '            override fun render(data: ProjectData) {\n'
+        f'{custom_renderer_body_kts}\n'
+        '            }\n'
+        '        }\n'
+        '    )\n'
+        '}\n'
+    )
+    return plugin_id_line, license_report_block
+
+
+def _build_groovy_all_deps_block(config):
+    configuration = ','.join([f'project.configurations.{c}' for c in config])
+    return f'''
+                    allprojects {{
+                        if (!tasks.names.contains("{FOSSLIGHT_ALL_DEPS_TASK}")) {{
+                            task {FOSSLIGHT_ALL_DEPS_TASK}(type: DependencyReportTask) {{
+                                doFirst{{
+                                    try {{
+                                        configurations = [{configuration}] as Set }}
+                                    catch(UnknownConfigurationException) {{}}
+                                }}
+                            }}
+                        }}
+                    }}'''
+
+
+def _build_kts_all_deps_block(config):
+    configuration = '\n'.join([
+        f'                try {{ cfgs.add(project.configurations.getByName("{c}")) }} catch (e: Exception) {{}}'
+        for c in config
+    ])
+    return f'''
+                    allprojects {{
+                        if (!tasks.names.contains("{FOSSLIGHT_ALL_DEPS_TASK}")) {{
+                            tasks.register("{FOSSLIGHT_ALL_DEPS_TASK}",
+                            org.gradle.api.tasks.diagnostics.DependencyReportTask::class) {{
+                                doFirst {{
+                                    val cfgs = mutableSetOf<org.gradle.api.artifacts.Configuration>()
+                    {configuration}
+                                    setConfigurations(cfgs)
+                                }}
+                            }}
+                        }}
+                    }}'''
 
 
 def get_gradle_version_from_wrapper(input_dir):
@@ -923,7 +939,7 @@ def get_download_location(download_url_map, group_id, artifact_id, version, mvnr
     return get_google_maven_url(mvnrepo_url, group_id, artifact_id, version)
 
 
-def get_google_maven_url(mvnrepo_url, group_id, artifact_id, version, ):
+def get_google_maven_url(mvnrepo_url, group_id, artifact_id, version):
     group_path = group_id.replace('.', '/')
     pom_url = (f"https://dl.google.com/dl/android/maven2"
                f"/{group_path}/{artifact_id}/{version}/{artifact_id}-{version}.pom")
