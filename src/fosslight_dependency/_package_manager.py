@@ -88,21 +88,132 @@ class PackageManager:
         self.package_name = ''
         self.dep_items = []
 
-    def _resolve_gradle_command(self):
+    def _get_java_version(self):
+        java_bin = os.getenv("JAVA_HOME")
+        if java_bin:
+            java_bin = os.path.join(java_bin, "bin", "java")
+        else:
+            java_bin = "java"
+
+        try:
+            cmd = [java_bin, "-version"]
+            result = self._run_command(cmd)
+        except FileNotFoundError:
+            logger.error("[Java] 'java' command was not found in PATH.")
+            return False
+        except subprocess.TimeoutExpired:
+            logger.error("[Java] Timeout while checking Java version.")
+            return False
+
+        version_text = result.stderr or result.stdout or ""
+        match = re.search(r'version "([^"]+)"', version_text)
+
+        if not match:
+            logger.error(f"[Java] Could not parse Java version: {version_text}")
+            return False
+
+        raw_value = match.group(1).strip()
+        if not raw_value:
+            logger.error(f"[Java] Could not parse Java version: {version_text}")
+            return False
+
+        major = None
+        text = str(raw_value).strip()
+        if text.startswith('1.'):
+            parts = text.split('.')
+            if len(parts) >= 2:
+                try:
+                    major = int(parts[1])
+                except ValueError:
+                    pass
+        if major is None:
+            try:
+                major = int(text)
+            except ValueError:
+                try:
+                    major = int(text.split('.')[0])
+                except ValueError:
+                    pass
+
+        if major is None:
+            logger.error(f"[Java] Could not parse Java version: {version_text}")
+            return False
+
+        logger.info(
+            f"Java Version : Java {major} "
+            f"({version_text.splitlines()[0].strip()})"
+        )
+        return major
+
+    def _resolve_wrapper_command(self):
         if self.platform == const.WINDOWS:
             return 'gradlew.bat' if os.path.isfile('gradlew.bat') else ''
         if os.path.isfile('gradlew'):
             return './gradlew'
         return ''
 
-    def _run_gradle_output(self, cmd):
+    def _run_command_output(self, cmd):
         return subprocess.check_output(cmd, encoding='utf-8')
 
-    def _run_gradle_process(self, cmd):
+    def _run_command(self, cmd):
         return subprocess.run(cmd, capture_output=True, encoding='utf-8')
 
     def run_plugin(self):
         ret = True
+
+        java_ver = self._get_java_version()
+        if java_ver is False:
+            return False
+
+        if self.package_manager_name in (const.GRADLE, const.ANDROID):
+            gradle_ver = get_gradle_version_from_wrapper(self.input_dir)
+
+            if gradle_ver is None:
+                logger.info('Gradle wrapper version is not available. Skipping Java version check.')
+            else:
+                min_java_ver = 8
+                max_java_ver = None
+                requirement_text = 'Java 8 or higher'
+
+                if gradle_ver >= (9, 0):
+                    min_java_ver = 17
+                    requirement_text = 'Java 17 or higher'
+                elif gradle_ver >= (8, 5):
+                    min_java_ver = 11
+                    requirement_text = 'Java 11 or higher'
+                elif gradle_ver >= (7, 3):
+                    min_java_ver = 11
+                    max_java_ver = 17
+                    requirement_text = 'from Java 11 to Java 17'
+
+                if java_ver < min_java_ver or (max_java_ver is not None and java_ver > max_java_ver):
+                    logger.warning(
+                        f'Gradle {gradle_ver[0]}.{gradle_ver[1]} requires {requirement_text}. '
+                        'Please check your Java version.'
+                    )
+                    return False
+
+        elif self.package_manager_name == const.MAVEN:
+            pom_ver = get_java_version_from_pom(self.input_dir)
+            maven_ver = get_maven_version()
+
+            min_java_ver = 7
+            if maven_ver is not None:
+                if maven_ver >= (4, 0):
+                    min_java_ver = 17
+                elif maven_ver >= (3, 9):
+                    min_java_ver = 8
+
+            if pom_ver is not None and pom_ver > min_java_ver:
+                min_java_ver = pom_ver
+
+            if java_ver < min_java_ver:
+                logger.warning(
+                    f'Maven requires Java {min_java_ver} or higher. '
+                    f'Current Java version is {java_ver}. Please check your Java version.'
+                )
+                return False
+
         if self.package_manager_name in (const.GRADLE, const.ANDROID):
             ret = self.run_gradle_task()
         else:
@@ -133,7 +244,7 @@ class PackageManager:
 
         logger.info(f"Execute Gradle task: {' '.join(cmd)}")
         try:
-            result = self._run_gradle_process(cmd)
+            result = self._run_command(cmd)
             if result.returncode != 0:
                 logger.error(f'Cannot run Gradle task {" ".join(cmd)}: {result.stderr.strip()}')
                 return False
@@ -152,7 +263,7 @@ class PackageManager:
         cmd = [cmd_gradle, FOSSLIGHT_ALL_DEPS_TASK]
         logger.info(f"Execute Gradle task: {' '.join(cmd)}")
         try:
-            dep_output = self._run_gradle_output(cmd)
+            dep_output = self._run_command_output(cmd)
             if dep_output:
                 self.parse_dependency_tree(dep_output)
                 self.set_direct_dependencies(bool(self.direct_dep_list))
@@ -196,7 +307,7 @@ class PackageManager:
                     if not os.path.isfile(self.input_file_name):
                         ret_plugin = self.add_gradle_plugin_in_gradle(gradle_file)
 
-                cmd_gradle = self._resolve_gradle_command()
+                cmd_gradle = self._resolve_wrapper_command()
                 if not cmd_gradle:
                     ret_task = False
                     self.set_direct_dependencies(False)
@@ -656,6 +767,77 @@ def get_gradle_version_from_wrapper(input_dir):
             return tuple(int(x) for x in m.group(1).split('.'))
     except Exception:
         pass
+    return None
+
+
+def get_java_version_from_pom(input_dir):
+    pom_path = os.path.join(input_dir, 'pom.xml')
+    if not os.path.isfile(pom_path):
+        return None
+
+    try:
+        with open(pom_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        patterns = [
+            r"<maven\.compiler\.release>([^<]+)</maven\.compiler\.release>",
+            r"<maven\.compiler\.source>([^<]+)</maven\.compiler\.source>",
+            r"<maven\.compiler\.target>([^<]+)</maven\.compiler\.target>",
+            r"<java\.version>([^<]+)</java\.version>",
+        ]
+
+        candidates = []
+        for pattern in patterns:
+            match = re.search(pattern, content)
+            if not match:
+                continue
+
+            raw_value = match.group(1).strip()
+            if not raw_value:
+                continue
+
+            normalized = None
+            text = str(raw_value).strip()
+            if text.startswith('1.'):
+                parts = text.split('.')
+                if len(parts) >= 2:
+                    try:
+                        normalized = int(parts[1])
+                    except ValueError:
+                        pass
+            if normalized is None:
+                try:
+                    normalized = int(text)
+                except ValueError:
+                    try:
+                        normalized = int(text.split('.')[0])
+                    except ValueError:
+                        pass
+            if normalized is not None:
+                candidates.append(normalized)
+
+        return max(candidates) if candidates else None
+
+    except Exception:
+        return None
+
+
+def get_maven_version():
+    try:
+        result = subprocess.run(['mvn', '-version'], capture_output=True, text=True)
+        if result.returncode != 0:
+            return None
+
+        version_line = next((line for line in result.stdout.splitlines() if line.startswith('Apache Maven')), None)
+        if not version_line:
+            return None
+
+        match = re.search(r'(\d+(?:\.\d+){0,2})', version_line)
+        if match:
+            return tuple(int(x) for x in match.group(1).split('.'))
+    except Exception:
+        pass
+
     return None
 
 
