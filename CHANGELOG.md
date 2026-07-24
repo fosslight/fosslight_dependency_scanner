@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.1.46 (24/07/2026)
+## Changes
+## 🔧 Maintenance
+
+- Detect Android and Gradle project types @woocheol-lge (#325)
+- Improve Gradle-related code structure @woocheol-lge (#327)
+- Upgrade jk1 plugin and refine build.gradle configuration @woocheol-lge (#326)
+
+---
+
 ## v4.1.45 (09/07/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -289,11 +299,3 @@
 ## 🔧 Maintenance
 
 - Change cargo dn loc with crates.io url @dd-jy (#259)
-
----
-
-## v4.1.16 (01/07/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix nuget api call error @dd-jy (#258)
