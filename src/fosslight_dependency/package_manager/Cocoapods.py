@@ -6,6 +6,7 @@
 import os
 import logging
 import json
+import shutil
 import yaml
 import re
 import fosslight_util.constant as constant
@@ -31,6 +32,12 @@ class Cocoapods(PackageManager):
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
         self.append_input_package_list_file(self.input_file_name)
+
+    def run_plugin(self):
+        if not shutil.which("pod"):
+            logger.warning("CocoaPods CLI (pod) is not available on this system.")
+            return False
+        return True
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as input_fp:
@@ -95,11 +102,10 @@ class Cocoapods(PackageManager):
                     if f'{pod_oss_name_origin}({pod_oss_version})' in self.relation_tree:
                         dep_item.depends_on_raw = self.relation_tree[f'{pod_oss_name_origin}({pod_oss_version})']
 
-                oss_item.name = f'{self.package_manager_name}:{pod_oss_name_origin}'
-                pod_oss_name = pod_oss_name_origin
+                normalized_pod_name = normalize_pod_name(pod_oss_name_origin)
+                oss_item.name = f'{self.package_manager_name}:{normalized_pod_name}'
+                pod_oss_name = normalized_pod_name
                 oss_item.version = pod_oss_version
-                if '/' in pod_oss_name_origin:
-                    pod_oss_name = pod_oss_name_origin.split('/')[0]
                 if pod_oss_name in external_source_list:
                     oss_item.name = pod_oss_name_origin
                     podspec_filename = pod_oss_name + '.podspec.json'
@@ -183,6 +189,12 @@ class Cocoapods(PackageManager):
 
     def parse_direct_dependencies(self):
         self.direct_dep = True
+
+
+def normalize_pod_name(pod_name):
+    if not pod_name:
+        return ''
+    return pod_name.split('/')[0].strip()
 
 
 def get_pods_info(pods_item):
