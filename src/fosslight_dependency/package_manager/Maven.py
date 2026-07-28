@@ -46,8 +46,10 @@ class Maven(PackageManager):
             self.clean_run_maven_plugin_output()
 
     def run_plugin(self):
-        ret = True
+        if not super().run_plugin():
+            return False
 
+        ret = True
         if not os.path.isfile(self.input_file_name):
             pom_backup = 'pom.xml_backup'
 
