@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.1.47 (30/07/2026)
+## Changes
+## 🔧 Maintenance
+
+- Add Java version compatibility checks for Gradle, Android and Maven projects @woocheol-lge (#328)
+- Exclude subspec names from OSS Name @woocheol-lge (#329)
+
+---
+
 ## v4.1.46 (24/07/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -287,15 +296,3 @@
 ## 🔧 Maintenance
 
 - Remove the pkg_resources @dd-jy (#261)
-
----
-
-## v4.1.17 (09/07/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Fix the cargo purl bug @dd-jy (#260)
-
-## 🔧 Maintenance
-
-- Change cargo dn loc with crates.io url @dd-jy (#259)
