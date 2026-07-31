@@ -11,6 +11,7 @@ import shutil
 import copy
 import re
 import sys
+import tempfile
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -19,6 +20,23 @@ from fosslight_dependency.dependency_item import DependencyItem, change_dependso
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
+
+
+def quote_activate_cmd(activate_cmd):
+    """Quote the venv activate command before putting it in a shell command chain.
+
+    The activate path is interpolated into a shell string, so a path containing
+    spaces (e.g. 'C:\\Users\\John Doe\\...') breaks the command. The stored command
+    is kept unquoted because it is also parsed back into a venv path elsewhere.
+    'source /path', '. /path' and 'conda ...' forms are handled as-is.
+    """
+    for prefix in ('source ', '. '):
+        if activate_cmd.startswith(prefix):
+            path = activate_cmd[len(prefix):]
+            return f'{prefix}"{path}"' if os.path.isabs(path) else activate_cmd
+    if activate_cmd.startswith('conda '):
+        return activate_cmd
+    return f'"{activate_cmd}"' if os.path.isabs(activate_cmd) else activate_cmd
 
 
 class Pypi(PackageManager):
@@ -36,6 +54,12 @@ class Pypi(PackageManager):
 
         self.pip_activate_cmd = pip_activate_cmd
         self.pip_deactivate_cmd = pip_deactivate_cmd
+        # Create the temporary virtualenv outside the analysis target. The analysis
+        # chdirs into the target, so a relative name put the venv inside the user's
+        # project: for a deeply nested project the venv's internal paths exceed the
+        # Windows MAX_PATH limit (260) and the analysis fails, and it also leaves
+        # build artifacts in the source tree.
+        self.venv_tmp_dir = os.path.join(tempfile.gettempdir(), f'fosslight_venv_{os.getpid()}')
 
     def __del__(self):
         if os.path.isfile(self.tmp_file_name):
@@ -55,7 +79,7 @@ class Pypi(PackageManager):
     def get_virtualenv_site_packages(self):
         site_packages = ''
         try:
-            venv_path = os.path.join(self.input_dir, self.venv_tmp_dir)
+            venv_path = self.venv_tmp_dir
             if os.path.exists(venv_path):
                 site_packages = os.path.join(
                     venv_path, 'lib',
@@ -176,14 +200,14 @@ class Pypi(PackageManager):
                 manifest_files.remove(manifest_file)
                 self.set_manifest_file(manifest_files)
 
-        venv_path = os.path.join(self.input_dir, self.venv_tmp_dir)
+        venv_path = self.venv_tmp_dir
 
         if self.platform == const.WINDOWS:
-            create_venv_cmd = f"python -m venv {self.venv_tmp_dir}"
+            create_venv_cmd = f'python -m venv "{self.venv_tmp_dir}"'
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
             cmd_separator = "&"
         else:
-            create_venv_cmd = f"virtualenv -p python3 {self.venv_tmp_dir}"
+            create_venv_cmd = f'virtualenv -p python3 "{self.venv_tmp_dir}"'
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
@@ -202,7 +226,8 @@ class Pypi(PackageManager):
         self.set_pip_activate_cmd(activate_cmd)
         self.set_pip_deactivate_cmd(deactivate_cmd)
 
-        cmd_list = [create_venv_cmd, activate_cmd, install_cmd, pip_upgrade_cmd, deactivate_cmd]
+        cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
+                    pip_upgrade_cmd, deactivate_cmd]
         cmd = cmd_separator.join(cmd_list)
 
         try:
@@ -220,9 +245,10 @@ class Pypi(PackageManager):
             try:
                 if (not ret) and (self.platform != const.WINDOWS):
                     ret = True
-                    create_venv_cmd = f"python3 -m venv {self.venv_tmp_dir}"
+                    create_venv_cmd = f'python3 -m venv "{self.venv_tmp_dir}"'
 
-                    cmd_list = [create_venv_cmd, activate_cmd, install_cmd, pip_upgrade_cmd, deactivate_cmd]
+                    cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
+                                pip_upgrade_cmd, deactivate_cmd]
                     cmd = cmd_separator.join(cmd_list)
                     cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
                     if cmd_ret.returncode != 0:
@@ -262,7 +288,7 @@ class Pypi(PackageManager):
         else:
             command_separator = ";"
 
-        activate_command = pip_activate_cmd
+        activate_command = quote_activate_cmd(pip_activate_cmd)
         pip_list_command = f"{python_cmd} pip freeze > {tmp_pip_list}"
         deactivate_command = self.pip_deactivate_cmd
 
