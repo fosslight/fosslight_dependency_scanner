@@ -998,12 +998,13 @@ def get_gradle_cmd():
     cmd_gradle = ''
     current_mode = ''
     changed_mode = False
-    if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-        # Absolute path: the command is run through subprocess with shell=False, and
-        # on Windows CreateProcess cannot resolve a bare '.bat' name ([WinError 2]).
-        if platform.system() == const.WINDOWS:
+    # Absolute path: the command is run through subprocess with shell=False, and
+    # on Windows CreateProcess cannot resolve a bare '.bat' name ([WinError 2]).
+    if platform.system() == const.WINDOWS:
+        if os.path.isfile("gradlew.bat"):
             cmd_gradle = os.path.abspath("gradlew.bat")
-        else:
+    else:
+        if os.path.isfile("gradlew"):
             cmd_gradle = os.path.abspath("gradlew")
             current_mode, changed_mode = ensure_executable(cmd_gradle)
     return cmd_gradle, current_mode, changed_mode
