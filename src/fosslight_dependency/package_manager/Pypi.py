@@ -22,14 +22,27 @@ from fosslight_util.oss_item import OssItem
 logger = logging.getLogger(constant.LOGGER_NAME)
 
 
-def quote_activate_cmd(activate_cmd):
-    """Quote the venv activate command before putting it in a shell command chain.
+MAX_ERR_OUTPUT_CHARS = 2000
 
-    The activate path is interpolated into a shell string, so a path containing
-    spaces (e.g. 'C:\\Users\\John Doe\\...') breaks the command. The stored command
-    is kept unquoted because it is also parsed back into a venv path elsewhere.
-    'source /path', '. /path' and 'conda ...' forms are handled as-is.
-    """
+
+def describe_venv_failure(cmd_ret):
+    stderr_text = ''
+    raw = getattr(cmd_ret, 'stderr', None)
+    if raw:
+        stderr_text = raw.decode('utf-8', errors='replace') if isinstance(raw, bytes) else str(raw)
+        stderr_text = stderr_text.strip()
+        if len(stderr_text) > MAX_ERR_OUTPUT_CHARS:
+            stderr_text = '...\n' + stderr_text[-MAX_ERR_OUTPUT_CHARS:]
+
+    if cmd_ret.returncode != 0:
+        msg = f"return code({cmd_ret.returncode})"
+        return False, f"{msg}\n{stderr_text}" if stderr_text else msg
+    if stderr_text.lower().startswith('error:'):
+        return False, stderr_text
+    return True, ''
+
+
+def quote_activate_cmd(activate_cmd):
     for prefix in ('source ', '. '):
         if activate_cmd.startswith(prefix):
             path = activate_cmd[len(prefix):]
@@ -232,12 +245,7 @@ class Pypi(PackageManager):
 
         try:
             cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-            if cmd_ret.returncode != 0:
-                ret = False
-                err_msg = f"return code({cmd_ret.returncode})"
-            elif cmd_ret.stderr.decode('utf-8').strip().lower().startswith('error:'):
-                ret = False
-                err_msg = f"stderr msg({cmd_ret.stderr})"
+            ret, err_msg = describe_venv_failure(cmd_ret)
         except Exception as e:
             ret = False
             err_msg = e
@@ -251,12 +259,7 @@ class Pypi(PackageManager):
                                 pip_upgrade_cmd, deactivate_cmd]
                     cmd = cmd_separator.join(cmd_list)
                     cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
-                    if cmd_ret.returncode != 0:
-                        ret = False
-                        err_msg = f"return code({cmd_ret.returncode})"
-                    elif cmd_ret.stderr.decode('utf-8').strip().lower().startswith('error:'):
-                        ret = False
-                        err_msg = f"stderr msg({cmd_ret.stderr})"
+                    ret, err_msg = describe_venv_failure(cmd_ret)
             except Exception as e:
                 ret = False
                 err_msg = e
