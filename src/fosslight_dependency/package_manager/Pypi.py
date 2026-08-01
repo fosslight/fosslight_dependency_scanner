@@ -236,7 +236,11 @@ class Pypi(PackageManager):
                         ret_find = rf_line.find('--index-url ')
                     if ret_find == -1:
                         continue
-                    self.cover_comment += rf_line
+                    # The cover comment ends up in the generated report, which is meant
+                    # to be shared. A private index is usually configured with the
+                    # credentials in the URL, so mask them here as well as in the log.
+                    # The host is what makes this note useful and it is preserved.
+                    self.cover_comment += redact_secrets(rf_line)
 
         if not self.pip_activate_cmd and not self.pip_deactivate_cmd:
             ret = self.create_virtualenv()
