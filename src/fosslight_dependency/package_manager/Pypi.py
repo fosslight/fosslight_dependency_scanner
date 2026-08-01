@@ -10,6 +10,7 @@ import json
 import shutil
 import copy
 import re
+import shlex
 import sys
 import tempfile
 import fosslight_util.constant as constant
@@ -24,13 +25,38 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 MAX_ERR_OUTPUT_CHARS = 2000
 
+# Child process output can carry credentials: a private index is configured with
+# --extra-index-url/--index-url (see run_plugin), and pip echoes that URL in its error
+# messages. Mask them before the text reaches a log file or CI output.
+_SECRET_PATTERNS = (
+    # https://user:token@host -> https://user:***@host  (keep the user for diagnosis)
+    (re.compile(r'(?<=://)([^/\s:@]+):[^/\s@]+@'), r'\1:***@'),
+    # https://token@host -> https://***@host
+    (re.compile(r'(?<=://)[^/\s:@]+@'), '***@'),
+    # token=..., api_key: ..., password=...
+    (re.compile(r'((?:token|api[-_]?key|secret|password|passwd|pwd)["\']?\s*[=:]\s*)\S+',
+                re.IGNORECASE), r'\1***'),
+    # Authorization: Bearer <value>
+    (re.compile(r'(authorization\s*:\s*(?:bearer|basic|token)?\s*)\S+', re.IGNORECASE), r'\1***'),
+)
+
+
+def redact_secrets(text):
+    """Mask credentials in text that is about to be logged."""
+    if not text:
+        return text
+    text = str(text)
+    for pattern, replacement in _SECRET_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
 
 def describe_venv_failure(cmd_ret):
     stderr_text = ''
     raw = getattr(cmd_ret, 'stderr', None)
     if raw:
         stderr_text = raw.decode('utf-8', errors='replace') if isinstance(raw, bytes) else str(raw)
-        stderr_text = stderr_text.strip()
+        stderr_text = redact_secrets(stderr_text.strip())
         if len(stderr_text) > MAX_ERR_OUTPUT_CHARS:
             stderr_text = '...\n' + stderr_text[-MAX_ERR_OUTPUT_CHARS:]
 
@@ -42,14 +68,28 @@ def describe_venv_failure(cmd_ret):
     return True, ''
 
 
+def quote_shell_path(path):
+    """Quote a path that is interpolated into a shell command chain.
+
+    On POSIX, shlex.quote() single-quotes the value, so neither $(...) command
+    substitution nor $VAR expansion can happen. On Windows the command runs through
+    cmd.exe, where %VAR% is expanded before parsing and there is no escape that works
+    both inside and outside a batch file, so double quotes only cover whitespace there;
+    removing shell=True is the real fix on that platform.
+    """
+    if os.name == 'nt':
+        return f'"{path}"'
+    return shlex.quote(path)
+
+
 def quote_activate_cmd(activate_cmd):
     for prefix in ('source ', '. '):
         if activate_cmd.startswith(prefix):
             path = activate_cmd[len(prefix):]
-            return f'{prefix}"{path}"' if os.path.isabs(path) else activate_cmd
+            return f'{prefix}{quote_shell_path(path)}' if os.path.isabs(path) else activate_cmd
     if activate_cmd.startswith('conda '):
         return activate_cmd
-    return f'"{activate_cmd}"' if os.path.isabs(activate_cmd) else activate_cmd
+    return quote_shell_path(activate_cmd) if os.path.isabs(activate_cmd) else activate_cmd
 
 
 class Pypi(PackageManager):
@@ -72,7 +112,14 @@ class Pypi(PackageManager):
         # project: for a deeply nested project the venv's internal paths exceed the
         # Windows MAX_PATH limit (260) and the analysis fails, and it also leaves
         # build artifacts in the source tree.
-        self.venv_tmp_dir = os.path.join(tempfile.gettempdir(), f'fosslight_venv_{os.getpid()}')
+        #
+        # mkdtemp() gives an exclusive directory per instance. A shared path would be
+        # unsafe here: get_virtualenv_site_packages() looks at this directory before the
+        # caller-supplied activation environment, so a directory left over from an
+        # earlier run (process ids are reused) could supply license information for
+        # unrelated packages, and __del__() would remove a directory another instance is
+        # still using.
+        self.venv_tmp_dir = tempfile.mkdtemp(prefix='fosslight_venv_')
 
     def __del__(self):
         if os.path.isfile(self.tmp_file_name):
@@ -94,13 +141,18 @@ class Pypi(PackageManager):
         try:
             venv_path = self.venv_tmp_dir
             if os.path.exists(venv_path):
-                site_packages = os.path.join(
-                    venv_path, 'lib',
-                    f"python{sys.version_info.major}.{sys.version_info.minor}",
-                    'site-packages'
-                )
-                if os.path.exists(site_packages):
-                    return site_packages
+                # A virtualenv puts packages under Lib\site-packages on Windows and
+                # lib/pythonX.Y/site-packages on POSIX, so try both. Assigning the POSIX
+                # candidate to site_packages up front used to leak a non-existent path
+                # out of this function when neither branch matched.
+                for candidate in (
+                    os.path.join(venv_path, 'Lib', 'site-packages'),
+                    os.path.join(venv_path, 'lib',
+                                 f"python{sys.version_info.major}.{sys.version_info.minor}",
+                                 'site-packages'),
+                ):
+                    if os.path.exists(candidate):
+                        return candidate
 
             if self.pip_activate_cmd:
                 activate_cmd = self.pip_activate_cmd
@@ -216,11 +268,11 @@ class Pypi(PackageManager):
         venv_path = self.venv_tmp_dir
 
         if self.platform == const.WINDOWS:
-            create_venv_cmd = f'python -m venv "{self.venv_tmp_dir}"'
+            create_venv_cmd = f'python -m venv {quote_shell_path(self.venv_tmp_dir)}'
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
             cmd_separator = "&"
         else:
-            create_venv_cmd = f'virtualenv -p python3 "{self.venv_tmp_dir}"'
+            create_venv_cmd = f'virtualenv -p python3 {quote_shell_path(self.venv_tmp_dir)}'
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
@@ -253,7 +305,7 @@ class Pypi(PackageManager):
             try:
                 if (not ret) and (self.platform != const.WINDOWS):
                     ret = True
-                    create_venv_cmd = f'python3 -m venv "{self.venv_tmp_dir}"'
+                    create_venv_cmd = f'python3 -m venv {quote_shell_path(self.venv_tmp_dir)}'
 
                     cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
                                 pip_upgrade_cmd, deactivate_cmd]
@@ -266,7 +318,9 @@ class Pypi(PackageManager):
             if ret:
                 logger.info(f"Created the temporary virtualenv({venv_path}).")
             else:
-                logger.error(f"Failed to create virtualenv: {err_msg}")
+                # err_msg may also come from an exception carrying the command line,
+                # which can embed the private index credentials.
+                logger.error(f"Failed to create virtualenv: {redact_secrets(err_msg)}")
 
         return ret
 
