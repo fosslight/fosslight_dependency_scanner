@@ -29,7 +29,7 @@ YARN = 'yarn'
 
 # Supported package name and manifest file
 SUPPORT_PACKAGE = {
-    PYPI: ['requirements.txt', 'setup.py', 'pyproject.toml'],
+    PYPI: ['requirements.txt', 'setup.py', 'pyproject.toml', 'uv.lock'],
     PNPM: 'pnpm-lock.yaml',
     NPM: 'package.json',
     YARN: 'yarn.lock',
