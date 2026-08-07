@@ -23,11 +23,18 @@ from fosslight_util.oss_item import OssItem
 logger = logging.getLogger(constant.LOGGER_NAME)
 
 
-def quote_cmd_path(path):
-    """Quote a path for the maven command strings, which are run with shell=True."""
+def quote_cmd_path(cmd):
+    """Quote the maven command for the command strings below, which run with shell=True.
+
+    Only a resolved wrapper path is quoted, so that a path containing spaces survives.
+    A bare 'mvn' must stay unquoted: cmd.exe does not apply PATHEXT to a quoted name and
+    would fail to find mvn.cmd on PATH.
+    """
+    if not os.path.isabs(cmd):
+        return cmd
     if os.name == 'nt':
-        return f'"{path}"'
-    return shlex.quote(path)
+        return f'"{cmd}"'
+    return shlex.quote(cmd)
 
 
 class Maven(PackageManager):
@@ -184,17 +191,19 @@ class Maven(PackageManager):
         return ret_plugin
 
     def _get_mvn_cmd(self):
-        # Return an absolute path for the wrapper. The command is run through the shell
-        # from whatever the current directory happens to be (collect_source_download_urls
-        # even passes a different cwd), and cmd.exe does not resolve a bare 'mvnw.cmd'
-        # from the current directory when NoDefaultCurrentDirectoryInExePath is set,
-        # which fails with "is not recognized as ... a batch file".
+        # Resolve the wrapper from input_dir, not from the process's current directory,
+        # and return an absolute path:
+        # - collect_source_download_urls() runs its commands with cwd=self.input_dir, so
+        #   a name resolved against the current directory can pick an unrelated wrapper
+        #   or silently fall back to 'mvn' from PATH.
+        # - cmd.exe does not resolve a bare 'mvnw.cmd' from the current directory when
+        #   NoDefaultCurrentDirectoryInExePath is set (Git Bash sets it, as do some
+        #   corporate profiles); it fails with "is not recognized as ... a batch file".
         current_mode = ''
-        if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
-            if self.platform == const.WINDOWS:
-                cmd_mvn = os.path.abspath("mvnw.cmd")
-            else:
-                cmd_mvn = os.path.abspath("mvnw")
+        mvnw_path = os.path.abspath(os.path.join(self.input_dir, 'mvnw'))
+        mvnw_cmd_path = os.path.abspath(os.path.join(self.input_dir, 'mvnw.cmd'))
+        if os.path.isfile(mvnw_path) or os.path.isfile(mvnw_cmd_path):
+            cmd_mvn = mvnw_cmd_path if self.platform == const.WINDOWS else mvnw_path
             current_mode = change_file_mode(cmd_mvn)
         else:
             cmd_mvn = "mvn"
