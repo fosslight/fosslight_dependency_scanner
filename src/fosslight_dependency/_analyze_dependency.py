@@ -120,10 +120,11 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
             package_dep_item_list = deduplicate_dep_items(package_dep_item_list)
     if ret:
         logger.warning(f"### Complete to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
-        if package_manager.cover_comment:
-            cover_comment = package_manager.cover_comment
     else:
         logger.error(f"### Fail to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
+
+    if package_manager.cover_comment:
+        cover_comment = package_manager.cover_comment
 
     del package_manager
 

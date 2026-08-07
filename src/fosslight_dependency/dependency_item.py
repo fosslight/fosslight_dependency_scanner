@@ -32,9 +32,9 @@ class DependencyItem(FileItem):
         else:
             if not isinstance(value, list):
                 value = value.split(",")
-            self._depends_on.extend(value)
-            self._depends_on = [item.strip() for item in self._depends_on]
-            self._depends_on = list(set(self._depends_on))
+            values = [item.strip() for item in value if item and item.strip()]
+            self._depends_on.extend(values)
+            self._depends_on = sorted(set(self._depends_on))
 
     @property
     def depends_on_raw(self):
@@ -47,9 +47,9 @@ class DependencyItem(FileItem):
         else:
             if not isinstance(value, list):
                 value = value.split(",")
-            self._depends_on_raw.extend(value)
-            self._depends_on_raw = [item.strip() for item in self._depends_on_raw]
-            self._depends_on_raw = list(set(self._depends_on_raw))
+            values = [item.strip() for item in value if item and item.strip()]
+            self._depends_on_raw.extend(values)
+            self._depends_on_raw = sorted(set(self._depends_on_raw))
 
     def get_print_array(self):
         items = []
