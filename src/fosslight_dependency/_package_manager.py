@@ -130,10 +130,15 @@ class PackageManager:
         return major
 
     def _resolve_wrapper_command(self):
+        # Return an absolute path. The wrapper command is passed to subprocess as a list
+        # with shell=False, and on Windows CreateProcess cannot resolve a bare '.bat'
+        # name, so returning 'gradlew.bat' fails with [WinError 2] on every Windows
+        # machine. An absolute path keeps shell=False (no quoting/injection concerns)
+        # and is equally valid on POSIX.
         if self.platform == const.WINDOWS:
-            return 'gradlew.bat' if os.path.isfile('gradlew.bat') else ''
+            return os.path.abspath('gradlew.bat') if os.path.isfile('gradlew.bat') else ''
         if os.path.isfile('gradlew'):
-            return './gradlew'
+            return os.path.abspath('gradlew')
         return ''
 
     def _run_command_output(self, cmd):
@@ -993,11 +998,14 @@ def get_gradle_cmd():
     cmd_gradle = ''
     current_mode = ''
     changed_mode = False
-    if os.path.isfile('gradlew') or os.path.isfile('gradlew.bat'):
-        if platform.system() == const.WINDOWS:
-            cmd_gradle = "gradlew.bat"
-        else:
-            cmd_gradle = "./gradlew"
+    # Absolute path: the command is run through subprocess with shell=False, and
+    # on Windows CreateProcess cannot resolve a bare '.bat' name ([WinError 2]).
+    if platform.system() == const.WINDOWS:
+        if os.path.isfile("gradlew.bat"):
+            cmd_gradle = os.path.abspath("gradlew.bat")
+    else:
+        if os.path.isfile("gradlew"):
+            cmd_gradle = os.path.abspath("gradlew")
             current_mode, changed_mode = ensure_executable(cmd_gradle)
     return cmd_gradle, current_mode, changed_mode
 
