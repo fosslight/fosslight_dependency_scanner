@@ -5,6 +5,7 @@
 
 import os
 import logging
+import shlex
 import subprocess
 import shutil
 from bs4 import BeautifulSoup as bs
@@ -20,6 +21,20 @@ from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
+
+
+def quote_cmd_path(cmd):
+    """Quote the maven command for the command strings below, which run with shell=True.
+
+    Only a resolved wrapper path is quoted, so that a path containing spaces survives.
+    A bare 'mvn' must stay unquoted: cmd.exe does not apply PATHEXT to a quoted name and
+    would fail to find mvn.cmd on PATH.
+    """
+    if not os.path.isabs(cmd):
+        return cmd
+    if os.name == 'nt':
+        return f'"{cmd}"'
+    return shlex.quote(cmd)
 
 
 class Maven(PackageManager):
@@ -150,7 +165,8 @@ class Maven(PackageManager):
         ret_plugin = True
         logger.info('Run maven license scanning plugin with temporary pom.xml')
         cmd_mvn, current_mode = self._get_mvn_cmd()
-        cmd = f"{cmd_mvn} license:aggregate-download-licenses"
+        quoted_mvn = quote_cmd_path(cmd_mvn)
+        cmd = f"{quoted_mvn} license:aggregate-download-licenses"
 
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
@@ -158,7 +174,7 @@ class Maven(PackageManager):
             ret_plugin = False
 
         if ret_plugin:
-            cmd = f"{cmd_mvn} dependency:tree"
+            cmd = f"{quoted_mvn} dependency:tree"
             try:
                 ret_txt = subprocess.check_output(cmd, text=True, shell=True)
                 if ret_txt is not None:
@@ -175,12 +191,19 @@ class Maven(PackageManager):
         return ret_plugin
 
     def _get_mvn_cmd(self):
+        # Resolve the wrapper from input_dir, not from the process's current directory,
+        # and return an absolute path:
+        # - collect_source_download_urls() runs its commands with cwd=self.input_dir, so
+        #   a name resolved against the current directory can pick an unrelated wrapper
+        #   or silently fall back to 'mvn' from PATH.
+        # - cmd.exe does not resolve a bare 'mvnw.cmd' from the current directory when
+        #   NoDefaultCurrentDirectoryInExePath is set (Git Bash sets it, as do some
+        #   corporate profiles); it fails with "is not recognized as ... a batch file".
         current_mode = ''
-        if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
-            if self.platform == const.WINDOWS:
-                cmd_mvn = "mvnw.cmd"
-            else:
-                cmd_mvn = "./mvnw"
+        mvnw_path = os.path.abspath(os.path.join(self.input_dir, 'mvnw'))
+        mvnw_cmd_path = os.path.abspath(os.path.join(self.input_dir, 'mvnw.cmd'))
+        if os.path.isfile(mvnw_path) or os.path.isfile(mvnw_cmd_path):
+            cmd_mvn = mvnw_cmd_path if self.platform == const.WINDOWS else mvnw_path
             current_mode = change_file_mode(cmd_mvn)
         else:
             cmd_mvn = "mvn"
@@ -188,6 +211,7 @@ class Maven(PackageManager):
 
     def collect_source_download_urls(self, include_groups=None, include_artifacts=None):
         cmd_mvn, current_mode = self._get_mvn_cmd()
+        quoted_mvn = quote_cmd_path(cmd_mvn)
         try:
             flags = "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=info"
             includes = []
@@ -195,13 +219,13 @@ class Maven(PackageManager):
                 includes.append(f"-DincludeGroupIds={','.join(sorted(set(include_groups)))}")
             if include_artifacts:
                 includes.append(f"-DincludeArtifactIds={','.join(sorted(set(include_artifacts)))}")
-            cmd = f"{cmd_mvn} {flags} dependency:sources {' '.join(includes)}".strip()
+            cmd = f"{quoted_mvn} {flags} dependency:sources {' '.join(includes)}".strip()
             proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.input_dir)
             if proc.returncode == 0:
                 self._parse_downloaded_from_lines_mvn(proc.stdout)
             else:
                 logger.debug(f"dependency:sources failed (rc={proc.returncode}), trying dependency:resolve")
-                cmd = f"{cmd_mvn} {flags} dependency:resolve {' '.join(includes)}".strip()
+                cmd = f"{quoted_mvn} {flags} dependency:resolve {' '.join(includes)}".strip()
                 proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.input_dir)
                 if proc.returncode == 0:
                     self._parse_downloaded_from_lines_mvn(proc.stdout)
