@@ -5,6 +5,7 @@
 
 import os
 import logging
+import shlex
 import subprocess
 import shutil
 from bs4 import BeautifulSoup as bs
@@ -20,6 +21,13 @@ from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
+
+
+def quote_cmd_path(path):
+    """Quote a path for the maven command strings, which are run with shell=True."""
+    if os.name == 'nt':
+        return f'"{path}"'
+    return shlex.quote(path)
 
 
 class Maven(PackageManager):
@@ -150,7 +158,8 @@ class Maven(PackageManager):
         ret_plugin = True
         logger.info('Run maven license scanning plugin with temporary pom.xml')
         cmd_mvn, current_mode = self._get_mvn_cmd()
-        cmd = f"{cmd_mvn} license:aggregate-download-licenses"
+        quoted_mvn = quote_cmd_path(cmd_mvn)
+        cmd = f"{quoted_mvn} license:aggregate-download-licenses"
 
         ret = subprocess.call(cmd, shell=True)
         if ret != 0:
@@ -158,7 +167,7 @@ class Maven(PackageManager):
             ret_plugin = False
 
         if ret_plugin:
-            cmd = f"{cmd_mvn} dependency:tree"
+            cmd = f"{quoted_mvn} dependency:tree"
             try:
                 ret_txt = subprocess.check_output(cmd, text=True, shell=True)
                 if ret_txt is not None:
@@ -175,12 +184,17 @@ class Maven(PackageManager):
         return ret_plugin
 
     def _get_mvn_cmd(self):
+        # Return an absolute path for the wrapper. The command is run through the shell
+        # from whatever the current directory happens to be (collect_source_download_urls
+        # even passes a different cwd), and cmd.exe does not resolve a bare 'mvnw.cmd'
+        # from the current directory when NoDefaultCurrentDirectoryInExePath is set,
+        # which fails with "is not recognized as ... a batch file".
         current_mode = ''
         if os.path.isfile('mvnw') or os.path.isfile('mvnw.cmd'):
             if self.platform == const.WINDOWS:
-                cmd_mvn = "mvnw.cmd"
+                cmd_mvn = os.path.abspath("mvnw.cmd")
             else:
-                cmd_mvn = "./mvnw"
+                cmd_mvn = os.path.abspath("mvnw")
             current_mode = change_file_mode(cmd_mvn)
         else:
             cmd_mvn = "mvn"
@@ -188,6 +202,7 @@ class Maven(PackageManager):
 
     def collect_source_download_urls(self, include_groups=None, include_artifacts=None):
         cmd_mvn, current_mode = self._get_mvn_cmd()
+        quoted_mvn = quote_cmd_path(cmd_mvn)
         try:
             flags = "-B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=info"
             includes = []
@@ -195,13 +210,13 @@ class Maven(PackageManager):
                 includes.append(f"-DincludeGroupIds={','.join(sorted(set(include_groups)))}")
             if include_artifacts:
                 includes.append(f"-DincludeArtifactIds={','.join(sorted(set(include_artifacts)))}")
-            cmd = f"{cmd_mvn} {flags} dependency:sources {' '.join(includes)}".strip()
+            cmd = f"{quoted_mvn} {flags} dependency:sources {' '.join(includes)}".strip()
             proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.input_dir)
             if proc.returncode == 0:
                 self._parse_downloaded_from_lines_mvn(proc.stdout)
             else:
                 logger.debug(f"dependency:sources failed (rc={proc.returncode}), trying dependency:resolve")
-                cmd = f"{cmd_mvn} {flags} dependency:resolve {' '.join(includes)}".strip()
+                cmd = f"{quoted_mvn} {flags} dependency:resolve {' '.join(includes)}".strip()
                 proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.input_dir)
                 if proc.returncode == 0:
                     self._parse_downloaded_from_lines_mvn(proc.stdout)
