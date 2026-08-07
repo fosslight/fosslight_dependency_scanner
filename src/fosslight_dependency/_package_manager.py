@@ -182,7 +182,7 @@ class PackageManager:
                         requirement_text = 'from Java 8 to Java 11'
 
                     if java_ver < min_java_ver or (max_java_ver is not None and java_ver > max_java_ver):
-                        logger.warning(
+                        self.set_cover_comment(
                             f'Gradle {gradle_ver[0]}.{gradle_ver[1]} requires {requirement_text}. '
                             f'Current Java version is {java_ver}. Please check your Java version.'
                         )
@@ -203,7 +203,7 @@ class PackageManager:
                     min_java_ver = pom_ver
 
                 if java_ver < min_java_ver:
-                    logger.warning(
+                    self.set_cover_comment(
                         f'Maven requires Java {min_java_ver} or higher. '
                         f'Current Java version is {java_ver}. Please check your Java version.'
                     )
@@ -214,6 +214,15 @@ class PackageManager:
         else:
             logger.info(f"This package manager({self.package_manager_name}) skips the step to run plugin.")
         return ret
+
+    def set_cover_comment(self, comment):
+        """Log a warning and append the same message to cover_comment."""
+        if comment:
+            logger.warning(comment)
+            if self.cover_comment:
+                self.cover_comment += '\n' + comment
+            else:
+                self.cover_comment = comment
 
     def append_input_package_list_file(self, input_package_file):
         self.input_package_list_file.append(input_package_file)

@@ -411,13 +411,15 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     pass_key = ['PASS']
     success_pm = defaultdict(lambda: defaultdict(list))
     fail_pm = defaultdict(lambda: defaultdict(list))
-    cover_comment = ''
+    cover_comments = []
     for pm, manifest_file_name_list in found_package_manager.items():
         if not manifest_file_name_list and not autodetect:
             ret, package_dep_item_list, cover_comment, actual_pm = analyze_dependency(pm, input_dir, output_path,
                                                                                       pip_activate_cmd, pip_deactivate_cmd,
                                                                                       output_custom_dir, app_name, github_token,
                                                                                       [], direct)
+            if cover_comment:
+                cover_comments.append(cover_comment)
             if ret:
                 success_pm[actual_pm][input_dir].extend(['manual mode (-m option)'])
                 scan_item.append_file_items(package_dep_item_list)
@@ -434,6 +436,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                                                                                           output_custom_dir, app_name,
                                                                                           github_token,
                                                                                           manifest_file_name, direct)
+                if cover_comment:
+                    cover_comments.append(cover_comment)
                 if ret:
                     success_pm[actual_pm][input_dir].extend(manifest_file_name)
                     scan_item.append_file_items(package_dep_item_list)
@@ -462,8 +466,11 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             log_lines = print_package_info(success_pm, log_lines, 'Success', base_path)
         if len(fail_pm) > 0:
             log_lines = print_package_info(fail_pm, log_lines, 'Fail', base_path)
-            log_lines.append('If analysis fails, see fosslight_log*.txt and the prerequisite guide: '
-                             'https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html#how-to-run-and-output')
+            if not cover_comments:
+                log_lines.append('If analysis fails, see fosslight_log*.txt and the prerequisite guide: '
+                                 'https://fosslight.org/fosslight-guide-en/scanner/1_dependency.html#how-to-run-and-output')
+        if cover_comments:
+            log_lines.append('\n'.join(cover_comments))
         scan_item.set_cover_comment('\n'.join(log_lines))
 
     if ret and graph_path:
@@ -482,9 +489,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             logger.info(f"Output graph image file: {graph_path}")
         except Exception as e:
             logger.error(f'Fail to make graph image: {e}')
-
-    if cover_comment:
-        scan_item.set_cover_comment(cover_comment)
 
     finish_time = current_timestamp_utc()
     scan_item.set_cover_finish_time(finish_time)
