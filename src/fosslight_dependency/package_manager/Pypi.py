@@ -82,6 +82,22 @@ def quote_shell_path(path):
     return shlex.quote(path)
 
 
+def venv_interpreter(fallback):
+    """The interpreter used to create the temporary virtualenv.
+
+    Resolving a bare 'python'/'python3' through PATH picks whatever comes first, which
+    on Windows is often the Microsoft Store stub (it exits without creating anything)
+    and elsewhere can be a version that has no wheels for the analyzed dependencies.
+    sys.executable is the interpreter already running the scanner, so it is known to
+    exist and to be usable. It also keeps get_virtualenv_site_packages() correct: that
+    lookup builds the POSIX path from sys.version_info, so a virtualenv created by a
+    different minor version would not be found.
+    """
+    if not sys.executable:
+        return fallback
+    return quote_shell_path(sys.executable)
+
+
 def quote_activate_cmd(activate_cmd):
     for prefix in ('source ', '. '):
         if activate_cmd.startswith(prefix):
@@ -272,11 +288,12 @@ class Pypi(PackageManager):
         venv_path = self.venv_tmp_dir
 
         if self.platform == const.WINDOWS:
-            create_venv_cmd = f'python -m venv {quote_shell_path(self.venv_tmp_dir)}'
+            create_venv_cmd = f'{venv_interpreter("python")} -m venv {quote_shell_path(self.venv_tmp_dir)}'
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
             cmd_separator = "&"
         else:
-            create_venv_cmd = f'virtualenv -p python3 {quote_shell_path(self.venv_tmp_dir)}'
+            create_venv_cmd = (f'virtualenv -p {venv_interpreter("python3")} '
+                               f'{quote_shell_path(self.venv_tmp_dir)}')
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
             cmd_separator = ";"
 
@@ -309,7 +326,8 @@ class Pypi(PackageManager):
             try:
                 if (not ret) and (self.platform != const.WINDOWS):
                     ret = True
-                    create_venv_cmd = f'python3 -m venv {quote_shell_path(self.venv_tmp_dir)}'
+                    create_venv_cmd = (f'{venv_interpreter("python3")} -m venv '
+                                       f'{quote_shell_path(self.venv_tmp_dir)}')
 
                     cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
                                 pip_upgrade_cmd, deactivate_cmd]
