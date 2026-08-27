@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.1.48 (27/08/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Create the temporary virtualenv with the running interpreter @bjk7119 (#335)
+- Use an absolute, quoted path for the maven wrapper @bjk7119 (#334)
+- Create the temporary virtualenv outside the analysis target @bjk7119 (#331)
+- Use an absolute path for the Gradle wrapper command @bjk7119 (#330)
+
+## 🔧 Maintenance
+
+- Add failure logging for Java version validation in Gradle, Android, and Maven @woocheol-lge (#333)
+
+---
+
 ## v4.1.47 (30/07/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -288,11 +303,3 @@
 ## 🔧 Maintenance
 
 - Update python support ver 3.10-3.12 @dd-jy (#262)
-
----
-
-## v4.1.18 (11/07/2025)
-## Changes
-## 🔧 Maintenance
-
-- Remove the pkg_resources @dd-jy (#261)
