@@ -37,6 +37,8 @@ dependencies = [
     "igraph",
     "matplotlib",
     "pyaskalono",
+    "packaging",
+    "tomli; python_version < '3.11'",
 ]
 
 [project.urls]
