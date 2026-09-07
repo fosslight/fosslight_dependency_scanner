@@ -1408,12 +1408,12 @@ class Pypi(PackageManager):
         if self.platform == const.WINDOWS:
             create_venv_cmd = f'{venv_interpreter("python")} -m venv {quote_shell_path(self.venv_tmp_dir)}'
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
-            cmd_separator = "&"
+            cmd_separator = "&&"
         else:
             create_venv_cmd = (f'virtualenv -p {venv_interpreter("python3")} '
                                f'{quote_shell_path(self.venv_tmp_dir)}')
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
-            cmd_separator = ";"
+            cmd_separator = "&&"
 
         if install_cmd_list:
             install_cmd = cmd_separator.join(install_cmd_list)
