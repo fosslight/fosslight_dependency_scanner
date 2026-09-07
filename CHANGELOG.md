@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.49 (07/09/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Fail analysis when pypi installation fails @woocheol-lge (#337)
+
+## 🔧 Maintenance
+
+- Support dependency analysis using uv.lock @woocheol-lge (#336)
+
+---
+
 ## v4.1.48 (27/08/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -295,11 +307,3 @@
 ## 🐛 Hotfixes
 
 - Fix the android detect mode bug @dd-jy (#266)
-
----
-
-## v4.1.19 (17/07/2025)
-## Changes
-## 🔧 Maintenance
-
-- Update python support ver 3.10-3.12 @dd-jy (#262)
