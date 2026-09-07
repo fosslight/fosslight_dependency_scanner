@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.50 (07/09/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Require fosslight_util 2.2.12 @soimkim (#339)
+
+---
+
 ## v4.1.49 (07/09/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -294,16 +302,3 @@
 ## 🚀 Features
 
 - Try to install with yarn if npm failed @soimkim (#267)
-
----
-
-## v4.1.20 (02/09/2025)
-## Changes
-## 🚀 Features
-
-- Support recursive dependency analysis @dd-jy (#264)
-- Update to use pip inspect to get pypi oss info @dd-jy (#263)
-
-## 🐛 Hotfixes
-
-- Fix the android detect mode bug @dd-jy (#266)
