@@ -107,7 +107,9 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
             file_path = os.path.join(input_dir, f_name) if not os.path.isabs(f_name) else f_name
             if os.path.isfile(file_path):
-                package_manager.parse_oss_information(f_name)
+                # Always open via absolute path. run_plugin / nested tools may leave cwd
+                # elsewhere, and a relative f_name then reads the wrong (or empty) file.
+                package_manager.parse_oss_information(file_path)
                 package_dep_item_list.extend(package_manager.dep_items)
             else:
                 logger.error(f"Failed to open input file: {file_path}")
