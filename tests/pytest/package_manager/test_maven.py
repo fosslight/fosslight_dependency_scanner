@@ -6,6 +6,7 @@ import os
 import pytest
 import subprocess
 import openpyxl
+from tests.pytest.assert_report import assert_dep_sheet_has_min_rows
 
 DIST_PATH = os.path.join(os.environ.get("TOX_PATH", ""), "dist", "cli.exe")
 
@@ -17,9 +18,16 @@ DIST_PATH = os.path.join(os.environ.get("TOX_PATH", ""), "dist", "cli.exe")
 @pytest.mark.ubuntu
 def test_ubuntu(input_path, output_path):
     command = f"fosslight_dependency -p {input_path} -o {output_path}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    result = subprocess.run(
+        command,
+        shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert result.returncode == 0, f"Command failed: {command}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
+    assert_dep_sheet_has_min_rows(output_path)
 
 
 @pytest.mark.parametrize("input_path, output_path", [
@@ -29,8 +37,9 @@ def test_ubuntu(input_path, output_path):
 def test_windows(input_path, output_path):
     command = f"{DIST_PATH} -p {input_path} -o {output_path} -m maven"
     result = subprocess.run(command, capture_output=True, text=True)
-    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    assert result.returncode == 0, f"Command failed: {command}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
+    assert_dep_sheet_has_min_rows(output_path)
 
 
 @pytest.mark.ubuntu
@@ -58,9 +67,15 @@ def test_custom_repository_url():
     # Run fosslight_dependency
     with tempfile.TemporaryDirectory() as output_dir:
         command = f"fosslight_dependency -p {test_dir} -o {output_dir}"
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        result = subprocess.run(
+        command,
+        shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
         
-        assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        assert result.returncode == 0, f"Command failed: {command}\nstderr: {result.stderr}"
         
         # Find output Excel file
         output_files = list(Path(output_dir).glob("fosslight_report_dep_*.xlsx"))

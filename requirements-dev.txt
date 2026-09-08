@@ -3,3 +3,4 @@ pyinstaller
 tox
 pytest
 pytest-cov
+openpyxl

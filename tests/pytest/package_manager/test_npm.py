@@ -5,6 +5,7 @@
 import os
 import pytest
 import subprocess
+from tests.pytest.assert_report import assert_dep_sheet_has_min_rows
 
 
 @pytest.mark.parametrize("input_path, output_path, extra_args", [
@@ -14,6 +15,13 @@ import subprocess
 @pytest.mark.ubuntu
 def test_ubuntu(input_path, output_path, extra_args):
     command = f"fosslight_dependency -p {input_path} -o {output_path} {extra_args}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    result = subprocess.run(
+        command,
+        shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert result.returncode == 0, f"Command failed: {command}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
+    assert_dep_sheet_has_min_rows(output_path)
