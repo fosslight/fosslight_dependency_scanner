@@ -5,6 +5,7 @@
 import os
 import pytest
 import subprocess
+from tests.pytest.assert_report import assert_dep_sheet_has_min_rows
 
 UBUNTU_COMMANDS = [
     "fosslight_dependency -p tests/test_nuget -o tests/result/nuget1",
@@ -21,9 +22,16 @@ DIST_PATH = os.path.join(os.environ.get("TOX_PATH", ""), "dist", "cli.exe")
 @pytest.mark.ubuntu
 def test_ubuntu(input_path, output_path):
     command = f"fosslight_dependency -p {input_path} -o {output_path}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    result = subprocess.run(
+        command,
+        shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert result.returncode == 0, f"Command failed: {command}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
+    assert_dep_sheet_has_min_rows(output_path)
 
 
 @pytest.mark.parametrize("input_path, output_path", [
@@ -34,5 +42,6 @@ def test_ubuntu(input_path, output_path):
 def test_windows(input_path, output_path):
     command = f"{DIST_PATH} -p {input_path} -o {output_path}"
     result = subprocess.run(command, capture_output=True, text=True)
-    assert result.returncode == 0, f"Command failed: {command}\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    assert result.returncode == 0, f"Command failed: {command}\nstderr: {result.stderr}"
     assert any(os.scandir(output_path)), f"Output file does not exist: {output_path}"
+    assert_dep_sheet_has_min_rows(output_path)

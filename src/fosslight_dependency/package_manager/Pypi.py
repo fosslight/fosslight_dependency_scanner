@@ -41,6 +41,10 @@ MAX_WHEEL_SIZE = 100 * 1024 * 1024
 
 MAX_ERR_OUTPUT_CHARS = 2000
 
+# Hard cap for nested venv/pip/pipdeptree calls. Resolvers, builds, and network
+# stalls must not block dependency analysis or CI indefinitely.
+_VENV_SUBPROCESS_TIMEOUT = 600
+
 # Child process output can carry credentials: a private index is configured with
 # --extra-index-url/--index-url (see run_plugin), and pip echoes that URL in its error
 # messages. Mask them before the text reaches a log file or CI output.
@@ -56,6 +60,9 @@ _SECRET_PATTERNS = (
     (re.compile(r'(authorization\s*:\s*(?:bearer|basic|token)?\s*)\S+', re.IGNORECASE), r'\1***'),
 )
 
+# pip 25+ may colorize `pip inspect` JSON even when stdout is not a TTY.
+_ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*[A-Za-z]')
+
 
 def redact_secrets(text):
     """Mask credentials in text that is about to be logged."""
@@ -65,6 +72,44 @@ def redact_secrets(text):
     for pattern, replacement in _SECRET_PATTERNS:
         text = pattern.sub(replacement, text)
     return text
+
+
+def _format_cmd_for_log(cmd):
+    if isinstance(cmd, (list, tuple)):
+        return ' '.join(str(part) for part in cmd)
+    return str(cmd)
+
+
+def run_venv_subprocess(cmd, *, env=None, cwd=None, shell=False,
+                        timeout=_VENV_SUBPROCESS_TIMEOUT, **kwargs):
+    """Run a venv-related subprocess with a shared timeout; log the cmd on expiry."""
+    try:
+        return subprocess.run(
+            cmd,
+            env=env,
+            cwd=cwd,
+            shell=shell,
+            timeout=timeout,
+            **kwargs,
+        )
+    except subprocess.TimeoutExpired:
+        logger.error(
+            f"Timed out after {timeout}s running: "
+            f"{redact_secrets(_format_cmd_for_log(cmd))}"
+        )
+        raise
+
+
+def strip_ansi(text):
+    """Remove ANSI SGR sequences so colored pip JSON remains parseable."""
+    if not text:
+        return text
+    return _ANSI_ESCAPE_RE.sub('', text)
+
+
+def loads_json_text(text):
+    """json.loads that tolerates ANSI-colored pip inspect output."""
+    return json.loads(strip_ansi(text))
 
 
 def describe_venv_failure(cmd_ret):
@@ -105,10 +150,19 @@ def venv_interpreter(fallback):
     on Windows is often the Microsoft Store stub (it exits without creating anything)
     and elsewhere can be a version that has no wheels for the analyzed dependencies.
     sys.executable is the interpreter already running the scanner, so it is known to
-    exist and to be usable. It also keeps get_virtualenv_site_packages() correct: that
-    lookup builds the POSIX path from sys.version_info, so a virtualenv created by a
-    different minor version would not be found.
+    exist and to be usable.
+
+    PyInstaller frozen builds are different: sys.executable is the bundled binary
+    (cli.exe), which cannot run ``-m venv``. Fall back to a real interpreter on PATH.
+    Site-packages for that venv are discovered from the venv interpreter (or by
+    scanning the venv tree), not from the frozen process's sys.version_info.
     """
+    if getattr(sys, 'frozen', False) or getattr(sys, '_MEIPASS', None):
+        for name in (fallback, 'python', 'python3'):
+            found = shutil.which(name)
+            if found:
+                return quote_shell_path(found)
+        return fallback
     if not sys.executable:
         return fallback
     return quote_shell_path(sys.executable)
@@ -121,6 +175,13 @@ def quote_activate_cmd(activate_cmd):
             return f'{prefix}{quote_shell_path(path)}' if os.path.isabs(path) else activate_cmd
     if activate_cmd.startswith('conda '):
         return activate_cmd
+    # cmd.exe does not return from a .bat invoked without CALL, so later && steps
+    # (pip install, etc.) never run in the activated environment.
+    if os.name == 'nt' and activate_cmd.lower().endswith(('.bat', '.cmd')):
+        quoted = quote_shell_path(activate_cmd) if os.path.isabs(activate_cmd) else activate_cmd
+        if not quoted.lower().lstrip().startswith('call '):
+            return f'call {quoted}'
+        return quoted
     return quote_shell_path(activate_cmd) if os.path.isabs(activate_cmd) else activate_cmd
 
 
@@ -154,13 +215,72 @@ class Pypi(PackageManager):
         self.venv_tmp_dir = tempfile.mkdtemp(prefix='fosslight_venv_')
 
     def __del__(self):
-        if os.path.isfile(self.tmp_file_name):
-            os.remove(self.tmp_file_name)
+        for rel_name in (self.tmp_file_name, self.tmp_deptree_file, "tmp_list.txt"):
+            for path in (
+                rel_name,
+                os.path.join(getattr(self, "input_dir", "") or "", rel_name),
+            ):
+                if path and os.path.isfile(path):
+                    try:
+                        os.remove(path)
+                    except OSError:
+                        pass
 
         shutil.rmtree(self.venv_tmp_dir, ignore_errors=True)
 
-        if os.path.isfile(self.tmp_deptree_file):
-            os.remove(self.tmp_deptree_file)
+    def _resolve_venv_python(self, venv_path=None):
+        """Return absolute python under venv_path (default: analysis temp venv)."""
+        path = self.venv_tmp_dir if venv_path is None else venv_path
+        if self.platform == const.WINDOWS:
+            candidates = (
+                os.path.join(path, "Scripts", "python.exe"),
+                os.path.join(path, "Scripts", "python3.exe"),
+            )
+        else:
+            candidates = (
+                os.path.join(path, "bin", "python"),
+                os.path.join(path, "bin", "python3"),
+            )
+        for candidate in candidates:
+            if os.path.isfile(candidate):
+                return candidate
+        return "python"
+
+    def _venv_site_packages_candidates(self, venv_path):
+        """Discover site-packages under venv_path via venv python, then filesystem scan."""
+        candidates = []
+        seen = set()
+
+        def add(path):
+            if path and path not in seen and os.path.isdir(path):
+                seen.add(path)
+                candidates.append(path)
+
+        venv_python = self._resolve_venv_python(venv_path)
+        if os.path.isabs(venv_python) and os.path.isfile(venv_python):
+            try:
+                result = subprocess.run(
+                    [venv_python, '-c',
+                     "import sysconfig; print(sysconfig.get_path('purelib'))"],
+                    capture_output=True, text=True, timeout=30, check=False,
+                )
+                if result.returncode == 0:
+                    add(result.stdout.strip())
+            except (OSError, subprocess.SubprocessError) as e:
+                logger.debug(f"Failed to query venv purelib: {e}")
+
+        # Windows layout and POSIX lib/python*/site-packages (any minor version)
+        add(os.path.join(venv_path, 'Lib', 'site-packages'))
+        lib_dir = os.path.join(venv_path, 'lib')
+        if os.path.isdir(lib_dir):
+            try:
+                for name in sorted(os.listdir(lib_dir)):
+                    if name.startswith('python'):
+                        add(os.path.join(lib_dir, name, 'site-packages'))
+            except OSError as e:
+                logger.debug(f"Failed to scan venv lib dir: {e}")
+
+        return candidates
 
     def set_pip_activate_cmd(self, pip_activate_cmd):
         self.pip_activate_cmd = pip_activate_cmd
@@ -173,18 +293,8 @@ class Pypi(PackageManager):
         try:
             venv_path = self.venv_tmp_dir
             if os.path.exists(venv_path):
-                # A virtualenv puts packages under Lib\site-packages on Windows and
-                # lib/pythonX.Y/site-packages on POSIX, so try both. Assigning the POSIX
-                # candidate to site_packages up front used to leak a non-existent path
-                # out of this function when neither branch matched.
-                for candidate in (
-                    os.path.join(venv_path, 'Lib', 'site-packages'),
-                    os.path.join(venv_path, 'lib',
-                                 f"python{sys.version_info.major}.{sys.version_info.minor}",
-                                 'site-packages'),
-                ):
-                    if os.path.exists(candidate):
-                        return candidate
+                for candidate in self._venv_site_packages_candidates(venv_path):
+                    return candidate
 
             if self.pip_activate_cmd:
                 activate_cmd = self.pip_activate_cmd
@@ -202,17 +312,8 @@ class Pypi(PackageManager):
                         venv_path = os.path.join(self.input_dir, venv_path)
 
                     if os.path.exists(venv_path):
-                        for lib_dir in ['lib', 'Lib']:
-                            site_packages = os.path.join(
-                                venv_path, lib_dir,
-                                f"python{sys.version_info.major}.{sys.version_info.minor}",
-                                'site-packages'
-                            )
-                            if os.path.exists(site_packages):
-                                return site_packages
-                        site_packages = os.path.join(venv_path, 'Lib', 'site-packages')
-                        if os.path.exists(site_packages):
-                            return site_packages
+                        for candidate in self._venv_site_packages_candidates(venv_path):
+                            return candidate
 
                 if 'conda' in activate_cmd:
                     site_packages = ''
@@ -1393,12 +1494,12 @@ class Pypi(PackageManager):
             self.set_manifest_file(manifest_files)
 
         install_cmd_list = []
-        for manifest_file in manifest_files:
+        for manifest_file in list(manifest_files):
             if os.path.exists(manifest_file):
                 if manifest_file == 'requirements.txt':
-                    install_cmd_list.append("pip install -r requirements.txt")
+                    install_cmd_list.append(("requirements.txt", True))
                 else:
-                    install_cmd_list.append("pip install .")
+                    install_cmd_list.append((".", False))
             else:
                 manifest_files.remove(manifest_file)
                 self.set_manifest_file(manifest_files)
@@ -1408,38 +1509,58 @@ class Pypi(PackageManager):
         if self.platform == const.WINDOWS:
             create_venv_cmd = f'{venv_interpreter("python")} -m venv {quote_shell_path(self.venv_tmp_dir)}'
             activate_cmd = os.path.join(self.venv_tmp_dir, "Scripts", "activate.bat")
+            venv_python = quote_shell_path(
+                os.path.join(self.venv_tmp_dir, "Scripts", "python.exe")
+            )
             cmd_separator = "&&"
         else:
             create_venv_cmd = (f'virtualenv -p {venv_interpreter("python3")} '
                                f'{quote_shell_path(self.venv_tmp_dir)}')
             activate_cmd = ". " + os.path.join(venv_path, "bin", "activate")
+            venv_python = None
             cmd_separator = "&&"
 
-        if install_cmd_list:
-            install_cmd = cmd_separator.join(install_cmd_list)
-        else:
+        if not install_cmd_list:
             logger.error(const.SUPPORT_PACKAGE[self.package_manager_name])
             logger.error('Cannot create virtualenv because it cannot find: '
                          + ', '.join(const.SUPPORT_PACKAGE[self.package_manager_name]))
             logger.error("Please run with '-a' and '-d' option.")
             return False
 
-        deactivate_cmd = "deactivate"
-        pip_upgrade_cmd = "pip install --upgrade pip"
+        if self.platform == const.WINDOWS:
+            # Avoid activate.bat + CALL quirks: install with the venv interpreter directly.
+            pip_cmds = [
+                f'{venv_python} -m pip install -r requirements.txt' if is_req
+                else f'{venv_python} -m pip install {target}'
+                for target, is_req in install_cmd_list
+            ]
+            pip_upgrade_cmd = f'{venv_python} -m pip install --upgrade pip'
+            self.set_pip_activate_cmd(activate_cmd)
+            self.set_pip_deactivate_cmd("deactivate")
+            cmd_list = [create_venv_cmd, *pip_cmds, pip_upgrade_cmd]
+            ret, err_msg = self._run_venv_setup_command(cmd_list, cmd_separator)
+        else:
+            pip_cmds = [
+                "pip install -r requirements.txt" if is_req else f"pip install {target}"
+                for target, is_req in install_cmd_list
+            ]
+            install_cmd = cmd_separator.join(pip_cmds)
+            deactivate_cmd = "deactivate"
+            pip_upgrade_cmd = "pip install --upgrade pip"
 
-        self.set_pip_activate_cmd(activate_cmd)
-        self.set_pip_deactivate_cmd(deactivate_cmd)
+            self.set_pip_activate_cmd(activate_cmd)
+            self.set_pip_deactivate_cmd(deactivate_cmd)
 
-        cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
-                    pip_upgrade_cmd, deactivate_cmd]
-        ret, err_msg = self._run_venv_setup_command(cmd_list, cmd_separator)
-
-        if (not ret) and (self.platform != const.WINDOWS):
-            create_venv_cmd = (f'{venv_interpreter("python3")} -m venv '
-                               f'{quote_shell_path(self.venv_tmp_dir)}')
             cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
                         pip_upgrade_cmd, deactivate_cmd]
             ret, err_msg = self._run_venv_setup_command(cmd_list, cmd_separator)
+
+            if not ret:
+                create_venv_cmd = (f'{venv_interpreter("python3")} -m venv '
+                                   f'{quote_shell_path(self.venv_tmp_dir)}')
+                cmd_list = [create_venv_cmd, quote_activate_cmd(activate_cmd), install_cmd,
+                            pip_upgrade_cmd, deactivate_cmd]
+                ret, err_msg = self._run_venv_setup_command(cmd_list, cmd_separator)
 
         if ret:
             logger.info(f"Created the temporary virtualenv({venv_path}).")
@@ -1450,11 +1571,40 @@ class Pypi(PackageManager):
 
         return ret
 
+    def _pip_subprocess_env(self):
+        """Env for nested pip/venv calls; drop parent VIRTUAL_ENV to avoid tox bleed-in."""
+        pip_env = os.environ.copy()
+        pip_env.setdefault("PIP_PROGRESS_BAR", "off")
+        pip_env.setdefault("PIP_DISABLE_PIP_VERSION_CHECK", "1")
+        # pip 25+ can emit ANSI-colored `pip inspect` JSON; that breaks json.loads.
+        pip_env["NO_COLOR"] = "1"
+        pip_env["PIP_NO_COLOR"] = "1"
+        pip_env["FORCE_COLOR"] = "0"
+        pip_env["CLICOLOR_FORCE"] = "0"
+        pip_env.setdefault("TERM", "dumb")
+        # When tests run under tox, VIRTUAL_ENV points at the tox env. Nested analysis
+        # venvs must not inherit it — pip/virtualenv can then target the wrong tree.
+        pip_env.pop("VIRTUAL_ENV", None)
+        pip_env.pop("_OLD_VIRTUAL_PATH", None)
+        pip_env.pop("_OLD_VIRTUAL_PYTHONHOME", None)
+        pip_env.pop("_OLD_VIRTUAL_PS1", None)
+        return pip_env
+
     def _run_venv_setup_command(self, cmd_list, cmd_separator):
         """Run a virtualenv setup command list and return (success, error_message)."""
         cmd = cmd_separator.join(cmd_list)
+        pip_env = self._pip_subprocess_env()
         try:
-            cmd_ret = subprocess.run(cmd, shell=True, stderr=subprocess.PIPE)
+            # Capture stdout too. When the parent (e.g. pytest) has redirected stdout to a
+            # pipe, leaving it inherited can fill the pipe and SIGPIPE mid-`pip install`,
+            # leaving an incomplete venv and an empty DEP sheet.
+            cmd_ret = run_venv_subprocess(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=pip_env,
+            )
             return describe_venv_failure(cmd_ret)
         except Exception as e:
             return False, e
@@ -1462,9 +1612,91 @@ class Pypi(PackageManager):
     def start_pip_inspect(self):
         ret = True
         pipdeptree = 'pipdeptree'
-        tmp_pip_list = "tmp_list.txt"
-        python_cmd = "python -m"
+        tmp_pip_list = os.path.join(self.input_dir, "tmp_list.txt")
+        inspect_path = os.path.join(self.input_dir, self.tmp_file_name)
+        deptree_path = os.path.join(self.input_dir, self.tmp_deptree_file)
+        pip_env = self._pip_subprocess_env()
 
+        # Prefer the venv interpreter directly. Shell `activate` + stdout redirects are
+        # flaky when the parent process captures stdout (pytest), and have produced empty
+        # `pip inspect` files while later commands still exited 0 with ';'.
+        venv_python = self._resolve_venv_python()
+        use_direct_venv = os.path.isabs(venv_python) and os.path.isfile(venv_python)
+
+        if use_direct_venv:
+            try:
+                freeze = run_venv_subprocess(
+                    [venv_python, "-m", "pip", "freeze"],
+                    capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
+                )
+                if freeze.returncode != 0:
+                    logger.error(f"Failed to freeze dependencies: {freeze.stderr}")
+                    return False
+                exists_pipdeptree = any(
+                    line.split("==", 1)[0] == pipdeptree
+                    for line in freeze.stdout.splitlines()
+                )
+
+                inspect_proc = run_venv_subprocess(
+                    [venv_python, "-m", "pip", "--no-color", "inspect"],
+                    capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
+                )
+                if inspect_proc.returncode != 0 or not inspect_proc.stdout.strip():
+                    logger.error(
+                        "Failed to run pip inspect"
+                        f" (rc={inspect_proc.returncode}): {inspect_proc.stderr}"
+                    )
+                    return False
+                # Persist plain JSON so later parse_oss_information is not broken by
+                # pip color codes that some environments still inject.
+                inspect_text = strip_ansi(inspect_proc.stdout)
+                with open(inspect_path, "w", encoding="utf-8") as inspect_file:
+                    inspect_file.write(inspect_text)
+
+                if not exists_pipdeptree:
+                    install = run_venv_subprocess(
+                        [venv_python, "-m", "pip", "install", pipdeptree],
+                        capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
+                    )
+                    if install.returncode != 0:
+                        logger.error(f"Failed to install pipdeptree: {install.stderr}")
+                        return False
+
+                deptree = run_venv_subprocess(
+                    [
+                        venv_python, "-m", "pipdeptree",
+                        "--json-tree", "-e", "pipdeptree,pip,wheel,setuptools",
+                    ],
+                    capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
+                )
+                if deptree.returncode != 0:
+                    logger.error(f"Failed to run pipdeptree: {deptree.stderr}")
+                    return False
+                with open(deptree_path, "w", encoding="utf-8") as deptree_file:
+                    deptree_file.write(deptree.stdout)
+
+                if not exists_pipdeptree:
+                    run_venv_subprocess(
+                        [venv_python, "-m", "pip", "uninstall", "-y", pipdeptree],
+                        capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
+                    )
+
+                self.append_input_package_list_file(self.tmp_file_name)
+                inspect_data = loads_json_text(inspect_text)
+                for package in inspect_data.get("installed", []):
+                    metadata = package.get("metadata", {})
+                    package_name = metadata.get("name", "")
+                    if package_name and package_name not in ["pip", "setuptools", "wheel"]:
+                        self.total_dep_list.append(
+                            self._normalize_package_name(package_name)
+                        )
+                return True
+            except Exception as e:
+                logger.error(f"Failed to get package information using pip inspect: {e}")
+                return False
+
+        # Fallback for caller-supplied activation environments (no local venv path).
+        python_cmd = "python -m"
         if self.pip_activate_cmd.startswith("source "):
             tmp_activate = self.pip_activate_cmd[7:]
             pip_activate_cmd = f". {tmp_activate}"
@@ -1472,16 +1704,14 @@ class Pypi(PackageManager):
             if self.platform == const.LINUX:
                 tmp_activate = "eval \"$(conda shell.bash hook)\";"
                 pip_activate_cmd = tmp_activate + self.pip_activate_cmd
+            else:
+                pip_activate_cmd = self.pip_activate_cmd
         else:
             pip_activate_cmd = self.pip_activate_cmd
 
-        if self.platform == const.WINDOWS:
-            command_separator = "&"
-        else:
-            command_separator = ";"
-
+        command_separator = "&&"
         activate_command = quote_activate_cmd(pip_activate_cmd)
-        pip_list_command = f"{python_cmd} pip freeze > {tmp_pip_list}"
+        pip_list_command = f"{python_cmd} pip freeze > {quote_shell_path(tmp_pip_list)}"
         deactivate_command = self.pip_deactivate_cmd
 
         command_list = [activate_command, pip_list_command, deactivate_command]
@@ -1489,7 +1719,7 @@ class Pypi(PackageManager):
 
         exists_pipdeptree = False
         try:
-            cmd_ret = subprocess.call(command, shell=True)
+            cmd_ret = subprocess.call(command, shell=True, env=pip_env)
             if cmd_ret != 0:
                 ret = False
                 err_msg = f"cmd ret code({cmd_ret})"
@@ -1510,42 +1740,45 @@ class Pypi(PackageManager):
             logger.error(f"Failed to freeze dependencies ({command}): {err_msg})")
             return False
 
-        command_list = []
-        command_list.append(activate_command)
-
-        pip_inspect_command = f"{python_cmd} pip inspect > {self.tmp_file_name}"
-        command_list.append(pip_inspect_command)
-
+        command_list = [activate_command]
+        command_list.append(
+            f"{python_cmd} pip --no-color inspect > {quote_shell_path(inspect_path)}"
+        )
         if not exists_pipdeptree:
-            install_deptree_command = f"{python_cmd} pip install {pipdeptree}"
-            command_list.append(install_deptree_command)
+            command_list.append(f"{python_cmd} pip install {pipdeptree}")
             uninstall_deptree_command = f"{python_cmd} pip uninstall -y {pipdeptree}"
-        pipdeptree_command = f"{pipdeptree} --json-tree -e 'pipdeptree,pip,wheel,setuptools' > {self.tmp_deptree_file}"
-        command_list.append(pipdeptree_command)
-
+        command_list.append(
+            f"{pipdeptree} --json-tree -e 'pipdeptree,pip,wheel,setuptools' > "
+            f"{quote_shell_path(deptree_path)}"
+        )
         if not exists_pipdeptree:
             command_list.append(uninstall_deptree_command)
-
         command_list.append(deactivate_command)
         command = command_separator.join(command_list)
 
         try:
-            cmd_ret = subprocess.call(command, shell=True)
+            cmd_ret = subprocess.call(command, shell=True, env=pip_env)
             if cmd_ret == 0:
-                if os.path.exists(self.tmp_file_name):
+                if os.path.exists(inspect_path) and os.path.getsize(inspect_path) > 0:
+                    with open(inspect_path, 'r', encoding='utf-8') as json_f:
+                        inspect_text = strip_ansi(json_f.read())
+                    with open(inspect_path, 'w', encoding='utf-8') as json_f:
+                        json_f.write(inspect_text)
                     self.append_input_package_list_file(self.tmp_file_name)
-
-                    with open(self.tmp_file_name, 'r', encoding='utf-8') as json_f:
-                        inspect_data = json.load(json_f)
-                        for package in inspect_data.get('installed', []):
-                            metadata = package.get('metadata', {})
-                            package_name = metadata.get('name', '')
-                            if package_name:
-                                if package_name in ['pip', 'setuptools', 'wheel']:
-                                    continue
-                                self.total_dep_list.append(self._normalize_package_name(package_name))
+                    inspect_data = loads_json_text(inspect_text)
+                    for package in inspect_data.get('installed', []):
+                        metadata = package.get('metadata', {})
+                        package_name = metadata.get('name', '')
+                        if package_name:
+                            if package_name in ['pip', 'setuptools', 'wheel']:
+                                continue
+                            self.total_dep_list.append(
+                                self._normalize_package_name(package_name)
+                            )
                 else:
-                    logger.error(f"pip inspect output file not found: {self.tmp_file_name}")
+                    logger.error(
+                        f"pip inspect output file not found or empty: {inspect_path}"
+                    )
                     ret = False
             else:
                 logger.error(f"Failed to run command: {command}")
@@ -1561,7 +1794,7 @@ class Pypi(PackageManager):
         try:
             oss_init_name = ''
             with open(f_name, 'r', encoding='utf-8') as json_file:
-                inspect_data = json.load(json_file)
+                inspect_data = loads_json_text(json_file.read())
 
             for package in inspect_data.get('installed', []):
                 dep_item = DependencyItem()
@@ -1722,11 +1955,12 @@ class Pypi(PackageManager):
             return
 
         self.direct_dep = True
-        if not os.path.exists(self.tmp_deptree_file):
+        deptree_path = os.path.join(self.input_dir, self.tmp_deptree_file)
+        if not os.path.exists(deptree_path):
             self.direct_dep = False
             return
         try:
-            with open(self.tmp_deptree_file, 'r', encoding='utf8') as f:
+            with open(deptree_path, 'r', encoding='utf8') as f:
                 json_f = json.load(f)
                 root_package = json_f
                 if ('pyproject.toml' in self.manifest_file_name) or ('setup.py' in self.manifest_file_name):

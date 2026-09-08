@@ -33,10 +33,13 @@ remove_directories = set_up_directories
 def setup_test_result_dir_and_teardown():
     print("==============setup==============")
     for directory in set_up_directories:
+        # Drop stale reports from earlier runs so asserts always read this session's output.
+        if os.path.isdir(directory):
+            shutil.rmtree(directory)
         os.makedirs(directory, exist_ok=True)
 
     yield
 
     print("==============tearDown==============")
     for directory in remove_directories:
-        shutil.rmtree(directory)
+        shutil.rmtree(directory, ignore_errors=True)
