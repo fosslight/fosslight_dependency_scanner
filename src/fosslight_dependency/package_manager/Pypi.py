@@ -41,6 +41,10 @@ MAX_WHEEL_SIZE = 100 * 1024 * 1024
 
 MAX_ERR_OUTPUT_CHARS = 2000
 
+# Hard cap for nested venv/pip/pipdeptree calls. Resolvers, builds, and network
+# stalls must not block dependency analysis or CI indefinitely.
+_VENV_SUBPROCESS_TIMEOUT = 600
+
 # Child process output can carry credentials: a private index is configured with
 # --extra-index-url/--index-url (see run_plugin), and pip echoes that URL in its error
 # messages. Mask them before the text reaches a log file or CI output.
@@ -68,6 +72,32 @@ def redact_secrets(text):
     for pattern, replacement in _SECRET_PATTERNS:
         text = pattern.sub(replacement, text)
     return text
+
+
+def _format_cmd_for_log(cmd):
+    if isinstance(cmd, (list, tuple)):
+        return ' '.join(str(part) for part in cmd)
+    return str(cmd)
+
+
+def run_venv_subprocess(cmd, *, env=None, cwd=None, shell=False,
+                        timeout=_VENV_SUBPROCESS_TIMEOUT, **kwargs):
+    """Run a venv-related subprocess with a shared timeout; log the cmd on expiry."""
+    try:
+        return subprocess.run(
+            cmd,
+            env=env,
+            cwd=cwd,
+            shell=shell,
+            timeout=timeout,
+            **kwargs,
+        )
+    except subprocess.TimeoutExpired:
+        logger.error(
+            f"Timed out after {timeout}s running: "
+            f"{redact_secrets(_format_cmd_for_log(cmd))}"
+        )
+        raise
 
 
 def strip_ansi(text):
@@ -1568,7 +1598,7 @@ class Pypi(PackageManager):
             # Capture stdout too. When the parent (e.g. pytest) has redirected stdout to a
             # pipe, leaving it inherited can fill the pipe and SIGPIPE mid-`pip install`,
             # leaving an incomplete venv and an empty DEP sheet.
-            cmd_ret = subprocess.run(
+            cmd_ret = run_venv_subprocess(
                 cmd,
                 shell=True,
                 stdout=subprocess.PIPE,
@@ -1595,7 +1625,7 @@ class Pypi(PackageManager):
 
         if use_direct_venv:
             try:
-                freeze = subprocess.run(
+                freeze = run_venv_subprocess(
                     [venv_python, "-m", "pip", "freeze"],
                     capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
                 )
@@ -1607,7 +1637,7 @@ class Pypi(PackageManager):
                     for line in freeze.stdout.splitlines()
                 )
 
-                inspect_proc = subprocess.run(
+                inspect_proc = run_venv_subprocess(
                     [venv_python, "-m", "pip", "--no-color", "inspect"],
                     capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
                 )
@@ -1624,7 +1654,7 @@ class Pypi(PackageManager):
                     inspect_file.write(inspect_text)
 
                 if not exists_pipdeptree:
-                    install = subprocess.run(
+                    install = run_venv_subprocess(
                         [venv_python, "-m", "pip", "install", pipdeptree],
                         capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
                     )
@@ -1632,7 +1662,7 @@ class Pypi(PackageManager):
                         logger.error(f"Failed to install pipdeptree: {install.stderr}")
                         return False
 
-                deptree = subprocess.run(
+                deptree = run_venv_subprocess(
                     [
                         venv_python, "-m", "pipdeptree",
                         "--json-tree", "-e", "pipdeptree,pip,wheel,setuptools",
@@ -1646,7 +1676,7 @@ class Pypi(PackageManager):
                     deptree_file.write(deptree.stdout)
 
                 if not exists_pipdeptree:
-                    subprocess.run(
+                    run_venv_subprocess(
                         [venv_python, "-m", "pip", "uninstall", "-y", pipdeptree],
                         capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
                     )
