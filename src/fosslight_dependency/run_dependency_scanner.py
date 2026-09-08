@@ -296,15 +296,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             to_remove = []  # elements of spdx format on windows that should be removed
             for i, output_extension in enumerate(output_extensions):
                 if formats:
-                    if formats[i].startswith('spdx') or formats[i].startswith('cyclonedx'):
+                    if formats[i].startswith('spdx'):
                         if platform.system() == 'Windows':
                             logger.warning(f'{formats[i]} is not supported on Windows.Please remove {formats[i]} from format.')
                             to_remove.append(i)
                         else:
-                            if formats[i].startswith('spdx'):
-                                output_files[i] = f"fosslight_spdx_dep_{_file_time}"
-                            elif formats[i].startswith('cyclonedx'):
-                                output_files[i] = f'fosslight_cyclonedx_dep_{_file_time}'
+                            output_files[i] = f"fosslight_spdx_dep_{_file_time}"
+                    elif formats[i].startswith('cyclonedx'):
+                        output_files[i] = f'fosslight_cyclonedx_dep_{_file_time}'
                     else:
                         if output_extension == _json_ext:
                             output_files[i] = f"fosslight_opossum_dep_{_file_time}"
