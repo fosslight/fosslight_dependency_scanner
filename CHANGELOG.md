@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.51 (10/09/2026)
+## Changes
+## 🐛 Hotfixes
+
+- fix(npm): tolerate missing repository in license-checker output @soimkim (#341)
+
+## 🔧 Maintenance
+
+- Assert DEP_FL_Dependency has data rows @soimkim (#340)
+
+---
+
 ## v4.1.50 (07/09/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -294,11 +306,3 @@
 ## 🔧 Maintenance
 
 - Remove wheel pkg in pypi oss list @dd-jy (#269)
-
----
-
-## v4.1.21 (23/09/2025)
-## Changes
-## 🚀 Features
-
-- Try to install with yarn if npm failed @soimkim (#267)
