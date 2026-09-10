@@ -131,10 +131,7 @@ class Yarn(Npm):
             oss_init_name = d['name']
             oss_item.name = f'{const.NPM}:{oss_init_name}'
 
-            if d[_licenses]:
-                license_name = d[_licenses]
-            else:
-                license_name = ''
+            license_name = d.get(_licenses) or ''
 
             oss_item.version = d['version']
             package_path = d['path']
@@ -150,7 +147,9 @@ class Yarn(Npm):
             dep_item.purl = get_url_to_purl(npm_dl_url, self.package_manager_name)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
 
-            repo_url = d[_repository] if d[_repository] else ''
+            # license-checker may omit repository when package.json has a non-string
+            # repository object without url (customPath default is then skipped).
+            repo_url = d.get(_repository) or ''
             if private_pkg:
                 oss_item.homepage = repo_url or ''
                 oss_item.download_location = oss_item.homepage
