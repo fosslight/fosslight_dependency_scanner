@@ -40,6 +40,10 @@ def setup_test_result_dir_and_teardown():
 
     yield
 
+    if os.environ.get("FOSSLIGHT_PRESERVE_DAILY_TEST_RESULTS") == "1":
+        print("==============tearDown skipped (FOSSLIGHT_PRESERVE_DAILY_TEST_RESULTS=1)==============")
+        return
+
     print("==============tearDown==============")
     for directory in remove_directories:
         shutil.rmtree(directory, ignore_errors=True)
