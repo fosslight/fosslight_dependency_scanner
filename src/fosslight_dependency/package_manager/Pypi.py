@@ -1574,6 +1574,8 @@ class Pypi(PackageManager):
     def _pip_subprocess_env(self):
         """Env for nested pip/venv calls; drop parent VIRTUAL_ENV to avoid tox bleed-in."""
         pip_env = os.environ.copy()
+        pip_env["PYTHONUTF8"] = "1"
+        pip_env["PYTHONIOENCODING"] = "utf-8"
         pip_env.setdefault("PIP_PROGRESS_BAR", "off")
         pip_env.setdefault("PIP_DISABLE_PIP_VERSION_CHECK", "1")
         # pip 25+ can emit ANSI-colored `pip inspect` JSON; that breaks json.loads.
@@ -1639,9 +1641,10 @@ class Pypi(PackageManager):
 
                 inspect_proc = run_venv_subprocess(
                     [venv_python, "-m", "pip", "--no-color", "inspect"],
-                    capture_output=True, text=True, env=pip_env, cwd=self.input_dir,
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    env=pip_env, cwd=self.input_dir,
                 )
-                if inspect_proc.returncode != 0 or not inspect_proc.stdout.strip():
+                if inspect_proc.returncode != 0 or not (inspect_proc.stdout or "").strip():
                     logger.error(
                         "Failed to run pip inspect"
                         f" (rc={inspect_proc.returncode}): {inspect_proc.stderr}"
