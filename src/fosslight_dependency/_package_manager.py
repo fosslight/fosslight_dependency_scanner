@@ -362,12 +362,19 @@ class PackageManager:
 
     def add_android_plugin_in_gradle(self, module_build_gradle, gradle_file):
         is_kts = gradle_file == 'build.gradle.kts'
+
+        gradle_ver = get_gradle_version_from_wrapper(self.input_dir)
+        if gradle_ver and gradle_ver >= (9, 0):   # Gradle 9+
+            plugin_version = '2.0.0'
+        else:
+            plugin_version = '1.0.0'
+
         if is_kts:
             apply = 'apply(plugin = "org.fosslight")\n'
-            plugin_classpath = '        classpath("org.fosslight:android-dependency-scanning:+")'
+            plugin_classpath = f'        classpath("org.fosslight:android-dependency-scanning:{plugin_version}")'
         else:
             apply = "apply plugin: 'org.fosslight'\n"
-            plugin_classpath = "        classpath 'org.fosslight:android-dependency-scanning:+'"
+            plugin_classpath = f"        classpath 'org.fosslight:android-dependency-scanning:{plugin_version}'"
 
         complete_buildscript = (
             "buildscript {\n"
