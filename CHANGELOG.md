@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.1.52 (17/09/2026)
+## Changes
+## 🐛 Hotfixes
+
+- Handle UTF-8 pip inspect output on Windows @woocheol-lge (#343)
+- Align dependency report output path with assertion script @woocheol-lge (#342)
+
+---
+
 ## v4.1.51 (10/09/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -294,15 +303,3 @@
 ## 🐛 Hotfixes
 
 - Distinguish flutter sdk in package list @dd-jy (#270)
-
----
-
-## v4.1.22 (16/10/2025)
-## Changes
-## 🚀 Features
-
-- Support yarn dependency tree @dd-jy (#268)
-
-## 🔧 Maintenance
-
-- Remove wheel pkg in pypi oss list @dd-jy (#269)
