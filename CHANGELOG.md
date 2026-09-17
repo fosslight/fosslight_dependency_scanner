@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.53 (17/09/2026)
+## Changes
+## 🚀 Features
+
+- fix(cyclonedx): update dependency BOM metadata @JustinWonjaePark (#344)
+
+---
+
 ## v4.1.52 (17/09/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -295,11 +303,3 @@
 ## 🔧 Maintenance
 
 - Add to get license from pom additionally @dd-jy (#271)
-
----
-
-## v4.1.23 (12/11/2025)
-## Changes
-## 🐛 Hotfixes
-
-- Distinguish flutter sdk in package list @dd-jy (#270)
