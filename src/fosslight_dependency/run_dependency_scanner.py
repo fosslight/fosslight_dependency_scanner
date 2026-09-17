@@ -296,15 +296,14 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             to_remove = []  # elements of spdx format on windows that should be removed
             for i, output_extension in enumerate(output_extensions):
                 if formats:
-                    if formats[i].startswith('spdx') or formats[i].startswith('cyclonedx'):
+                    if formats[i].startswith('spdx'):
                         if platform.system() == 'Windows':
                             logger.warning(f'{formats[i]} is not supported on Windows.Please remove {formats[i]} from format.')
                             to_remove.append(i)
                         else:
-                            if formats[i].startswith('spdx'):
-                                output_files[i] = f"fosslight_spdx_dep_{_file_time}"
-                            elif formats[i].startswith('cyclonedx'):
-                                output_files[i] = f'fosslight_cyclonedx_dep_{_file_time}'
+                            output_files[i] = f"fosslight_spdx_dep_{_file_time}"
+                    elif formats[i].startswith('cyclonedx'):
+                        output_files[i] = f'fosslight_cyclonedx_dep_{_file_time}'
                     else:
                         if output_extension == _json_ext:
                             output_files[i] = f"fosslight_opossum_dep_{_file_time}"
@@ -497,7 +496,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
     results = []
     for i, output_extension in enumerate(output_extensions):
         results.append(write_output_file(combined_paths_and_files[i], output_extension, scan_item,
-                                         EXTENDED_HEADER, '', formats[i]))
+                                         EXTENDED_HEADER, '', formats[i], scanner_covers=[scan_item.cover]))
     for success_write, err_msg, result_file in results:
         if success_write:
             if result_file:
