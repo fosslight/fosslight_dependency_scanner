@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.54 (18/09/2026)
+## Changes
+## 🔧 Maintenance
+
+- Use plugin v2 for Gradle 9 and later @woocheol-lge (#345)
+
+---
+
 ## v4.1.53 (17/09/2026)
 ## Changes
 ## 🚀 Features
@@ -295,11 +303,3 @@
 ## 🔧 Maintenance
 
 - Update supported format @dd-jy (#272)
-
----
-
-## v4.1.24 (12/12/2025)
-## Changes
-## 🔧 Maintenance
-
-- Add to get license from pom additionally @dd-jy (#271)
