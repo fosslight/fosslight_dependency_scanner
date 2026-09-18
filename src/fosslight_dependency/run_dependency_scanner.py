@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import platform
 import re
 import sys
 import warnings
@@ -293,15 +292,10 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         if not output_files:
             while len(output_files) < len(output_extensions):
                 output_files.append(None)
-            to_remove = []  # elements of spdx format on windows that should be removed
             for i, output_extension in enumerate(output_extensions):
                 if formats:
                     if formats[i].startswith('spdx'):
-                        if platform.system() == 'Windows':
-                            logger.warning(f'{formats[i]} is not supported on Windows.Please remove {formats[i]} from format.')
-                            to_remove.append(i)
-                        else:
-                            output_files[i] = f"fosslight_spdx_dep_{_file_time}"
+                        output_files[i] = f"fosslight_spdx_dep_{_file_time}"
                     elif formats[i].startswith('cyclonedx'):
                         output_files[i] = f'fosslight_cyclonedx_dep_{_file_time}'
                     else:
@@ -314,13 +308,6 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                         output_files[i] = f"fosslight_opossum_dep_{_file_time}"
                     else:
                         output_files[i] = f"fosslight_report_dep_{_file_time}"
-            for index in sorted(to_remove, reverse=True):
-                # remove elements of spdx format on windows
-                del output_files[index]
-                del output_extensions[index]
-                del formats[index]
-            if len(output_extensions) < 1:
-                sys.exit(0)
     else:
         logger.error(msg)
         sys.exit(1)
