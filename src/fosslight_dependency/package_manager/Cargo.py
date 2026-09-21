@@ -28,29 +28,67 @@ class Cargo(PackageManager):
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.cur_path = os.getcwd()
+        self.input_file_name = os.path.abspath(os.path.join(self.input_dir, self.input_file_name))
         self.append_input_package_list_file(self.input_file_name)
 
     def __del__(self):
-        if self.tmp_input_file_flag:
-            os.remove(self.input_file_name)
+        try:
+            self.restore_cwd()
+        except Exception:
+            pass
+        try:
+            if (
+                getattr(self, 'tmp_input_file_flag', False)
+                and os.path.exists(self.input_file_name)
+            ):
+                os.remove(self.input_file_name)
+        except Exception:
+            pass
+
+    def restore_cwd(self):
+        if not self.cur_path:
+            logger.warning('Cannot restore Cargo working directory because no previous path was recorded.')
+            return
+        if not os.path.isdir(self.cur_path):
+            logger.warning(f'Cannot restore Cargo working directory because the saved path does not exist: {self.cur_path}')
+            return
+        try:
+            os.chdir(self.cur_path)
+        except OSError as e:
+            logger.warning(f'Failed to restore working directory to {self.cur_path}: {e}')
 
     def run_plugin(self):
         if os.path.exists(self.input_file_name):
-            logger.info(f"Found {self.input_file_name}, skip the flutter cmd to analyze dependency.")
+            logger.info(
+                f"Found {self.input_file_name}, skip the cargo cmd to analyze dependency."
+            )
             return True
 
-        if not os.path.exists(const.SUPPORT_PACKAGE.get(self.package_manager_name)):
-            logger.error(f"Cannot find the file({const.SUPPORT_PACKAGE.get(self.package_manager_name)})")
+        manifest_file = os.path.join(self.input_dir, const.SUPPORT_PACKAGE.get(self.package_manager_name))
+        if not os.path.exists(manifest_file):
+            logger.error(f"Cannot find the file({manifest_file})")
             return False
 
-        if os.path.exists(self.cargo_lock_f):
-            cmd = f'cargo metadata --locked --format-version 1 > {self.input_file_name}'
+        if os.path.exists(os.path.join(self.input_dir, self.cargo_lock_f)):
+            cmd = ['cargo', 'metadata', '--locked', '--format-version', '1']
         else:
-            cmd = f'cargo metadata --format-version 1 > {self.input_file_name}'
-        ret = subprocess.call(cmd, shell=True)
+            cmd = ['cargo', 'metadata', '--format-version', '1']
+
+        try:
+            with open(self.input_file_name, 'w', encoding='utf-8') as output_file:
+                ret = subprocess.run(
+                    cmd,
+                    cwd=self.input_dir,
+                    stdout=output_file,
+                    check=False,
+                ).returncode
+        except OSError as e:
+            logger.error(f"Failed to run: {' '.join(cmd)}: {e}")
+            return False
+
         if ret != 0:
-            logger.error(f"Failed to run: {cmd}")
-            os.chdir(self.cur_path)
+            logger.error(f"Failed to run: {' '.join(cmd)}")
             return False
         self.tmp_input_file_flag = True
         return True
