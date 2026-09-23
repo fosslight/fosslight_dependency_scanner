@@ -34,8 +34,14 @@ class Pub(PackageManager):
         self.append_input_package_list_file(const.SUPPORT_PACKAGE.get(self.package_manager_name))
 
     def __del__(self):
-        if self.cur_path != '':
-            os.chdir(self.cur_path)
+        self.restore_cwd()
+
+    def restore_cwd(self):
+        if self.cur_path and os.path.isdir(self.cur_path):
+            try:
+                os.chdir(self.cur_path)
+            except OSError as e:
+                logger.warning(f"Failed to restore working directory to {self.cur_path}: {e}")
 
     def run_plugin(self):
         if not os.path.exists(const.SUPPORT_PACKAGE.get(self.package_manager_name)):
@@ -349,6 +355,7 @@ class Pub(PackageManager):
                     logger.info(f'Fail to encode with {encode}: {e1}')
                 except Exception as e:
                     logger.error(f'Fail to parse tmp pub deps result file: {e}')
+                    self.restore_cwd()
                     return False
                 else:
                     logger.info(f'Success to encode with {encode}.')
@@ -359,7 +366,7 @@ class Pub(PackageManager):
                 ret = subprocess.call(cmd, shell=True)
                 if ret != 0:
                     logger.error(f"Failed to run: {cmd}")
-                    os.chdir(self.cur_path)
+                    self.restore_cwd()
                     return False
 
                 cmd = "flutter pub deps --json"
@@ -368,6 +375,7 @@ class Pub(PackageManager):
                     deps_l = json.loads(ret_txt)
                     self.parse_pub_deps_file(deps_l)
                 else:
+                    self.restore_cwd()
                     return False
 
                 cmd = "flutter pub deps --no-dev -s compact"
@@ -377,5 +385,7 @@ class Pub(PackageManager):
 
             except Exception as e:
                 logger.error(f'Fail to run flutter command:{e}')
+                self.restore_cwd()
+                return False
         self.supplement_pkg_details_from_lock()
         return True

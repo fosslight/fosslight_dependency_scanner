@@ -100,26 +100,29 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     if ret:
         if direct:
-            package_manager.parse_direct_dependencies()
-
-        for f_name in package_manager.input_package_list_file:
-            logger.info(f"Parse oss information with file: {f_name}")
-
-            file_path = os.path.join(input_dir, f_name) if not os.path.isabs(f_name) else f_name
-            if os.path.isfile(file_path):
-                # Always open via absolute path. run_plugin / nested tools may leave cwd
-                # elsewhere, and a relative f_name then reads the wrong (or empty) file.
-                package_manager.parse_oss_information(file_path)
-                package_dep_item_list.extend(package_manager.dep_items)
-            else:
-                logger.error(f"Failed to open input file: {file_path}")
+            direct_ret = package_manager.parse_direct_dependencies()
+            if direct_ret is False:
                 ret = False
-        if package_manager_name == const.PNPM:
-            logger.info("Parse oss information for pnpm")
-            package_manager.parse_oss_information_for_pnpm()
-            package_dep_item_list.extend(package_manager.dep_items)
-        if package_dep_item_list:
-            package_dep_item_list = deduplicate_dep_items(package_dep_item_list)
+
+        if ret:
+            for f_name in package_manager.input_package_list_file:
+                logger.info(f"Parse oss information with file: {f_name}")
+
+                file_path = os.path.join(input_dir, f_name) if not os.path.isabs(f_name) else f_name
+                if os.path.isfile(file_path):
+                    package_manager.parse_oss_information(file_path)
+                    package_dep_item_list.extend(package_manager.dep_items)
+                else:
+                    logger.error(f"Failed to open input file: {file_path}")
+                    ret = False
+                    break
+
+            if ret and package_manager_name == const.PNPM:
+                logger.info("Parse oss information for pnpm")
+                package_manager.parse_oss_information_for_pnpm()
+                package_dep_item_list.extend(package_manager.dep_items)
+            if ret and package_dep_item_list:
+                package_dep_item_list = deduplicate_dep_items(package_dep_item_list)
     if ret:
         logger.warning(f"### Complete to analyze: {package_manager_name}({input_dir}: {','.join(manifest_file_name)})")
     else:
@@ -127,6 +130,9 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
 
     if package_manager.cover_comment:
         cover_comment = package_manager.cover_comment
+
+    if hasattr(package_manager, 'restore_cwd'):
+        package_manager.restore_cwd()
 
     del package_manager
 
