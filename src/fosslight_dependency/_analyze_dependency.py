@@ -29,8 +29,11 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 
 def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate_cmd='', pip_deactivate_cmd='',
-                       output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=[],
+                       output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=None,
                        direct=True):
+    if manifest_file_name is None:
+        manifest_file_name = []
+
     ret = True
     package_dep_item_list = []
     cover_comment = ''
@@ -80,6 +83,9 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
     if direct:
         package_manager.set_direct_dependencies(direct)
     ret = package_manager.run_plugin()
+
+    if ret and isinstance(manifest_file_name, list):
+        manifest_file_name[:] = list(package_manager.manifest_file_name)
 
     if not ret and npm_fallback_to_yarn:
         logger.warning("Npm analysis failed. Attempting to use Yarn as fallback...")
