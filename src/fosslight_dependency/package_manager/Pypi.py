@@ -389,48 +389,113 @@ class Pypi(PackageManager):
                 normalized_names.append(normalized_extra)
         return normalized_names
 
-    def _get_pyproject_root_packages(self):
-        """Extract direct dependency names from pyproject.toml."""
-        root_packages = []
+    def _remove_manifest_file(self, manifest_name):
+        if manifest_name in self.manifest_file_name:
+            self.set_manifest_file([
+                file_name for file_name in self.manifest_file_name if file_name != manifest_name
+            ])
+
+    def _has_meaningful_pyproject_content(self, pyproject_data):
+        return isinstance(pyproject_data, dict) and any(
+            key in pyproject_data for key in ('project', 'tool', 'build-system')
+        )
+
+    def _read_pyproject_data(self):
+        """Read and validate TOML once, without changing the manifest selection."""
         pyproject_path = os.path.join(self.input_dir, 'pyproject.toml')
         if not os.path.isfile(pyproject_path):
-            return root_packages
+            logger.warning('pyproject.toml not found.')
+            return {}
+
+        if tomllib is None:
+            logger.warning('Cannot parse pyproject.toml because neither tomllib nor tomli is available.')
+            return {}
 
         try:
             with open(pyproject_path, 'rb') as fh:
                 pyproject_data = tomllib.load(fh)
         except Exception as e:
             logger.warning(f'Failed to parse pyproject.toml: {e}')
+            return {}
+
+        if not self._has_meaningful_pyproject_content(pyproject_data):
+            logger.warning(
+                'pyproject.toml is empty or contains no project metadata; '
+                'no project name or direct dependencies can be extracted.'
+            )
+            return {}
+
+        return pyproject_data
+
+    def _parse_pyproject_metadata(self):
+        """Return the normalized project name and direct dependencies from one read."""
+        logger.info("Parsing pyproject.toml for project name and direct dependencies")
+        pyproject_data = self._read_pyproject_data()
+        if not pyproject_data:
+            return '', []
+
+        project_data = pyproject_data.get('project', {})
+        if not isinstance(project_data, dict):
+            project_data = {}
+
+        project_name = ''
+        raw_project_name = project_data.get('name', '')
+        if isinstance(raw_project_name, str) and raw_project_name.strip():
+            project_name = self._normalize_package_name(raw_project_name)
+
+        root_packages = self._parse_pep621_dependencies(project_data.get('dependencies', []))
+        if not root_packages:
+            root_packages = self._parse_poetry_dependencies(pyproject_data)
+
+        root_packages = list(dict.fromkeys(root_packages))
+        if project_name and root_packages:
+            logger.info(f"Found project '{project_name}' with {len(root_packages)} direct dependencies")
+        return project_name, root_packages
+
+    def _parse_pep621_dependencies(self, dependencies):
+        """Extract PEP 621 dependency names applicable to the current environment."""
+        root_packages = []
+        if not isinstance(dependencies, list):
             return root_packages
 
-        # PEP 621 [project].dependencies (list of PEP 508 requirement strings)
-        project_data = pyproject_data.get('project', {})
-        dependencies = project_data.get('dependencies', [])
         for dependency in dependencies:
             if not isinstance(dependency, str):
                 continue
+
             try:
-                req = Requirement(dependency)
+                requirement = Requirement(dependency)
             except InvalidRequirement:
-                # Fall back to the legacy regex extraction for non-PEP 508 entries.
+                # Fallback for non-PEP 508 dependency entries.
                 match = re.match(r'^\s*([A-Za-z0-9_.-]+)', dependency)
                 if match:
                     root_packages.append(self._normalize_package_name(match.group(1)))
                 continue
-            # Evaluate environment markers against the current platform.
-            if req.marker is not None and not req.marker.evaluate():
+
+            # Evaluate environment markers against the current environment.
+            if requirement.marker is not None and not requirement.marker.evaluate():
                 continue
-            root_packages.append(self._normalize_package_name(req.name))
 
-        # Poetry fallback: [tool.poetry].dependencies is a mapping (name -> spec)
-        if not root_packages:
-            poetry_dependencies = pyproject_data.get('tool', {}).get('poetry', {}).get('dependencies', {})
-            if isinstance(poetry_dependencies, dict):
-                for dependency_name, dependency_spec in poetry_dependencies.items():
-                    if dependency_name in {'python', 'build-system'}:
-                        continue
-                    root_packages.append(self._normalize_package_name(dependency_name))
+            root_packages.append(self._normalize_package_name(requirement.name))
 
+        return root_packages
+
+    def _parse_poetry_dependencies(self, pyproject_data):
+        """Extract legacy Poetry dependency names when PEP 621 yields none."""
+        poetry_dependencies = pyproject_data
+        for key in ('tool', 'poetry', 'dependencies'):
+            if not isinstance(poetry_dependencies, dict):
+                return []
+            poetry_dependencies = poetry_dependencies.get(key, {})
+        if not isinstance(poetry_dependencies, dict):
+            return []
+
+        root_packages = []
+        for dependency_name in poetry_dependencies:
+            if not isinstance(dependency_name, str):
+                continue
+            normalized_name = self._normalize_package_name(dependency_name)
+            if normalized_name not in {'python', 'build-system'}:
+                root_packages.append(normalized_name)
         return root_packages
 
     def _get_uv_lock_package_wheels(self, package_entry):
@@ -808,23 +873,17 @@ class Pypi(PackageManager):
         return selected_packages, selected_package_set, relation_name_map
 
     def _build_uv_lock_metadata(self, uv_lock_data):
-        """Build scanner metadata from pyproject.toml and uv.lock"""
-        # 1. Read direct dependencies and project name from pyproject.toml.
-        direct_root_packages = self._get_pyproject_root_packages()
+        """Build scanner metadata from pyproject.toml and uv.lock."""
+        # 1. Read the project name and direct dependencies from pyproject.toml.
+        self.package_name, direct_root_packages = self._parse_pyproject_metadata()
 
-        self.package_name = ''
-        pyproject_project_name = self._get_pyproject_project_name()
-        if pyproject_project_name:
-            self.package_name = self._normalize_package_name(
-                pyproject_project_name
-            )
-
-        # 2. Build package lookup table from uv.lock.
+        # 2. Build the package lookup table from uv.lock.
         package_entries = (
             uv_lock_data.get('package', [])
             if uv_lock_data
             else []
         )
+
         if not package_entries:
             logger.warning('No package entries found in uv.lock.')
             return {}, []
@@ -846,7 +905,12 @@ class Pypi(PackageManager):
             package_map,
         )
 
-        self.set_manifest_file(['uv.lock'])
+        # Retain the current selection while building the graph. The caller selects
+        # only uv.lock after metadata collection and output generation succeed.
+        if not self.manifest_file_name:
+            self.set_manifest_file(['uv.lock'])
+        elif 'uv.lock' not in self.manifest_file_name:
+            self.set_manifest_file(list(self.manifest_file_name) + ['uv.lock'])
         self.total_dep_list = selected_packages
         self.direct_dep = True
 
@@ -1388,10 +1452,10 @@ class Pypi(PackageManager):
             logger.warning('uv.lock contains no analyzable packages.')
             return False
 
-        # Fetch metadata for each selected package and write the input file. Only
-        # registry-sourced packages are looked up on PyPI; a git/url/path source is
-        # resolved from its own recorded source and wheel core metadata instead, so a
-        # same-named public package is never mistaken for it.
+        # Fetch metadata for each selected package and write the input file.
+        # Only registry-sourced packages are looked up on PyPI; a git/url/path source is
+        # resolved from its own recorded source and wheel core metadata instead,
+        # so a same-named public package is never mistaken for it.
         self.input_package_list_file = []
         installed_packages = []
 
@@ -1427,63 +1491,53 @@ class Pypi(PackageManager):
             )
 
         self._write_dependency_input_file(installed_packages)
-
+        self.set_manifest_file(['uv.lock'])
         return True
 
-    def _get_pyproject_project_name(self):
-        pyproject_path = os.path.join(self.input_dir, 'pyproject.toml')
-        if not os.path.isfile(pyproject_path):
-            return ''
-
-        try:
-            with open(pyproject_path, 'rb') as fh:
-                pyproject_data = tomllib.load(fh)
-        except Exception:
-            return ''
-
-        project_data = pyproject_data.get('project', {})
-        project_name = project_data.get('name', '')
-        if isinstance(project_name, str) and project_name.strip():
-            return project_name
-        return ''
-
     def run_plugin(self):
-        ret = True
-
+        """Prefer lockfile analysis; inspect an installation only as a fallback."""
         uv_lock_path = os.path.join(self.input_dir, 'uv.lock')
         if os.path.exists(uv_lock_path):
-            ret = self._prepare_uv_lock_direct()
-            if not ret:
-                logger.warning("Failed to prepare uv.lock metadata; falling back to virtualenv inspection.")
-                if self.manifest_file_name and 'uv.lock' in self.manifest_file_name:
-                    self.manifest_file_name = [m for m in self.manifest_file_name if m != 'uv.lock']
-                    self.set_manifest_file(self.manifest_file_name)
-                ret = True
-            else:
-                return ret
+            logger.info("Found uv.lock; attempting uv.lock-based PyPI analysis.")
+            if self._prepare_uv_lock_direct():
+                logger.info("uv.lock analysis succeeded; continuing with uv.lock-only manifest selection.")
+                return True
 
+            logger.warning("uv.lock analysis failed; falling back to virtualenv inspection.")
+            if not self._prepare_installation_fallback():
+                return False
+
+        return self._inspect_installation()
+
+    def _prepare_installation_fallback(self):
+        """Drop the failed lockfile without re-reading the project declaration."""
+        self._remove_manifest_file('uv.lock')
+        if self.pip_activate_cmd or self.pip_deactivate_cmd:
+            return True
+        if self.manifest_file_name or any(
+            os.path.exists(os.path.join(self.input_dir, name))
+            for name in ('requirements.txt', 'setup.py', 'pyproject.toml')
+        ):
+            return True
+        logger.error('No PyPI manifest files remain for virtualenv inspection after excluding uv.lock.')
+        return False
+
+    def _collect_index_comments(self):
+        """Include index configuration in the report, with credentials redacted."""
         req_f = 'requirements.txt'
         if os.path.exists(req_f):
             with open(req_f, encoding='utf8') as rf:
-                for rf_line in rf.readlines():
-                    ret_find = rf_line.find('--extra-index-url ')
-                    if ret_find == -1:
-                        ret_find = rf_line.find('--index-url ')
-                    if ret_find == -1:
-                        continue
-                    # The cover comment ends up in the generated report, which is meant
-                    # to be shared. A private index is usually configured with the
-                    # credentials in the URL, so mask them here as well as in the log.
-                    # The host is what makes this note useful and it is preserved.
-                    self.cover_comment += redact_secrets(rf_line)
+                for rf_line in rf:
+                    if any(option in rf_line for option in ('--extra-index-url ', '--index-url ')):
+                        self.cover_comment += redact_secrets(rf_line)
 
+    def _inspect_installation(self):
+        """Inspect a caller-supplied environment or create a temporary one."""
+        self._collect_index_comments()
         if not self.pip_activate_cmd and not self.pip_deactivate_cmd:
-            ret = self.create_virtualenv()
-
-        if ret:
-            ret = self.start_pip_inspect()
-
-        return ret
+            if not self.create_virtualenv():
+                return False
+        return self.start_pip_inspect()
 
     def create_virtualenv(self):
         ret = True
