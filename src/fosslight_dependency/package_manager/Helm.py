@@ -73,7 +73,7 @@ class Helm(PackageManager):
                     dep_item_list.append(dep['name'])
         for dep in dep_item_list:
             try:
-                f_path = os.path.join(self.tmp_charts_dir, dep, f_name)
+                f_path = os.path.join(self.tmp_charts_dir, dep, os.path.basename(f_name))
                 dep_item = DependencyItem()
                 oss_item = OssItem()
                 with open(f_path, 'r', encoding='utf8') as yaml_fp:
@@ -99,7 +99,7 @@ class Helm(PackageManager):
                         oss_item.comment = 'direct'
 
             except Exception as e:
-                logging.warning(f"Fail to parse chart info {dep}: {e}")
+                logger.warning(f"Fail to parse chart info {dep}: {e}")
                 continue
             dep_item.oss_items.append(oss_item)
             self.dep_items.append(dep_item)

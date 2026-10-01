@@ -111,7 +111,7 @@ class Nuget(PackageManager):
 
     def parse_oss_information(self, f_name):
         tmp_license_txt_file_name = 'tmp_license.txt'
-        if f_name == self.directory_packages_props:
+        if os.path.basename(f_name) == self.directory_packages_props:
             return
 
         relation_tree = {}
