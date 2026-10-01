@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.55 (01/10/2026)
+## Changes
+## 🐛 Hotfixes
+
+- feat(pypi): handle empty pyproject and invalid uv.lock fallback @woocheol-lge (#347)
+
+## 🔧 Maintenance
+
+- fix(dependency-scanner): propagate dependency analysis failure for pub and cargo @woocheol-lge (#346)
+
+---
+
 ## v4.1.54 (18/09/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -295,11 +307,3 @@
 
 - Add how to use -e option @bjk7119 (#276)
 - Modify comment in scanner info sheet @dd-jy (#274)
-
----
-
-## v4.1.25 (24/12/2025)
-## Changes
-## 🔧 Maintenance
-
-- Update supported format @dd-jy (#272)
