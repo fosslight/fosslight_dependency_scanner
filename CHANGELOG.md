@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.56 (02/10/2026)
+## Changes
+## 🐛 Hotfixes
+
+- fix(helm, nuget): handle the absolute manifest path given to parse_oss_information @bjk7119 (#348)
+
+---
+
 ## v4.1.55 (01/10/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -287,23 +295,3 @@
 ## 🚀 Features
 
 - Run dotnet restore for all .sln and .csproj @dd-jy (#280)
-
----
-
-## v4.1.26 (13/01/2026)
-## Changes
-## 🚀 Features
-
-- Add auto-restore for Nuget CPM projects @dd-jy (#279)
-- Add dotnet restore cmd when analyzing nuget @dd-jy (#275)
-- Refine npm/yarn dn urls via registry lookup @dd-jy (#278)
-
-## 🐛 Hotfixes
-
-- Fix maven direct/transitive bug @dd-jy (#277)
-- Fix to detect manifest file when path included @dd-jy (#273)
-
-## 🔧 Maintenance
-
-- Add how to use -e option @bjk7119 (#276)
-- Modify comment in scanner info sheet @dd-jy (#274)
