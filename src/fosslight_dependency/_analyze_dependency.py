@@ -30,7 +30,7 @@ logger = logging.getLogger(constant.LOGGER_NAME)
 
 def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate_cmd='', pip_deactivate_cmd='',
                        output_custom_dir='', app_name=const.default_app_name, github_token='', manifest_file_name=None,
-                       direct=True):
+                       direct=True, runtime_config=''):
     if manifest_file_name is None:
         manifest_file_name = []
 
@@ -76,6 +76,9 @@ def analyze_dependency(package_manager_name, input_dir, output_dir, pip_activate
         logger.error(f"Not supported package manager name: {package_manager_name}")
         ret = False
         return ret, package_dep_item_list, cover_comment, package_manager_name
+
+    if runtime_config:
+        package_manager.set_runtime_config(runtime_config)
 
     if manifest_file_name:
         package_manager.set_manifest_file(manifest_file_name)
