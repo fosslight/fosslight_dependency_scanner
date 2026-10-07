@@ -44,6 +44,7 @@ def main():
     graph_size = (600, 600)
     direct = True
     recursive = False
+    runtime_config = ''
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-h', '--help', action='store_true', required=False)
@@ -60,9 +61,10 @@ def main():
     parser.add_argument('-f', '--format', nargs="*", type=str, required=False)
     parser.add_argument('--graph-path', nargs=1, type=str, required=False)
     parser.add_argument('--graph-size', nargs=2, type=int, metavar=("WIDTH", "HEIGHT"), required=False)
-    parser.add_argument('--direct', choices=('true', 'false'), default='True', required=False)
+    parser.add_argument('--direct', type=str.lower, choices=('true', 'false'), default='true', required=False)
     parser.add_argument('--notice', action='store_true', required=False)
     parser.add_argument('-r', '--recursive', action='store_true', required=False)
+    parser.add_argument('--runtime-config', nargs=1, type=str, required=False)
 
     args = parser.parse_args()
 
@@ -96,11 +98,7 @@ def main():
         graph_path = ''.join(args.graph_path)
     if args.graph_size:
         graph_size = args.graph_size
-    if args.direct:  # --direct option
-        if args.direct == 'true' or args.direct == 'True':
-            direct = True
-        elif args.direct == 'false' or args.direct == 'False':
-            direct = False
+    direct = args.direct == 'true'
     if args.notice:  # --notice option
         try:
             base_path = sys._MEIPASS
@@ -117,10 +115,12 @@ def main():
         sys.exit(0)
     if args.recursive:  # -r option
         recursive = True
+    if args.runtime_config:  # --runtime-config option
+        runtime_config = ''.join(args.runtime_config)
 
     run_dependency_scanner(package_manager, input_dir, output_dir, pip_activate_cmd, pip_deactivate_cmd,
                            output_custom_dir, app_name, github_token, format, direct, path_to_exclude,
-                           graph_path, graph_size, recursive)
+                           graph_path, graph_size, recursive, runtime_config=runtime_config)
 
 
 if __name__ == '__main__':

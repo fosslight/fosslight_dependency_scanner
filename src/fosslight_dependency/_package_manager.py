@@ -68,6 +68,7 @@ class PackageManager:
         self.package_name = ''
         self.cover_comment = ''
         self.dep_items = []
+        self.runtime_config = ''
 
         self.platform = platform.system()
 
@@ -233,6 +234,14 @@ class PackageManager:
     def set_direct_dependencies(self, direct):
         self.direct_dep = direct
 
+    def set_runtime_config(self, runtime_config):
+        if runtime_config is None:
+            self.runtime_config = ''
+            return
+
+        normalized = str(runtime_config).strip()
+        self.runtime_config = normalized
+
     def parse_direct_dependencies(self):
         pass
 
@@ -360,12 +369,17 @@ class PackageManager:
 
         return ret_task
 
+    def _get_runtime_config_names(self, default_config):
+        raw = str(self.runtime_config or '').strip()
+        config_names = [item.strip() for item in raw.split(',') if item.strip()]
+        return config_names or list(default_config)
+
     def add_android_plugin_in_gradle(self, module_build_gradle, gradle_file):
         is_kts = gradle_file == 'build.gradle.kts'
 
         gradle_ver = get_gradle_version_from_wrapper(self.input_dir)
         if gradle_ver and gradle_ver >= (9, 0):   # Gradle 9+
-            plugin_version = '2.0.0'
+            plugin_version = '2.0.1'
         else:
             plugin_version = '1.0.0'
 
@@ -409,9 +423,20 @@ class PackageManager:
             logging.warning(f"Cannot add the buildscript task in build.gradle: {e}")
             return False
 
+        runtime_config_name = self.runtime_config or 'releaseRuntimeClasspath'
+        runtime_cfg_block = (
+            f'licenseTools {{\n'
+            f"    runtimeConfigurationName = '{runtime_config_name}'\n"
+            f'}}\n'
+        ) if not is_kts else (
+            f'licenseTools {{\n'
+            f'    runtimeConfigurationName = "{runtime_config_name}"\n'
+            f'}}\n'
+        )
+
         try:
             with open(module_build_gradle, 'a', encoding='utf-8') as f:
-                f.write(f'\n{apply}\n')
+                f.write(f'\n{apply}\n{runtime_cfg_block}\n')
             return True
         except Exception as e:
             logging.warning(f"Cannot add the apply plugin in {module_build_gradle}: {e}")
@@ -489,7 +514,8 @@ class PackageManager:
             return False
 
     def add_allDeps_in_gradle(self, gradle_file):
-        config = android_config if self.package_manager_name == const.ANDROID else gradle_config
+        default_config = android_config if self.package_manager_name == const.ANDROID else gradle_config
+        config = self._get_runtime_config_names(default_config)
         is_kts = gradle_file == 'build.gradle.kts'
 
         try:
@@ -558,7 +584,8 @@ class PackageManager:
                 logger.warning(f"Failed to parse dependency tree: {e}")
 
     def parse_dependency_tree(self, f_name):
-        config = android_config if self.package_manager_name == const.ANDROID else gradle_config
+        default_config = android_config if self.package_manager_name == const.ANDROID else gradle_config
+        config = self._get_runtime_config_names(default_config)
 
         try:
             for stack, name in self.create_dep_stack(f_name, config):

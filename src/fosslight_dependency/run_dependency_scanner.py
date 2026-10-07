@@ -100,7 +100,12 @@ def classify_gradle_build_file(build_content):
     return True, False
 
 
-def find_package_manager(input_dir, path_to_exclude=[], manifest_file_name=[], recursive=False, excluded_files=[]):
+def find_package_manager(input_dir, path_to_exclude=None, manifest_file_name=None,
+                         recursive=False, excluded_files=None):
+    path_to_exclude = [] if path_to_exclude is None else path_to_exclude
+    manifest_file_name = [] if manifest_file_name is None else manifest_file_name
+    excluded_files = [] if excluded_files is None else excluded_files
+
     ret = True
     if not manifest_file_name:
         for value in const.SUPPORT_PACKAGE.values():
@@ -270,8 +275,11 @@ def print_package_info(pm, log_lines, status='', base_dir=''):
 
 def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='', pip_activate_cmd='',
                            pip_deactivate_cmd='', output_custom_dir='', app_name=const.default_app_name,
-                           github_token='', formats=[], direct=True, path_to_exclude=[], graph_path='',
-                           graph_size=(600, 600), recursive=False, all_exclude_mode=()):
+                           github_token='', formats=None, direct=True, path_to_exclude=None, graph_path='',
+                           graph_size=(600, 600), recursive=False, all_exclude_mode=(), runtime_config=''):
+    formats = [] if formats is None else formats
+    path_to_exclude = [] if path_to_exclude is None else path_to_exclude
+
     os.environ['PYTHONUTF8'] = '1'
     os.environ['PYTHONIOENCODING'] = 'utf-8'
 
@@ -416,7 +424,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             ret, package_dep_item_list, cover_comment, actual_pm = analyze_dependency(pm, input_dir, output_path,
                                                                                       pip_activate_cmd, pip_deactivate_cmd,
                                                                                       output_custom_dir, app_name, github_token,
-                                                                                      [], direct)
+                                                                                      [], direct, runtime_config=runtime_config)
             if cover_comment:
                 cover_comments.append(cover_comment)
             if ret:
@@ -434,7 +442,8 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                                                                                           pip_activate_cmd, pip_deactivate_cmd,
                                                                                           output_custom_dir, app_name,
                                                                                           github_token,
-                                                                                          manifest_file_name, direct)
+                                                                                          manifest_file_name, direct,
+                                                                                          runtime_config=runtime_config)
                 if cover_comment:
                     cover_comments.append(cover_comment)
                 if ret:
