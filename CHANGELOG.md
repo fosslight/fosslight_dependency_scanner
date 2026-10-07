@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.1.57 (07/10/2026)
+## Changes
+## 🔧 Maintenance
+
+- feat(android): add release runtime classpath support @woocheol-lge (#349)
+
+---
+
 ## v4.1.56 (02/10/2026)
 ## Changes
 ## 🐛 Hotfixes
@@ -287,11 +295,3 @@
 ## 🔧 Maintenance
 
 - Replace exclude function to fosslight_util @dd-jy (#281)
-
----
-
-## v4.1.27 (14/01/2026)
-## Changes
-## 🚀 Features
-
-- Run dotnet restore for all .sln and .csproj @dd-jy (#280)
