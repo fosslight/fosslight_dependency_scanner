@@ -28,46 +28,49 @@ _HELP_MESSAGE_DEPENDENCY = f"""
 
     ⚙️  General Options
     ────────────────────────────────────────────────────────────────────
-    -p <path>              Path to analyze (default: current directory)
-    -o <path>              Output file path or directory
-    -f <format>            Output formats: {', '.join(SUPPORT_FORMAT)}
-    -e <pattern>           Exclude paths from analysis (files and directories)
-                           ⚠️  IMPORTANT: Always wrap in quotes to avoid shell expansion
-                           Example: fosslight_dependency -e "test/" "node_modules/"
-    -h                     Show this help message
-    -v                     Show version information
+    -p <path>                    Path to analyze (default: current directory)
+    -o <path>                    Output file path or directory
+    -f <format>                  Output formats: {', '.join(SUPPORT_FORMAT)}
+    -e <pattern>                 Exclude paths from analysis (files and directories)
+                                 ⚠️  IMPORTANT: Always wrap in quotes to avoid shell expansion
+                                 Example: fosslight_dependency -e "test/" "node_modules/"
+    -h                           Show this help message
+    -v                           Show version information
 
     🔍 Scanner-Specific Options
     ────────────────────────────────────────────────────────────────────
-    -m <manager>           Specify package manager (npm, maven, gradle, pypi, pub,
-                           cocoapods, android, swift, carthage, go, nuget, helm,
-                           unity, cargo, pnpm, yarn)
-    -r                     Recursive mode: scan all subdirectories for manifest files
-    --graph-path <path>    Save dependency graph image (pdf, jpg, png) (recommend pdf extension)
-                           Example: fosslight_dependency --graph-path /your/path/filename.[pdf, jpg, png]
-    --graph-format <format> Set graph image format (default: pdf)
-    --graph-size <w> <h>   Set graph image size in pixels (requires --graph-path)
-    --direct <True|False>  Print direct/transitive dependency type
-                           Choose True or False (default: True)
-    --notice               Print the open source license notice text
+    -m <manager>                 Specify package manager (npm, maven, gradle, pypi, pub,
+                                 cocoapods, android, swift, carthage, go, nuget, helm,
+                                 unity, cargo, pnpm, yarn)
+    -r                           Recursive mode: scan all subdirectories for manifest files
+    --graph-path <path>          Save dependency graph image (pdf, jpg, png) (recommend pdf extension)
+                                 Example: fosslight_dependency --graph-path /your/path/filename.[pdf, jpg, png]
+    --graph-format <format>      Set graph image format (default: pdf)
+    --graph-size <w> <h>         Set graph image size in pixels (requires --graph-path)
+    --direct <True|False>        Print direct/transitive dependency type
+                                 Choose True or False (default: True)
+    --notice                     Print the open source license notice text
 
     🔧 Package Manager Specific Options
     ────────────────────────────────────────────────────────────────────
     Swift, Carthage:
-      -t <token>           GitHub personal access token
+      -t <token>                 GitHub personal access token
 
     Pypi:
-      -a <cmd>             Virtual environment activate command
-                           (ex: 'conda activate myenv')
-      -d <cmd>             Virtual environment deactivate command
-                           (ex: 'conda deactivate')
+      -a <cmd>                   Virtual environment activate command
+                                 (ex: 'conda activate myenv')
+      -d <cmd>                   Virtual environment deactivate command
+                                 (ex: 'conda deactivate')
 
     Gradle, Maven:
-      -c <dir>             Customized build output directory
-                           (default: 'build' for gradle, 'target' for maven)
+      -c <dir>                   Customized build output directory
+                                 (default: 'build' for gradle, 'target' for maven)
 
     Android:
-      -n <name>            Application directory name (default: app)
+      -n <name>                  Application directory name (default: app)
+      --runtime-config <config>  Gradle 9 or later, specify the Runtime Configuration to analyze(default: releaseRuntimeClasspath)
+                                 If releaseRuntimeClasspath is unavailable,
+                                 specify another Runtime Configuration available in the project.
 
     💡 Examples
     ────────────────────────────────────────────────────────────────────
