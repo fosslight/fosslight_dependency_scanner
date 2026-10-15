@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.1.58 (15/10/2026)
+## Changes
+## 🐛 Hotfixes
+
+- fix(android-dependency-scanning): fix runtime configuration resolution @woocheol-lge (#351)
+
+## 🔧 Maintenance
+
+- docs(android): update help message for Gradle 9 runtime config @woocheol-lge (#350)
+
+---
+
 ## v4.1.57 (07/10/2026)
 ## Changes
 ## 🔧 Maintenance
@@ -287,11 +299,3 @@
 ## 🔧 Maintenance
 
 - Remove duplicated exclude logic for all mode @dd-jy (#282)
-
----
-
-## v4.1.28 (16/01/2026)
-## Changes
-## 🔧 Maintenance
-
-- Replace exclude function to fosslight_util @dd-jy (#281)
