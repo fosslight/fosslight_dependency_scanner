@@ -423,16 +423,18 @@ class PackageManager:
             logging.warning(f"Cannot add the buildscript task in build.gradle: {e}")
             return False
 
-        runtime_config_name = self.runtime_config or 'releaseRuntimeClasspath'
-        runtime_cfg_block = (
-            f'licenseTools {{\n'
-            f"    runtimeConfigurationName = '{runtime_config_name}'\n"
-            f'}}\n'
-        ) if not is_kts else (
-            f'licenseTools {{\n'
-            f'    runtimeConfigurationName = "{runtime_config_name}"\n'
-            f'}}\n'
-        )
+        runtime_cfg_block = ''
+        if gradle_ver and gradle_ver >= (9, 0):   # Gradle 9+
+            runtime_config_name = self.runtime_config or 'releaseRuntimeClasspath'
+            runtime_cfg_block = (
+                f'licenseTools {{\n'
+                f"    runtimeConfigurationName = '{runtime_config_name}'\n"
+                f'}}\n'
+            ) if not is_kts else (
+                f'licenseTools {{\n'
+                f'    runtimeConfigurationName = "{runtime_config_name}"\n'
+                f'}}\n'
+            )
 
         try:
             with open(module_build_gradle, 'a', encoding='utf-8') as f:
