@@ -14,7 +14,6 @@ import fosslight_dependency.constant as const
 from fosslight_dependency.package_manager.Npm import Npm
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
-from fosslight_dependency._package_manager import get_url_to_purl
 from fosslight_dependency.package_manager.Npm import check_multi_license, check_unknown_license
 
 logger = logging.getLogger(constant.LOGGER_NAME)
@@ -144,7 +143,8 @@ class Yarn(Npm):
 
             npm_dl_url = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
             npm_home_url = f"{self.dn_url}{oss_init_name}"
-            dep_item.purl = get_url_to_purl(npm_dl_url, self.package_manager_name)
+            # Keep npm name casing; the URL-based conversion lowercases names.
+            dep_item.purl = self._get_npm_purl(oss_init_name, oss_item.version)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
 
             # license-checker may omit repository when package.json has a non-string
