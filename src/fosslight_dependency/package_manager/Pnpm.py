@@ -10,13 +10,35 @@ import json
 import shutil
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
-from fosslight_dependency.package_manager.Npm import check_multi_license
+from fosslight_dependency.package_manager.Npm import Npm, check_multi_license
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 node_modules = 'node_modules'
+
+
+def _read_local_package_info(package_path):
+    """Read name and version from a package.json of a file: dependency.
+
+    Returns (name, version) with empty values when unavailable.
+    """
+    name, version = '', ''
+    try:
+        pkg_json_path = os.path.join(package_path, 'package.json')
+        if os.path.isfile(pkg_json_path):
+            with open(pkg_json_path, encoding='utf8') as json_file:
+                local_json = json.load(json_file)
+            name = local_json.get('name') or ''
+            version = local_json.get('version') or ''
+    except Exception as e:
+        logger.debug(f'Failed to read local package.json ({package_path}): {e}')
+    return name, version
+
+
+def _is_local_reference(dep_info):
+    return (dep_info.get('version') or '').startswith(('file:', 'link:'))
 
 
 class Pnpm(PackageManager):
@@ -30,6 +52,24 @@ class Pnpm(PackageManager):
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
+        self.project_name_list = []
+        self.pkg_list = {}
+        self.dep_item_by_identity = {}
+        self.flag_tmp_node_modules = False
+
+    def _resolve_dependency(self, dep_name, dep_info, base_dir):
+        """Use package identity, not a file/link reference or dependency alias."""
+        version = dep_info.get('version') or ''
+        if version.startswith(('file:', 'link:')):
+            package_path = dep_info.get('path') or version.split(':', 1)[1]
+            if not os.path.isabs(package_path):
+                package_path = os.path.join(base_dir, package_path)
+            local_name, local_version = _read_local_package_info(os.path.normpath(package_path))
+            dep_name = local_name or dep_name
+            # A filesystem reference is not a package version. If unavailable,
+            # leave it empty rather than inventing an npm registry identity.
+            version = local_version
+        return dep_name, version
 
     def __del__(self):
         if os.path.isfile(self.input_file_name):
@@ -97,72 +137,99 @@ class Pnpm(PackageManager):
                 deps_l = self._parse_json_output(ret_txt)
                 for item in deps_l:
                     if isinstance(item, dict) and isinstance(item.get('dependencies'), dict):
-                        self.direct_dep_list.extend(item['dependencies'].keys())
+                        for dep_name, dep_info in item['dependencies'].items():
+                            if dep_name not in self.project_name_list or _is_local_reference(dep_info):
+                                self.direct_dep_list.append(dep_name)
             else:
                 self.direct_dep = False
                 logger.warning('Cannot print direct/transitive dependency')
         except Exception as e:
             logger.warning(f'Fail to print direct/transitive dependency: {e}')
             self.direct_dep = False
-        if self.direct_dep:
-            self.direct_dep_list = list(filter(lambda dep: dep not in self.project_name_list, self.direct_dep_list))
 
-    def extract_dependencies(self, dependencies, purl_dict):
+    def extract_dependencies(self, dependencies, purl_dict, base_dir=None):
+        base_dir = base_dir or self.input_dir
         dep_item_list = []
         for dep_name, dep_info in dependencies.items():
-            if dep_name not in self.project_name_list:
-                if dep_name in self.pkg_list.keys():
-                    if dep_info.get('version') in self.pkg_list[dep_name]:
-                        continue
-                self.pkg_list.setdefault(dep_name, []).append(dep_info.get('version'))
-                dep_item = DependencyItem()
-                oss_item = OssItem()
-                oss_item.name = f'npm:{dep_name}'
-                oss_item.version = dep_info.get('version')
+            dependency_alias = dep_name
+            is_local_dependency = _is_local_reference(dep_info)
+            dep_name, dep_reference = self._resolve_dependency(dep_name, dep_info, base_dir)
+            if is_local_dependency or (
+                dependency_alias not in self.project_name_list
+                and dep_name not in self.project_name_list
+            ):
 
-                license_name = dep_info.get('license')
-                if license_name:
-                    multi_license, license_comment, multi_flag = check_multi_license(license_name, '')
-                    if multi_flag:
-                        oss_item.comment = license_comment
-                        license_name = multi_license
+                identity = (dep_name, dep_reference)
+                dep_item = self.dep_item_by_identity.get(identity)
+                if dep_item:
+                    if dependency_alias in self.direct_dep_list or dep_name in self.direct_dep_list:
+                        for existing_oss in dep_item.oss_items:
+                            comment_parts = [part.strip() for part in (existing_oss.comment or '').split(' / ')]
+                            if 'transitive' in comment_parts:
+                                comment_parts = [
+                                    'direct' if part == 'transitive' else part
+                                    for part in comment_parts
+                                ]
+                            elif 'direct' not in comment_parts:
+                                comment_parts.append('direct')
+                            existing_oss.comment = ''
+                            existing_oss.comment = ' / '.join(filter(None, comment_parts))
+                else:
+                    self.pkg_list.setdefault(dep_name, []).append(dep_reference)
+                    dep_item = DependencyItem()
+                    oss_item = OssItem()
+                    oss_item.name = f'npm:{dep_name}'
+                    oss_item.version = dep_reference or ''
+
+                    license_name = dep_info.get('license')
+                    if license_name:
+                        multi_license, license_comment, multi_flag = check_multi_license(license_name, '')
+                        if multi_flag:
+                            oss_item.comment = license_comment
+                            license_name = multi_license
+                        else:
+                            license_name = license_name.replace(",", "")
+                        oss_item.license = license_name
+
+                    oss_item.homepage = f'{self.dn_url}{dep_name}'
+                    oss_item.download_location = dep_info.get('repository')
+                    if oss_item.download_location:
+                        if oss_item.download_location.endswith('.git'):
+                            oss_item.download_location = oss_item.download_location[:-4]
+                        if oss_item.download_location.startswith('git://'):
+                            oss_item.download_location = 'https://' + oss_item.download_location[6:]
+                        elif oss_item.download_location.startswith('git+https://'):
+                            oss_item.download_location = 'https://' + oss_item.download_location[12:]
+                        elif oss_item.download_location.startswith('git+ssh://git@'):
+                            oss_item.download_location = 'https://' + oss_item.download_location[14:]
                     else:
-                        license_name = license_name.replace(",", "")
-                    oss_item.license = license_name
+                        oss_item.download_location = f'{self.dn_url}{dep_name}/v/{oss_item.version}'
 
-                oss_item.homepage = f'{self.dn_url}{dep_name}'
-                oss_item.download_location = dep_info.get('repository')
-                if oss_item.download_location:
-                    if oss_item.download_location.endswith('.git'):
-                        oss_item.download_location = oss_item.download_location[:-4]
-                    if oss_item.download_location.startswith('git://'):
-                        oss_item.download_location = 'https://' + oss_item.download_location[6:]
-                    elif oss_item.download_location.startswith('git+https://'):
-                        oss_item.download_location = 'https://' + oss_item.download_location[12:]
-                    elif oss_item.download_location.startswith('git+ssh://git@'):
-                        oss_item.download_location = 'https://' + oss_item.download_location[14:]
-                else:
-                    oss_item.download_location = f'{self.dn_url}{dep_name}/v/{oss_item.version}'
+                    # Keep npm name casing; the URL-based conversion lowercases names.
+                    dep_item.purl = Npm._get_npm_purl(dep_name, oss_item.version) if oss_item.version else ''
+                    purl_dict[f'{dep_name}({oss_item.version})'] = dep_item.purl
 
-                dn_loc = f'{oss_item.homepage}/v/{oss_item.version}'
-                dep_item.purl = get_url_to_purl(dn_loc, 'npm')
-                purl_dict[f'{dep_name}({oss_item.version})'] = dep_item.purl
+                    if dependency_alias in self.direct_dep_list or dep_name in self.direct_dep_list:
+                        oss_item.comment = 'direct'
+                    else:
+                        oss_item.comment = 'transitive'
 
-                if dep_name in self.direct_dep_list:
-                    oss_item.comment = 'direct'
-                else:
-                    oss_item.comment = 'transitive'
+                    dep_item.oss_items.append(oss_item)
+                    dep_item_list.append(dep_item)
+                    self.dep_item_by_identity[identity] = dep_item
 
                 if 'dependencies' in dep_info:
                     for dn, di in dep_info.get('dependencies').items():
-                        if dn not in self.project_name_list:
-                            dep_item.depends_on_raw.append(f"{dn}({di['version']})")
-
-                dep_item.oss_items.append(oss_item)
-                dep_item_list.append(dep_item)
+                        if dn not in self.project_name_list or _is_local_reference(di):
+                            dn, dep_version = self._resolve_dependency(
+                                dn, di, dep_info.get('path') or base_dir)
+                            dependency_key = f"{dn}({dep_version})"
+                            if dependency_key not in dep_item.depends_on_raw:
+                                dep_item.depends_on_raw.append(dependency_key)
 
             if 'dependencies' in dep_info:
-                dep_item_list_inner, purl_dict_inner = self.extract_dependencies(dep_info['dependencies'], purl_dict)
+                dep_item_list_inner, purl_dict_inner = self.extract_dependencies(
+                    dep_info['dependencies'], purl_dict, dep_info.get('path') or base_dir)
                 dep_item_list.extend(dep_item_list_inner)
                 purl_dict.update(purl_dict_inner)
 
@@ -176,7 +243,8 @@ class Pnpm(PackageManager):
             purl_dict = {}
             for items in deps_l:
                 if isinstance(items, dict) and isinstance(items.get('dependencies'), dict):
-                    dep_item_list_inner, purl_dict_inner = self.extract_dependencies(items['dependencies'], purl_dict)
+                    dep_item_list_inner, purl_dict_inner = self.extract_dependencies(
+                        items['dependencies'], purl_dict, items.get('path') or self.input_dir)
                     self.dep_items.extend(dep_item_list_inner)
                     purl_dict.update(purl_dict_inner)
             if self.direct_dep:

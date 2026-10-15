@@ -12,6 +12,7 @@ import subprocess
 import shutil
 import stat
 import requests
+from urllib.parse import quote, unquote, urlsplit
 from packageurl import PackageURL
 from packageurl.contrib import url2purl
 from askalono import identify
@@ -880,7 +881,7 @@ def get_java_version_from_pom(input_dir):
         return None
 
 
-def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
+def get_url_to_purl(url, pkg_manager, oss_name='', oss_version='', repository_url=''):
     purl_prefix = f'pkg:{pkg_manager}'
 
     if pkg_manager == 'swift':
@@ -898,6 +899,24 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
 
         purl_obj = PackageURL(type='swift', namespace=namespace, name=name, version=oss_version or None)
         return str(purl_obj)
+
+    if pkg_manager == 'carthage':
+        if _get_git_host(url) == 'github.com':
+            parsed = urlsplit(url)
+            if parsed.hostname:
+                scp_path = parsed.path
+            else:
+                # scp-like syntax, e.g. git@github.com:owner/repo.git
+                scp_path = url.rsplit('@', 1)[-1].partition(':')[-1]
+            parts = scp_path.strip('/').removesuffix('.git').split('/')
+            if len(parts) == 2:
+                # GitHub repositories use the dedicated github type without the host.
+                package_path = '/'.join(_purl_encode_component(part) for part in parts)
+                purl = f'pkg:github/{package_path}'
+                if oss_version:
+                    purl += f'@{_purl_encode_component(oss_version)}'
+                return purl
+        return _get_carthage_purl(url, oss_version)
 
     purl = str(url2purl.get_purl(url))
     if not re.match(purl_prefix, purl):
@@ -922,7 +941,117 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
                     purl = f'{purl}@{oss_version}'
         except Exception:
             logger.debug('Fail to get purl. So use the link purl({purl}).')
+    if pkg_manager == 'maven' and repository_url and purl.startswith('pkg:maven/'):
+        parsed_purl = PackageURL.from_string(purl)
+        # qualifiers can be None on some packageurl-python versions when the
+        # purl has no qualifiers, so default to an empty dict.
+        qualifiers = dict(parsed_purl.qualifiers or {})
+        qualifiers['repository_url'] = repository_url
+        return _purl_with_qualifiers(parsed_purl, qualifiers)
+    return _encode_purl_qualifiers(purl)
+
+
+def _purl_encode_component(value, allow_colon=False):
+    """Encode data components per the PURL rule: qualifier values may keep ':'."""
+    if value is None:
+        return ''
+    safe = '.-_~:' if allow_colon else '.-_~'
+    return quote(str(value), safe=safe)
+
+
+def _purl_with_qualifiers(package_url, qualifiers):
+    """Serialize qualifiers once, independent of packageurl-python's version."""
+    purl = str(PackageURL(
+        type=package_url.type,
+        namespace=package_url.namespace,
+        name=package_url.name,
+        version=package_url.version,
+        subpath=package_url.subpath,
+    ))
+    if not qualifiers:
+        return purl
+
+    encoded_qualifiers = '&'.join(
+        f'{key}={_purl_encode_component(value, allow_colon=True)}'
+        for key, value in sorted(qualifiers.items())
+    )
+    path, separator, subpath = purl.partition('#')
+    result = f'{path}?{encoded_qualifiers}'
+    if separator:
+        result += f'#{subpath}'
+    return result
+
+
+def _get_git_host(url):
+    """Return the host of an HTTPS or scp-like Git URL, '' if neither."""
+    if not url:
+        return ''
+    parsed = urlsplit(url)
+    if parsed.scheme and parsed.hostname:
+        return parsed.hostname.lower()
+    # scp-like syntax, e.g. git@github.com:owner/repo.git
+    scp_url = url.rsplit('@', 1)
+    if len(scp_url) == 2 and ':' in scp_url[1]:
+        host = scp_url[1].split(':', 1)[0].strip('/')
+        return host.lower()
+    return ''
+
+
+def _get_carthage_purl(url, version=''):
+    """Build a git PURL from a Carthage repository URL."""
+    parsed = urlsplit(url)
+    if parsed.scheme and parsed.netloc:
+        host = parsed.netloc.rsplit('@', 1)[-1]
+        path = parsed.path.strip('/')
+        segments = [unquote(segment) for segment in path.split('/') if segment]
+    else:
+        # Support Git's scp-like SSH syntax, e.g. git@github.com:owner/repo.git.
+        scp_url = url.rsplit('@', 1)
+        if len(scp_url) != 2 or ':' not in scp_url[1]:
+            return ''
+        host, path = scp_url[1].split(':', 1)
+        path = path.strip('/')
+        segments = [segment for segment in path.split('/') if segment]
+    if segments and segments[-1].endswith('.git'):
+        segments[-1] = segments[-1][:-4]
+    if not host or not segments:
+        return ''
+
+    git_path = '/'.join(_purl_encode_component(segment) for segment in [host, *segments])
+    purl = f'pkg:git/{git_path}'
+    if version:
+        purl += f'@{_purl_encode_component(version)}'
     return purl
+
+
+def _encode_purl_qualifiers(purl):
+    """Percent-encode qualifier values while preserving PURL separators and colons."""
+    if not purl or '?' not in purl:
+        return purl
+
+    try:
+        parsed_purl = PackageURL.from_string(purl)
+    except Exception:
+        parsed_purl = None
+
+    if parsed_purl is not None:
+        return _purl_with_qualifiers(parsed_purl, dict(parsed_purl.qualifiers or {}))
+
+    path, query = purl.split('?', 1)
+    query, separator, subpath = query.partition('#')
+    encoded_qualifiers = []
+    for qualifier in query.split('&'):
+        if '=' not in qualifier:
+            encoded_qualifiers.append(qualifier)
+            continue
+        key, value = qualifier.split('=', 1)
+        encoded_value = _purl_encode_component(value, allow_colon=True)
+        encoded_qualifiers.append(f'{key}={encoded_value}')
+
+    result = f'{path}?{"&".join(encoded_qualifiers)}'
+    if separator:
+        result += f'#{subpath}'
+    return result
 
 
 def version_refine(oss_version):
