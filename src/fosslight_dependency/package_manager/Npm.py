@@ -10,9 +10,10 @@ import json
 import shutil
 import re
 import requests
+from urllib.parse import quote
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
-from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
+from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.oss_item import OssItem
 
@@ -28,6 +29,20 @@ class Npm(PackageManager):
     tmp_custom_json = 'custom.json'
     flag_tmp_node_modules = False
     _network_available = False
+
+    @staticmethod
+    def _get_npm_purl(package_name, version):
+        """Build an npm PURL without losing case-sensitive name characters."""
+        if package_name.startswith('@'):
+            namespace, separator, name = package_name.partition('/')
+            if separator and name:
+                package_path = f'{quote(namespace, safe="")}/{quote(name, safe="-._~")}'
+            else:
+                package_path = quote(package_name, safe='-._~')
+        else:
+            package_path = quote(package_name, safe='-._~')
+
+        return f'pkg:npm/{package_path}@{quote(str(version), safe="-._~")}'
 
     def __init__(self, input_dir, output_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -219,7 +234,7 @@ class Npm(PackageManager):
 
             npm_dl_url = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
             npm_home_url = f"{self.dn_url}{oss_init_name}"
-            dep_item.purl = get_url_to_purl(npm_dl_url, self.package_manager_name)
+            dep_item.purl = self._get_npm_purl(oss_init_name, oss_item.version)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
 
             # license-checker may omit repository when package.json has a non-string

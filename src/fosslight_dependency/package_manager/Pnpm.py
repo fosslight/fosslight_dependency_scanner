@@ -12,11 +12,29 @@ import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
-from fosslight_dependency.package_manager.Npm import check_multi_license
+from fosslight_dependency.package_manager.Npm import Npm, check_multi_license
 from fosslight_util.oss_item import OssItem
 
 logger = logging.getLogger(constant.LOGGER_NAME)
 node_modules = 'node_modules'
+
+
+def _read_local_package_info(package_path):
+    """Read name and version from a package.json of a file: dependency.
+
+    Returns (name, version) with empty values when unavailable.
+    """
+    name, version = '', ''
+    try:
+        pkg_json_path = os.path.join(package_path, 'package.json')
+        if os.path.isfile(pkg_json_path):
+            with open(pkg_json_path, encoding='utf8') as json_file:
+                local_json = json.load(json_file)
+            name = local_json.get('name') or ''
+            version = local_json.get('version') or ''
+    except Exception as e:
+        logger.debug(f'Failed to read local package.json ({package_path}): {e}')
+    return name, version
 
 
 class Pnpm(PackageManager):
@@ -111,14 +129,26 @@ class Pnpm(PackageManager):
         dep_item_list = []
         for dep_name, dep_info in dependencies.items():
             if dep_name not in self.project_name_list:
+                dep_reference = dep_info.get('version') or ''
+                package_path = dep_info.get('path') or ''
+                if dep_reference.startswith('file:') and package_path:
+                    # A file: dependency stores the path in the version field.
+                    # Resolve the actual name/version from its package.json,
+                    # otherwise an invalid purl breaks the CycloneDX output.
+                    local_name, local_version = _read_local_package_info(package_path)
+                    if local_name:
+                        dep_name = local_name
+                    if local_version:
+                        dep_reference = local_version
+
                 if dep_name in self.pkg_list.keys():
-                    if dep_info.get('version') in self.pkg_list[dep_name]:
+                    if dep_reference in self.pkg_list[dep_name]:
                         continue
-                self.pkg_list.setdefault(dep_name, []).append(dep_info.get('version'))
+                self.pkg_list.setdefault(dep_name, []).append(dep_reference)
                 dep_item = DependencyItem()
                 oss_item = OssItem()
                 oss_item.name = f'npm:{dep_name}'
-                oss_item.version = dep_info.get('version')
+                oss_item.version = dep_reference or ''
 
                 license_name = dep_info.get('license')
                 if license_name:
@@ -145,7 +175,8 @@ class Pnpm(PackageManager):
                     oss_item.download_location = f'{self.dn_url}{dep_name}/v/{oss_item.version}'
 
                 dn_loc = f'{oss_item.homepage}/v/{oss_item.version}'
-                dep_item.purl = get_url_to_purl(dn_loc, 'npm')
+                # Keep npm name casing; the URL-based conversion lowercases names.
+                dep_item.purl = Npm._get_npm_purl(dep_name, oss_item.version) if oss_item.version else ''
                 purl_dict[f'{dep_name}({oss_item.version})'] = dep_item.purl
 
                 if dep_name in self.direct_dep_list:
@@ -156,7 +187,15 @@ class Pnpm(PackageManager):
                 if 'dependencies' in dep_info:
                     for dn, di in dep_info.get('dependencies').items():
                         if dn not in self.project_name_list:
-                            dep_item.depends_on_raw.append(f"{dn}({di['version']})")
+                            dep_version = di.get('version') or ''
+                            if dep_version.startswith('file:'):
+                                # Align the key with resolve of the file: reference,
+                                # otherwise change_dependson_to_purl misses the edge.
+                                local_name, local_version = _read_local_package_info(
+                                    os.path.normpath(os.path.join(
+                                        self.input_dir, dep_version[len('file:'):])))
+                                dep_version = local_version or dep_version
+                            dep_item.depends_on_raw.append(f"{dn}({dep_version})")
 
                 dep_item.oss_items.append(oss_item)
                 dep_item_list.append(dep_item)
