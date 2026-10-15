@@ -12,6 +12,7 @@ import subprocess
 import shutil
 import stat
 import requests
+from urllib.parse import quote, urlsplit
 from packageurl import PackageURL
 from packageurl.contrib import url2purl
 from askalono import identify
@@ -880,7 +881,7 @@ def get_java_version_from_pom(input_dir):
         return None
 
 
-def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
+def get_url_to_purl(url, pkg_manager, oss_name='', oss_version='', repository_url=''):
     purl_prefix = f'pkg:{pkg_manager}'
 
     if pkg_manager == 'swift':
@@ -898,6 +899,9 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
 
         purl_obj = PackageURL(type='swift', namespace=namespace, name=name, version=oss_version or None)
         return str(purl_obj)
+
+    if pkg_manager == 'carthage':
+        return _get_carthage_purl(url, oss_version)
 
     purl = str(url2purl.get_purl(url))
     if not re.match(purl_prefix, purl):
@@ -922,7 +926,57 @@ def get_url_to_purl(url, pkg_manager, oss_name='', oss_version=''):
                     purl = f'{purl}@{oss_version}'
         except Exception:
             logger.debug('Fail to get purl. So use the link purl({purl}).')
+    if pkg_manager == 'maven' and repository_url and purl.startswith('pkg:maven/'):
+        purl = f'{purl}?repository_url={repository_url}'
+    return _encode_purl_qualifiers(purl)
+
+
+def _get_carthage_purl(url, version=''):
+    """Build a git PURL from a Carthage repository URL."""
+    parsed = urlsplit(url)
+    if parsed.scheme and parsed.netloc:
+        host = parsed.netloc.rsplit('@', 1)[-1]
+        path = parsed.path.strip('/')
+    else:
+        # Support Git's scp-like SSH syntax, e.g. git@github.com:owner/repo.git.
+        scp_url = url.rsplit('@', 1)
+        if len(scp_url) != 2 or ':' not in scp_url[1]:
+            return ''
+        host, path = scp_url[1].split(':', 1)
+        path = path.strip('/')
+    if path.endswith('.git'):
+        path = path[:-4]
+    segments = [segment for segment in path.split('/') if segment]
+    if not host or not segments:
+        return ''
+
+    git_path = '/'.join(quote(segment, safe='.-_~') for segment in [host, *segments])
+    purl = f'pkg:git/{git_path}'
+    if version:
+        purl += f'@{quote(str(version), safe=".-_~")}'
     return purl
+
+
+def _encode_purl_qualifiers(purl):
+    """Percent-encode qualifier values while preserving PURL separators and colons."""
+    if not purl or '?' not in purl:
+        return purl
+
+    path, query = purl.split('?', 1)
+    query, separator, subpath = query.partition('#')
+    encoded_qualifiers = []
+    for qualifier in query.split('&'):
+        if '=' not in qualifier:
+            encoded_qualifiers.append(qualifier)
+            continue
+        key, value = qualifier.split('=', 1)
+        encoded_value = quote(value, safe='.-_~:%')
+        encoded_qualifiers.append(f'{key}={encoded_value}')
+
+    result = f'{path}?{"&".join(encoded_qualifiers)}'
+    if separator:
+        result += f'#{subpath}'
+    return result
 
 
 def version_refine(oss_version):

@@ -8,10 +8,12 @@ import logging
 import shlex
 import subprocess
 import shutil
+from ipaddress import ip_address
 from bs4 import BeautifulSoup as bs
 from defusedxml.ElementTree import parse
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
@@ -447,7 +449,10 @@ class Maven(PackageManager):
             )
             oss_item.homepage = f"{self.dn_url}{groupid}/{artifactid}"
             mvn_dn_url = f"{oss_item.homepage}/{version}"
-            dep_item.purl = get_url_to_purl(mvn_dn_url, self.package_manager_name)
+            repository_url = _get_custom_repository_url(oss_item.download_location)
+            dep_item.purl = get_url_to_purl(
+                mvn_dn_url, self.package_manager_name, repository_url=repository_url
+            )
             purl_dict[f'{oss_item.name}({version})'] = dep_item.purl
 
             licenses = d.find("licenses")
@@ -482,3 +487,36 @@ class Maven(PackageManager):
         if self.direct_dep:
             self.dep_items = change_dependson_to_purl(purl_dict, self.dep_items)
         return
+
+
+def _get_custom_repository_url(download_url):
+    """Return the origin of a non-Central Maven download repository, if known."""
+    try:
+        parsed = urlsplit(download_url or '')
+        hostname = parsed.hostname or ''
+        port = parsed.port
+    except ValueError:
+        return ''
+
+    if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+        return ''
+    hostname = hostname.lower()
+    if hostname in {
+        'repo.maven.apache.org',
+        'repo1.maven.org',
+        'mvnrepository.com',
+    } or hostname.endswith('.mvnrepository.com'):
+        return ''
+
+    host = parsed.hostname or ''
+
+    try:
+        if ip_address(host).version == 6:
+            host = f'[{host}]'
+    except ValueError:
+        pass
+
+    if port is not None:
+        host = f'{host}:{port}'
+
+    return f'{parsed.scheme}://{host}'
