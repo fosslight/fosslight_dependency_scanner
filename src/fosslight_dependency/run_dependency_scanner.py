@@ -378,6 +378,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         manifest_file_name = []
 
     suggested_files = []
+    detect_error = False
     try:
         if all_exclude_mode and len(all_exclude_mode) == 4:
             excluded_path_with_default_exclusion, excluded_path_without_dot, excluded_files, _ = all_exclude_mode
@@ -396,13 +397,16 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
         if autodetect:
             logger.error(f'Fail to find package manager: {e}')
             ret = False
+            detect_error = True
     finally:
         if not ret:
             if not autodetect:
                 logger.info('Try to analyze dependency without manifest file. (Manual mode)')
                 found_package_manager[package_manager] = {}
             else:
-                ret = False
+                # No manifest to analyze is not a failure, unless detection failed
+                # or a manifest was found without the file required to analyze it.
+                ret = not (detect_error or suggested_files)
                 if suggested_files:
                     suggested_files_str = []
                     suggested_files_str.append("Please check the following files and try again:")
@@ -466,6 +470,10 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                 else:
                     fail_pm[actual_pm][input_dir].extend(manifest_file_name)
 
+    if found_package_manager:
+        # ret holds only the last analysis result; fail if any package manager failed.
+        ret = not fail_pm
+
     success_pm = {k: dict(v) for k, v in success_pm.items()}
     fail_pm = {k: dict(v) for k, v in fail_pm.items()}
     if len(found_package_manager.keys()) > 0:
@@ -481,7 +489,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
             log_lines.append('\n'.join(cover_comments))
         scan_item.set_cover_comment('\n'.join(log_lines))
 
-    if ret and graph_path:
+    if success_pm and graph_path:
         graph_path = os.path.abspath(graph_path)
         try:
             converter = GraphConvertor(scan_item.file_items[_PKG_NAME])
