@@ -475,7 +475,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     if found_package_manager:
         # ret holds only the last analysis result; fail if any package manager failed.
-        ret = not fail_pm
+        ret = not (detect_error or fail_pm)
 
     success_pm = {k: dict(v) for k, v in success_pm.items()}
     fail_pm = {k: dict(v) for k, v in fail_pm.items()}
