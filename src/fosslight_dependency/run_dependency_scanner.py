@@ -398,10 +398,9 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
                                                                                       recursive,
                                                                                       excluded_files)
     except Exception as e:
-        if autodetect:
-            logger.error(f'Fail to find package manager: {e}')
-            ret = False
-            detect_error = True
+        logger.error(f'Fail to find package manager: {e}')
+        ret = False
+        detect_error = True
     finally:
         if not ret:
             if not autodetect:
@@ -476,7 +475,7 @@ def run_dependency_scanner(package_manager='', input_dir='', output_dir_file='',
 
     if found_package_manager:
         # ret holds only the last analysis result; fail if any package manager failed.
-        ret = not fail_pm
+        ret = not (detect_error or fail_pm)
 
     success_pm = {k: dict(v) for k, v in success_pm.items()}
     fail_pm = {k: dict(v) for k, v in fail_pm.items()}
