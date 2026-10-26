@@ -1021,16 +1021,19 @@ def deduplicate_dep_items(dep_items):
     seen = set()
 
     for item in dep_items:
-        first_oss = item.oss_items[0] if getattr(item, "oss_items", None) else None
-        oss_name = getattr(first_oss, "name", None) if first_oss else None
-        oss_ver = getattr(first_oss, "version", None) if first_oss else None
-        comment = getattr(first_oss, "comment", None) if first_oss else None
+        oss_metadata = tuple(
+            (oss.name, oss.version, tuple(oss.license), oss.download_location, oss.homepage,
+             oss.copyright, oss.exclude, oss.comment,
+             tuple(sorted((getattr(oss, "license_texts", None) or {}).items())))
+            for oss in (getattr(item, "oss_items", None) or [])
+        )
 
         depends_on = None
         if getattr(item, "depends_on", None):
             depends_on = tuple(sorted(item.depends_on))
 
-        key = (getattr(item, "purl", None), oss_name, oss_ver, comment, depends_on)
+        key = (getattr(item, "purl", None), oss_metadata, depends_on,
+               getattr(item, "source_name_or_path", None), getattr(item, "exclude", False))
         if key in seen:
             continue
         seen.add(key)
