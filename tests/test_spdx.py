@@ -18,6 +18,8 @@ from fosslight_dependency.run_dependency_scanner import run_dependency_scanner
 from fosslight_util.constant import FOSSLIGHT_DEPENDENCY
 from fosslight_util.oss_item import OssItem
 
+pytestmark = [pytest.mark.ubuntu, pytest.mark.windows, pytest.mark.macos]
+
 
 @pytest.fixture
 def npm_reports(tmp_path, monkeypatch):

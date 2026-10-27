@@ -66,6 +66,7 @@ def test_parse_oss_information_without_repository_key(tmp_path):
     ("licenses", "MIT", "Apache-2.0"),
     ("repository", "https://example.com/first", "https://example.com/second"),
 ])
+@pytest.mark.ubuntu
 def test_deduplication_preserves_metadata_from_real_npm_parser(tmp_path, field, first_value, second_value):
     with patch.object(Npm, "_check_network_available", return_value=False):
         npm = Npm(str(tmp_path), str(tmp_path))
