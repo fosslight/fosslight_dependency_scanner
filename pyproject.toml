@@ -29,7 +29,7 @@ dependencies = [
     "virtualenv",
     "pyyaml",
     "lastversion",
-    "fosslight_util>=2.2.14",
+    "fosslight_util>=2.2.18",
     "PyGithub",
     "requirements-parser",
     "defusedxml",
