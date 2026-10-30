@@ -144,7 +144,8 @@ class Yarn(Npm):
 
             npm_dl_url = f"{self.dn_url}{oss_init_name}/v/{oss_item.version}"
             npm_home_url = f"{self.dn_url}{oss_init_name}"
-            dep_item.purl = get_url_to_purl(npm_dl_url, self.package_manager_name)
+            # Keep npm name casing; the URL-based conversion lowercases names.
+            dep_item.purl = self._get_npm_purl(oss_init_name, oss_item.version)
             purl_dict[f'{oss_init_name}({oss_item.version})'] = dep_item.purl
 
             # license-checker may omit repository when package.json has a non-string
