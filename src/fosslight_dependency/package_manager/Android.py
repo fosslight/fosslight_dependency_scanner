@@ -11,6 +11,7 @@ import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager, get_url_to_purl
 from fosslight_dependency._package_manager import collect_gradle_download_urls, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_dependency.package_manager.Maven import _get_custom_repository_url
 from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
@@ -83,11 +84,21 @@ class Android(PackageManager):
                     if license_names:
                         oss_item.license = license_names
 
-                dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
-                purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
-
+                group_id, artifact_id = '', ''
                 if ':' in oss_item.name:
                     group_id, artifact_id = oss_item.name.split(':', 1)
+
+                if group_id:
+                    repository_url = _get_custom_repository_url(
+                        oss_item.download_location, group_id, artifact_id, oss_item.version
+                    )
+                    mvn_dn_url = f'https://mvnrepository.com/artifact/{group_id}/{artifact_id}/{oss_item.version}'
+                    dep_item.purl = get_url_to_purl(mvn_dn_url, 'maven', repository_url=repository_url)
+                else:
+                    dep_item.purl = get_url_to_purl(oss_item.download_location, 'maven')
+                purl_dict[f'{oss_item.name}({oss_item.version})'] = dep_item.purl
+
+                if group_id:
                     oss_item.download_location = get_download_location(self.download_url_map,
                                                                        group_id, artifact_id, oss_item.version,
                                                                        'https://mvnrepository.com/artifact/')

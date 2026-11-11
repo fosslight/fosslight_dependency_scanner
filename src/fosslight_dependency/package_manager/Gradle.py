@@ -13,6 +13,7 @@ from fosslight_dependency._package_manager import PackageManager
 from fosslight_dependency._package_manager import version_refine, get_url_to_purl
 from fosslight_dependency._package_manager import collect_gradle_download_urls, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
+from fosslight_dependency.package_manager.Maven import _get_custom_repository_url
 from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
 
@@ -133,8 +134,11 @@ class Gradle(PackageManager):
                 else:
                     oss_item.homepage = f"{self.dn_url}{group_id}/{artifact_id}"
 
+                repository_url = _get_custom_repository_url(
+                    oss_item.download_location, group_id, artifact_id, oss_ini_version
+                )
                 mvn_dn_url = f"{self.dn_url}{group_id}/{artifact_id}/{oss_ini_version}"
-                dep_item.purl = get_url_to_purl(mvn_dn_url, "maven")
+                dep_item.purl = get_url_to_purl(mvn_dn_url, "maven", repository_url=repository_url)
 
                 purl_dict[dep_key] = dep_item.purl
             else:
