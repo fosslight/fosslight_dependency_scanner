@@ -129,6 +129,16 @@ class PackageManager:
             f"Java Version : Java {major} "
             f"({version_text.splitlines()[0].strip()})"
         )
+
+        if self.package_manager_name in (const.GRADLE, const.ANDROID):
+            gradle_ver = get_gradle_version_from_wrapper(self.input_dir)
+            if gradle_ver is not None:
+                logger.info(f"Gradle Version : {'.'.join(map(str, gradle_ver))} (gradle wrapper)")
+        elif self.package_manager_name == const.MAVEN:
+            maven_ver = get_maven_version_from_wrapper(self.input_dir)
+            if maven_ver is not None:
+                logger.info(f"Maven Version : {'.'.join(map(str, maven_ver))} (maven wrapper)")
+
         return major
 
     def _resolve_wrapper_command(self):
@@ -697,10 +707,19 @@ def _build_groovy_license_report_config(plugin_version):
                 def json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
                 outputFile.text = json'''
 
+    # The jk1 plugin unions parent POM licenses into each module by default
+    # (unionParentPomLicenses=true since plugin 2.x). When an artifact declares
+    # its own licenses, parent licenses (e.g. org.eclipse.ee4j:project) must not
+    # be reported. Only set the flag for plugin versions that support it.
+    union_flag_line = ''
+    if not plugin_version.startswith('1.'):
+        union_flag_line = '    unionParentPomLicenses = false\n'
+
     license_report_block = (
         '\nlicenseReport {\n'
         "    configurations = ['runtimeClasspath']\n"
         '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"\n'
+        f'{union_flag_line}'
         '    renderers = [\n'
         '        new ReportRenderer() {\n'
         '            @Override\n'
@@ -744,10 +763,19 @@ def _build_kts_license_report_config(plugin_version):
                 val json = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result))
                 outputFile.writeText(json)'''
 
+    # The jk1 plugin unions parent POM licenses into each module by default
+    # (unionParentPomLicenses=true since plugin 2.x). When an artifact declares
+    # its own licenses, parent licenses (e.g. org.eclipse.ee4j:project) must not
+    # be reported. Only set the flag for plugin versions that support it.
+    union_flag_line = ''
+    if not plugin_version.startswith('1.'):
+        union_flag_line = '    unionParentPomLicenses = false\n'
+
     license_report_block = (
         '\nlicenseReport {\n'
         '    configurations = arrayOf("runtimeClasspath")\n'
         f'{output_config}\n'
+        f'{union_flag_line}'
         '    renderers = arrayOf(\n'
         '        object : ReportRenderer {\n'
         '            override fun render(data: ProjectData) {\n'
