@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import version_refine, get_url_to_purl, change_file_mode, get_download_location
+from fosslight_dependency._package_manager import get_url_to_purl, change_file_mode, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_util.get_pom_license import get_license_from_pom
 from fosslight_util.oss_item import OssItem
@@ -441,7 +441,9 @@ class Maven(PackageManager):
             groupid = d.findtext("groupId")
             artifactid = d.findtext("artifactId")
             version = d.findtext("version")
-            oss_item.version = version_refine(version)
+            # Report the version exactly as resolved by Maven (e.g. 2.3.1.Final)
+            # so that OSS version matching against OSV entries works per revision.
+            oss_item.version = version
 
             oss_item.name = f"{groupid}:{artifactid}"
             oss_item.download_location = get_download_location(

@@ -1054,17 +1054,6 @@ def _encode_purl_qualifiers(purl):
     return result
 
 
-def version_refine(oss_version):
-    version_cmp = oss_version.upper()
-
-    if version_cmp.find(".RELEASE") != -1:
-        oss_version = version_cmp.rstrip(".RELEASE")
-    elif version_cmp.find(".FINAL") != -1:
-        oss_version = version_cmp.rstrip(".FINAL")
-
-    return oss_version
-
-
 def connect_github(github_token):
     if len(github_token) > 0:
         g = Github(github_token)
