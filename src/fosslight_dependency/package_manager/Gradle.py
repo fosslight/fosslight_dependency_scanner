@@ -10,7 +10,7 @@ import re
 import fosslight_util.constant as constant
 import fosslight_dependency.constant as const
 from fosslight_dependency._package_manager import PackageManager
-from fosslight_dependency._package_manager import version_refine, get_url_to_purl
+from fosslight_dependency._package_manager import get_url_to_purl
 from fosslight_dependency._package_manager import collect_gradle_download_urls, get_download_location
 from fosslight_dependency.dependency_item import DependencyItem, change_dependson_to_purl
 from fosslight_dependency.package_manager.Maven import _get_custom_repository_url
@@ -91,7 +91,9 @@ class Gradle(PackageManager):
                 if dep_key not in self.total_dep_list:
                     continue
 
-            oss_item.version = version_refine(oss_ini_version)
+            # Report the version exactly as resolved by Gradle (e.g. 2.3.1.Final)
+            # so that OSS version matching against OSV entries works per revision.
+            oss_item.version = oss_ini_version
 
             if module_license and module_license.strip():
                 oss_item.license = module_license.strip()
