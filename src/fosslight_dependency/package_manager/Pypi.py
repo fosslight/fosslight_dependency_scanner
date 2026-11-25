@@ -1897,8 +1897,17 @@ class Pypi(PackageManager):
         return
 
     def _resolve_installed_package_license(self, metadata, oss_init_name, version):
-        """Resolve license using priority: license_expression > classifier > license > license_file."""
+        """Resolve license using priority: license_expression > license > classifier > license_file.
+
+        SPDX values (license_expression per PEP 639, then the license field) are more
+        authoritative than the human-facing 'License :: OSI Approved ::' classifier, so
+        classifiers are only consulted when neither SPDX field is present.
+        """
         license_info = check_UNKNOWN(metadata.get('license_expression', ''))
+        if not license_info:
+            license_info = check_UNKNOWN(metadata.get('license', ''))
+            if '\n' in license_info or '\r' in license_info:
+                license_info = check_UNKNOWN(check_license_name(license_info))
         if not license_info:
             classifiers = metadata.get('classifier', [])
             license_classifiers = [c for c in classifiers if c.startswith('License ::')]
@@ -1910,12 +1919,7 @@ class Pypi(PackageManager):
                         license_name = parts[-1].strip()
                         if license_name and license_name != 'OSI Approved':
                             license_info_l.append(license_name)
-                            break
                 license_info = ','.join(license_info_l)
-        if not license_info:
-            license_info = metadata.get('license', '')
-            if '\n' in license_info:
-                license_info = check_UNKNOWN(check_license_name(license_info))
         if not license_info:
             license_files_meta = metadata.get('license_file')
             license_info_list = self.get_license_from_file(
