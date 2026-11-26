@@ -65,7 +65,10 @@ class Android(PackageManager):
                 logger.warning(f'Failed to remove gradle cache directory: {e}')
 
     def check_input_path(self):
-        if os.path.isfile(self.plugin_output_file):
+        # Anchor to input_dir so the choice does not depend on the process's
+        # current working directory: run_dependency_scanner chdirs into the
+        # project before instantiating Android, but library users may not.
+        if os.path.isfile(os.path.join(self.input_dir, self.plugin_output_file)):
             return self.plugin_output_file
         else:
             return os.path.join(self.app_name, self.plugin_output_file)
