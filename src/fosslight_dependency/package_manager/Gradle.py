@@ -36,8 +36,20 @@ class Gradle(PackageManager):
             self.output_custom_dir = output_custom_dir
             self.input_file_name = os.path.join(output_custom_dir, os.sep.join(self.input_file_name.split(os.sep)[1:]))
 
-        self.input_file_preexisted = os.path.isfile(self.input_file_name)
+        self.input_file_preexisted = os.path.isfile(self._get_absolute_input_path())
         self.append_input_package_list_file(self.input_file_name)
+
+    def _get_absolute_input_path(self):
+        """Resolve input_file_name to an absolute path anchored at input_dir.
+
+        run_gradle_task() chdirs into input_dir before running the plugin, so a
+        relative input_file_name refers to a location under input_dir, not under
+        whatever directory the process happens to be in when the existence check
+        or cleanup runs.
+        """
+        if os.path.isabs(self.input_file_name):
+            return self.input_file_name
+        return os.path.join(self.input_dir, self.input_file_name)
 
     def __del__(self):
         # Remove the report file only when the plugin generated it in this run,
@@ -45,17 +57,13 @@ class Gradle(PackageManager):
         # user before the scan is preserved, so re-running after a wrong detection
         # only requires deleting the file (or letting the scanner regenerate it).
         if self.plugin_auto_run and not self.input_file_preexisted:
-            candidates = [self.input_file_name]
-            if not os.path.isabs(self.input_file_name):
-                candidates.append(os.path.join(self.input_dir, self.input_file_name))
-            for path in candidates:
-                if path and os.path.isfile(path):
-                    try:
-                        os.remove(path)
-                        logger.debug(f'Removed generated file: {path}')
-                    except OSError as e:
-                        logger.warning(f'Failed to remove generated file {path}: {e}')
-                    break
+            path = self._get_absolute_input_path()
+            if path and os.path.isfile(path):
+                try:
+                    os.remove(path)
+                    logger.debug(f'Removed generated file: {path}')
+                except OSError as e:
+                    logger.warning(f'Failed to remove generated file {path}: {e}')
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as json_file:
