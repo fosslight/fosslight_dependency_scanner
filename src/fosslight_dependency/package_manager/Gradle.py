@@ -25,6 +25,8 @@ class Gradle(PackageManager):
 
     dn_url = 'https://mvnrepository.com/artifact/'
     input_file_name = os.path.join('build', 'reports', 'license', 'dependency-license.json')
+    plugin_auto_run = False
+    input_file_preexisted = False
 
     def __init__(self, input_dir, output_dir, output_custom_dir):
         super().__init__(self.package_manager_name, self.dn_url, input_dir, output_dir)
@@ -34,7 +36,26 @@ class Gradle(PackageManager):
             self.output_custom_dir = output_custom_dir
             self.input_file_name = os.path.join(output_custom_dir, os.sep.join(self.input_file_name.split(os.sep)[1:]))
 
+        self.input_file_preexisted = os.path.isfile(self.input_file_name)
         self.append_input_package_list_file(self.input_file_name)
+
+    def __del__(self):
+        # Remove the report file only when the plugin generated it in this run,
+        # mirroring Android's input_file_preexisted policy. A file supplied by the
+        # user before the scan is preserved, so re-running after a wrong detection
+        # only requires deleting the file (or letting the scanner regenerate it).
+        if self.plugin_auto_run and not self.input_file_preexisted:
+            candidates = [self.input_file_name]
+            if not os.path.isabs(self.input_file_name):
+                candidates.append(os.path.join(self.input_dir, self.input_file_name))
+            for path in candidates:
+                if path and os.path.isfile(path):
+                    try:
+                        os.remove(path)
+                        logger.debug(f'Removed generated file: {path}')
+                    except OSError as e:
+                        logger.warning(f'Failed to remove generated file {path}: {e}')
+                    break
 
     def parse_oss_information(self, f_name):
         with open(f_name, 'r', encoding='utf8') as json_file:
