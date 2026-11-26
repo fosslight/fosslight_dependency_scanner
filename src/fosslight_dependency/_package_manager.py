@@ -455,6 +455,25 @@ class PackageManager:
             logging.warning(f"Cannot add the apply plugin in {module_build_gradle}: {e}")
             return False
 
+    def _resolve_plugin_output_dir(self):
+        """Gradle plugin output dir the scanner watches for dependency-license.json.
+
+        The injected jk1 plugin config previously hardcoded outputDir to the
+        project's build directory, while -c (output_custom_dir) only changes
+        where the scanner looks for the report. When the two differ the plugin
+        writes build/reports/license/dependency-license.json but the scanner
+        watches custom_dir/reports/license/, so the generated file is never
+        detected (plugin_auto_run stays False) and never cleaned up. Point the
+        plugin at the watched directory so write and watch always match.
+        The default case resolves to input_dir/build/reports/license, which is
+        identical to the previously hardcoded location.
+        """
+        if os.path.isabs(self.input_file_name):
+            watched_dir = os.path.dirname(self.input_file_name)
+        else:
+            watched_dir = os.path.dirname(os.path.join(self.input_dir, self.input_file_name))
+        return watched_dir.replace(os.sep, '/')
+
     def add_gradle_plugin_in_gradle(self, gradle_file):
         is_kts = gradle_file == 'build.gradle.kts'
 
@@ -481,10 +500,12 @@ class PackageManager:
 
         if is_kts:
             imports = _KTS_LICENSE_REPORT_IMPORTS
-            plugin_id_line, license_report_block = _build_kts_license_report_config(plugin_version)
+            plugin_id_line, license_report_block = _build_kts_license_report_config(
+                plugin_version, self._resolve_plugin_output_dir())
         else:
             imports = _GROOVY_LICENSE_REPORT_IMPORTS
-            plugin_id_line, license_report_block = _build_groovy_license_report_config(plugin_version)
+            plugin_id_line, license_report_block = _build_groovy_license_report_config(
+                plugin_version, self._resolve_plugin_output_dir())
 
         try:
             data = imports + data
@@ -681,7 +702,7 @@ def _insert_plugins_block_after_buildscript(content, plugin_block):
     return plugin_block + '\n' + content
 
 
-def _build_groovy_license_report_config(plugin_version):
+def _build_groovy_license_report_config(plugin_version, output_dir):
     plugin_id_line = f'  id "com.github.jk1.dependency-license-report" version "{plugin_version}"\n'
     output_property = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
 
@@ -718,7 +739,7 @@ def _build_groovy_license_report_config(plugin_version):
     license_report_block = (
         '\nlicenseReport {\n'
         "    configurations = ['runtimeClasspath']\n"
-        '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"\n'
+        f'    outputDir = "{output_dir}"\n'
         f'{union_flag_line}'
         '    renderers = [\n'
         '        new ReportRenderer() {\n'
@@ -733,9 +754,9 @@ def _build_groovy_license_report_config(plugin_version):
     return plugin_id_line, license_report_block
 
 
-def _build_kts_license_report_config(plugin_version):
+def _build_kts_license_report_config(plugin_version, output_dir):
     plugin_id_line = f'    id("com.github.jk1.dependency-license-report") version "{plugin_version}"\n'
-    output_config = '    outputDir = "${project.layout.buildDirectory.get().asFile}/reports/license"'
+    output_config = f'    outputDir = "{output_dir}"'
     output_property_access = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
 
     custom_renderer_body_kts = f'''                val outputFile = File(
