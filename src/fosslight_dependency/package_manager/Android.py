@@ -34,15 +34,29 @@ class Android(PackageManager):
         if app_name:
             self.app_name = app_name
         self.input_file_name = self.check_input_path()
-        self.input_file_preexisted = os.path.isfile(self.input_file_name)
+        self.input_file_preexisted = os.path.isfile(self._get_absolute_input_path())
         self.gradle_cache_dir = os.path.join(os.path.abspath(input_dir), '.gradle')
         self.gradle_cache_preexisted = os.path.isdir(self.gradle_cache_dir)
         self.append_input_package_list_file(self.input_file_name)
 
+    def _get_absolute_input_path(self):
+        """Resolve input_file_name to an absolute path anchored at input_dir.
+
+        The plugin runs inside input_dir, so a relative input_file_name refers to
+        a location under input_dir, not under the process's current directory.
+        """
+        if os.path.isabs(self.input_file_name):
+            return self.input_file_name
+        return os.path.join(self.input_dir, self.input_file_name)
+
     def __del__(self):
         if self.plugin_auto_run and not self.input_file_preexisted:
-            if os.path.isfile(self.input_file_name):
-                os.remove(self.input_file_name)
+            path = self._get_absolute_input_path()
+            if path and os.path.isfile(path):
+                try:
+                    os.remove(path)
+                except OSError as e:
+                    logger.warning(f'Failed to remove generated file {path}: {e}')
         if not self.gradle_cache_preexisted and os.path.isdir(self.gradle_cache_dir):
             try:
                 shutil.rmtree(self.gradle_cache_dir)
@@ -51,7 +65,10 @@ class Android(PackageManager):
                 logger.warning(f'Failed to remove gradle cache directory: {e}')
 
     def check_input_path(self):
-        if os.path.isfile(self.plugin_output_file):
+        # Anchor to input_dir so the choice does not depend on the process's
+        # current working directory: run_dependency_scanner chdirs into the
+        # project before instantiating Android, but library users may not.
+        if os.path.isfile(os.path.join(self.input_dir, self.plugin_output_file)):
             return self.plugin_output_file
         else:
             return os.path.join(self.app_name, self.plugin_output_file)
