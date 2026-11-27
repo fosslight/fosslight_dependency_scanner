@@ -61,7 +61,7 @@ class PackageManager:
         self.total_dep_list = []
         self.direct_dep_list = []
         self.package_manager_name = package_manager_name
-        self.input_dir = input_dir
+        self.input_dir = os.path.abspath(input_dir) if input_dir else input_dir
         self.output_dir = output_dir
         self.dn_url = dn_url
         self.manifest_file_name = []
@@ -465,14 +465,16 @@ class PackageManager:
         watches custom_dir/reports/license/, so the generated file is never
         detected (plugin_auto_run stays False) and never cleaned up. Point the
         plugin at the watched directory so write and watch always match.
-        The default case resolves to input_dir/build/reports/license, which is
-        identical to the previously hardcoded location.
+        The watched dir is made absolute: run_gradle_task() runs the plugin
+        from inside input_dir, so a relative outputDir would be resolved
+        against the project directory again (input_dir doubled) and the
+        report would land where the scanner never looks.
         """
         if os.path.isabs(self.input_file_name):
             watched_dir = os.path.dirname(self.input_file_name)
         else:
             watched_dir = os.path.dirname(os.path.join(self.input_dir, self.input_file_name))
-        return watched_dir.replace(os.sep, '/')
+        return os.path.abspath(watched_dir).replace(os.sep, '/')
 
     def add_gradle_plugin_in_gradle(self, gradle_file):
         is_kts = gradle_file == 'build.gradle.kts'
@@ -702,7 +704,31 @@ def _insert_plugins_block_after_buildscript(content, plugin_block):
     return plugin_block + '\n' + content
 
 
+def _escape_gradle_dsl_string(value):
+    """Escape a path for use inside a Groovy/Kotlin double-quoted string.
+
+    Both DSLs treat $... in double-quoted strings as interpolation, so a
+    project path containing $ (e.g. /work/$workspace) would be evaluated as
+    a missing variable and break the generated build file. Escape backslash,
+    dollar and double quote, and encode control characters.
+    """
+    escaped = []
+    for ch in str(value):
+        if ch == '\\':
+            escaped.append('\\\\')
+        elif ch == '$':
+            escaped.append('\\$')
+        elif ch == '"':
+            escaped.append('\\"')
+        elif ord(ch) < 0x20 or ord(ch) == 0x7f:
+            escaped.append(f'\\u{ord(ch):04x}')
+        else:
+            escaped.append(ch)
+    return ''.join(escaped)
+
+
 def _build_groovy_license_report_config(plugin_version, output_dir):
+    escaped_output_dir = _escape_gradle_dsl_string(output_dir)
     plugin_id_line = f'  id "com.github.jk1.dependency-license-report" version "{plugin_version}"\n'
     output_property = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
 
@@ -739,7 +765,7 @@ def _build_groovy_license_report_config(plugin_version, output_dir):
     license_report_block = (
         '\nlicenseReport {\n'
         "    configurations = ['runtimeClasspath']\n"
-        f'    outputDir = "{output_dir}"\n'
+        f'    outputDir = "{escaped_output_dir}"\n'
         f'{union_flag_line}'
         '    renderers = [\n'
         '        new ReportRenderer() {\n'
@@ -755,8 +781,9 @@ def _build_groovy_license_report_config(plugin_version, output_dir):
 
 
 def _build_kts_license_report_config(plugin_version, output_dir):
+    escaped_output_dir = _escape_gradle_dsl_string(output_dir)
     plugin_id_line = f'    id("com.github.jk1.dependency-license-report") version "{plugin_version}"\n'
-    output_config = f'    outputDir = "{output_dir}"'
+    output_config = f'    outputDir = "{escaped_output_dir}"'
     output_property_access = 'outputDir' if plugin_version in ('1.9', '2.9') else 'absoluteOutputDir'
 
     custom_renderer_body_kts = f'''                val outputFile = File(
